@@ -1,11 +1,11 @@
 variable "region" {
   description = "AWS region"
   type        = string
-  default     = "ap-northeast-2"  # Seoul region
+  default     = "us-east-1"  # Or your preferred region
 }
 
 variable "stage" {
-  description = "Prefix for resource names"
+  description = "Environment stage (e.g., dev, staging, prod)"
   type        = string
-  default     = "flowise"
+  default     = "dev"
 }
