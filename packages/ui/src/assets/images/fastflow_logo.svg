@@ -1,0 +1,11 @@
+<svg width="265" height="265" viewBox="0 0 265 265" xmlns="http://www.w3.org/2000/svg">
+  <!-- Vertical Bar - Bottom Section -->
+  <rect x="50" y="195" width="75" height="60" rx="5" ry="5" fill="#9C27B0"/>
+  <!-- Vertical Bar - Top Section, adjusted to ensure even spacing -->
+  <rect x="50" y="75" width="75" height="50" rx="5" ry="5" fill="#FBBC05"/>
+  <!-- Upper Horizontal Bar -->
+  <rect x="50" y="10" width="160" height="60" rx="5" ry="5" fill="#FF5722"/>
+  <!-- Middle Horizontal Bar (adjusted for even spacing between horizontal bars) -->
+  <rect x="50" y="130" width="130" height="60" rx="5" ry="5" fill="#00BCD4"/>
+</svg>
+
