@@ -343,24 +343,24 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
 }
 
 # Create CloudWatch Log Group
-resource "aws_cloudwatch_log_group" "flowise" {
+resource "aws_cloudwatch_log_group" "fastflow" {
   name              = "/ecs/${var.stage}"
   retention_in_days = 7
 }
 
 # Create ECS Task Definition
-resource "aws_ecs_task_definition" "flowise" {
-  family                   = "${var.stage}-flowise-task"
+resource "aws_ecs_task_definition" "fastflow" {
+  family                   = "${var.stage}-fastflow-task"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "256"
-  memory                   = "512"
+  cpu                      = "1024"
+  memory                   = "8192"
 
   container_definitions = jsonencode([
     {
-      name      = "flowise-service"
-      image     = "flowiseai/flowise:latest"
+      name      = "fastflow-service"
+      image     = "leadevs/fastflow:latest"
       essential = true
       portMappings = [
         {
@@ -371,18 +371,21 @@ resource "aws_ecs_task_definition" "flowise" {
       environment = [
         { name = "PORT", value = "3000" },
         # Add required environment variables here.
+        { name = "FASTFLOW_USERNAME", value = "user" },
+        { name = "FASTFLOW_PASSWORD", value = "1234" },
+        { name = "VITE_PORT", value = "8080" },
       ]
-      entryPoint = ["flowise", "start"]
+      entryPoint = ["pnpm", "start"]
       mountPoints = [
         {
           sourceVolume  = "efs-volume"
-          containerPath = "/root/.flowise"
+          containerPath = "/root/.fastflow"
         }
       ]
       logConfiguration = {
         logDriver = "awslogs"
         options   = {
-          "awslogs-group"         = aws_cloudwatch_log_group.flowise.name
+          "awslogs-group"         = aws_cloudwatch_log_group.fastflow.name
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = var.stage
         }
@@ -401,16 +404,16 @@ resource "aws_ecs_task_definition" "flowise" {
   }
 }
 
-# Create Target Group for Flowise
-resource "aws_lb_target_group" "flowise" {
-  name        = "${var.stage}-flowise-tg"
+# Create Target Group for Fastflow
+resource "aws_lb_target_group" "fastflow" {
+  name        = "${var.stage}-fastflow-tg"
   port        = 3000
   protocol    = "HTTP"
   target_type = "ip"
   vpc_id      = aws_vpc.this.id
 
   health_check {
-    path                = "/"
+    path                = "/api/v1/ping"
     protocol            = "HTTP"
     interval            = 10
     timeout             = 5
@@ -420,14 +423,14 @@ resource "aws_lb_target_group" "flowise" {
   }
 }
 
-# Create Listener Rule for Flowise
-resource "aws_lb_listener_rule" "flowise" {
+# Create Listener Rule for Fastflow
+resource "aws_lb_listener_rule" "fastflow" {
   listener_arn = aws_lb_listener.public_listener.arn
   priority     = 1
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.flowise.arn
+    target_group_arn = aws_lb_target_group.fastflow.arn
   }
 
   condition {
@@ -438,10 +441,10 @@ resource "aws_lb_listener_rule" "flowise" {
 }
 
 # Create ECS Service
-resource "aws_ecs_service" "flowise" {
-  name            = "${var.stage}-flowise-service"
+resource "aws_ecs_service" "fastflow" {
+  name            = "${var.stage}-fastflow-service"
   cluster         = aws_ecs_cluster.this.id
-  task_definition = aws_ecs_task_definition.flowise.arn
+  task_definition = aws_ecs_task_definition.fastflow.arn
   launch_type     = "FARGATE"
   desired_count   = 2
 
@@ -452,19 +455,19 @@ resource "aws_ecs_service" "flowise" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.flowise.arn
-    container_name   = "flowise-service"
+    target_group_arn = aws_lb_target_group.fastflow.arn
+    container_name   = "fastflow-service"
     container_port   = 3000
   }
 
   depends_on = [
-    aws_lb_listener_rule.flowise,
+    aws_lb_listener_rule.fastflow,
     aws_route.private_internet_access
   ]
 }
 
 # Output the external URL
 output "external_url" {
-  description = "URL of the Flowise application"
+  description = "URL of the Fastflow application"
   value       = "http://${aws_lb.public.dns_name}"
 }
