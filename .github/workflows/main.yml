@@ -1,8 +1,7 @@
 name: Node CI
 on:
     push:
-        branches:
-            - main
+        branches: ['develop', 'main']
     pull_request:
         branches:
             - '*'
@@ -47,3 +46,12 @@ jobs:
                   wait-on: 'http://localhost:3000'
                   wait-on-timeout: 120
                   browser: chrome
+    docker-test:
+        needs: build
+        runs-on: ubuntu-latest
+        env:
+            PUPPETEER_SKIP_DOWNLOAD: true
+        steps:
+            - uses: actions/checkout@v4
+            - name: Test Docker Build
+            - run: docker build --no-cache -t fastflow .
