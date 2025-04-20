@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: Docker Build & Push
 
 on:
     workflow_dispatch:
@@ -15,6 +15,11 @@ on:
                 type: string
                 required: true
                 default: 'latest'
+    push:
+        branches: ['develop', 'main']
+        paths-ignore:
+            - 'terraform/**'
+            - '**.md'
 
 jobs:
     docker:
@@ -35,9 +40,9 @@ jobs:
               uses: docker/build-push-action@v5.3.0
               with:
                   context: .
-                  file: ./docker/Dockerfile
+                  file: ./Dockerfile
                   build-args: |
-                      NODE_VERSION=${{github.event.inputs.node_version}}
+                      NODE_VERSION=20
                   platforms: linux/amd64,linux/arm64
                   push: true
-                  tags: leadevs/fastflow:${{github.event.inputs.tag_version}}
+                  tags: leadevs/fastflow:latest
