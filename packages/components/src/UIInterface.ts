@@ -56,6 +56,7 @@ export interface IUINode extends INode {
  * Base class for UI nodes implementing the IUINode interface
  */
 export abstract class UINodeBase implements IUINode {
+    id: string
     label: string
     name: string
     type: string
@@ -76,6 +77,7 @@ export abstract class UINodeBase implements IUINode {
     protected properties: UINodeProperty[] = []
 
     constructor(nodeData: INodeData) {
+        this.id = nodeData.id
         this.label = nodeData.label
         this.name = nodeData.name
         this.type = nodeData.type

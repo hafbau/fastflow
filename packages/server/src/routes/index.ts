@@ -39,12 +39,14 @@ import screensRouter from './screens'
 import statsRouter from './stats'
 import toolsRouter from './tools'
 import uiComponentsRouter from './uicomponents'
+import uiFlowsRouter from './uiflows'
 import upsertHistoryRouter from './upsert-history'
 import variablesRouter from './variables'
 import vectorRouter from './vectors'
 import verifyRouter from './verify'
 import versionRouter from './versions'
 import nvidiaNimRouter from './nvidia-nim'
+import templatesRouter from './templates'
 
 const router = express.Router()
 
@@ -87,11 +89,13 @@ router.use('/stats', statsRouter)
 router.use('/versions', versionRouter)
 router.use('/tools', toolsRouter)
 router.use('/ui-components', uiComponentsRouter)
+router.use('/ui-flows', uiFlowsRouter)
 router.use('/openai-assistants', openaiAssistantsRouter)
 router.use('/openai-assistants-files', openaiAssistantsFileRouter)
 router.use('/openai-assistants-vector-store', openaiAssistantsVectorStoreRouter)
 router.use('/openai-realtime', openaiRealtimeRouter)
 router.use('/nvidia-nim', nvidiaNimRouter)
 router.use('/screens', screensRouter)
+router.use('/templates', templatesRouter)
 
 export default router
