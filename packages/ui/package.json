@@ -3,6 +3,7 @@
     "version": "2.2.7-patch.1",
     "license": "SEE LICENSE IN LICENSE.md",
     "homepage": "https://fastflow.ai",
+    "type": "module",
     "author": {
         "name": "HenryHeng",
         "email": "henryheng@flowiseai.com"
