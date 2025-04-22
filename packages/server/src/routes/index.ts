@@ -37,6 +37,7 @@ import publicChatbotRouter from './public-chatbots'
 import publicChatflowsRouter from './public-chatflows'
 import statsRouter from './stats'
 import toolsRouter from './tools'
+import uiComponentsRouter from './uicomponents'
 import upsertHistoryRouter from './upsert-history'
 import variablesRouter from './variables'
 import vectorRouter from './vectors'
@@ -90,5 +91,6 @@ router.use('/verify', verifyRouter)
 router.use('/version', versionRouter)
 router.use('/upsert-history', upsertHistoryRouter)
 router.use('/nvidia-nim', nvidiaNimRouter)
+router.use('/uicomponents', uiComponentsRouter)
 
 export default router

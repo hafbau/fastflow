@@ -27,6 +27,7 @@ import { OpenTelemetry } from './metrics/OpenTelemetry'
 import { QueueManager } from './queue/QueueManager'
 import { RedisEventSubscriber } from './queue/RedisEventSubscriber'
 import { WHITELIST_URLS } from './utils/constants'
+import { initializeUIComponents } from './services/uicomponents'
 import 'global-agent/bootstrap'
 
 declare global {
@@ -77,6 +78,10 @@ export class App {
             // Initialize nodes pool
             this.nodesPool = new NodesPool()
             await this.nodesPool.initialize()
+
+            // Initialize UI components
+            await initializeUIComponents()
+            logger.info('🎨 [server]: UI Components initialized')
 
             // Initialize abort controllers pool
             this.abortControllerPool = new AbortControllerPool()

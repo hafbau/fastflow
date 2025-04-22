@@ -28,6 +28,7 @@ import { AddCustomTemplate1725629836652 } from './1725629836652-AddCustomTemplat
 import { AddArtifactsToChatMessage1726156258465 } from './1726156258465-AddArtifactsToChatMessage'
 import { AddFollowUpPrompts1726666318346 } from './1726666318346-AddFollowUpPrompts'
 import { AddTypeToAssistant1733011290987 } from './1733011290987-AddTypeToAssistant'
+import { AddUIEntities1716474000000 } from './1716474000000-AddUIEntities'
 
 export const mariadbMigrations = [
     Init1693840429259,
@@ -59,5 +60,6 @@ export const mariadbMigrations = [
     AddCustomTemplate1725629836652,
     AddArtifactsToChatMessage1726156258465,
     AddFollowUpPrompts1726666318346,
-    AddTypeToAssistant1733011290987
+    AddTypeToAssistant1733011290987,
+    AddUIEntities1716474000000
 ]
