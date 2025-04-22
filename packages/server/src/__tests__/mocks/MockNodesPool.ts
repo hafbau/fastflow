@@ -1,3 +1,48 @@
+// Mock setup must be at the top of the file, before imports
+jest.mock('@langchain/core/messages', () => ({
+    BaseMessage: jest.fn(),
+}));
+
+jest.mock('langchain/memory', () => ({
+    BufferMemory: jest.fn(),
+    BufferWindowMemory: jest.fn(),
+    ConversationSummaryMemory: jest.fn(),
+    ConversationSummaryBufferMemory: jest.fn(),
+}));
+
+// Mock the Interface module to avoid ESM issues
+jest.mock('../../Interface', () => {
+    // Create a minimal IUINode interface required for tests
+    const mockIUINode = {
+        renderComponent: jest.fn(),
+        handleEvent: jest.fn(),
+        getProperties: jest.fn(),
+        getCacheKey: jest.fn(),
+        getQueueOptions: jest.fn()
+    };
+
+    // Return the mocked exports
+    return {
+        IUINode: mockIUINode
+    };
+});
+
+// Mock the components Interface module
+jest.mock('fastflow-components', () => ({
+    // Add any required exports from the components module
+}));
+
+// Mock the logger to avoid unnecessary console output
+jest.mock('../../utils/logger', () => ({
+    __esModule: true,
+    default: {
+        error: jest.fn(),
+        info: jest.fn(),
+        warn: jest.fn(),
+        debug: jest.fn()
+    }
+}));
+
 // Define types for UI components
 export interface ComponentData {
     name?: string;  // Make name optional for flexibility in tests
@@ -146,59 +191,16 @@ export class MockNodesPool {
 
 // Setup function to create Jest mocks for common dependencies
 export function setupNodesMocks() {
-    // Mock the langchain dependencies that cause ESM issues
-    jest.mock('@langchain/core/messages', () => ({
-        BaseMessage: jest.fn(),
-    }));
+    // This function now doesn't need to call jest.mock as it's done at the top of the file
+    // It's kept for backward compatibility or can be used for other setup tasks
 
-    jest.mock('langchain/memory', () => ({
-        BufferMemory: jest.fn(),
-        BufferWindowMemory: jest.fn(),
-        ConversationSummaryMemory: jest.fn(),
-        ConversationSummaryBufferMemory: jest.fn(),
-    }));
-
-    // Mock the Interface module to avoid ESM issues
-    jest.mock('../../Interface', () => {
-        // Create a minimal IUINode interface required for tests
-        const mockIUINode = {
-            renderComponent: jest.fn(),
-            handleEvent: jest.fn(),
-            getProperties: jest.fn(),
-            getCacheKey: jest.fn(),
-            getQueueOptions: jest.fn()
-        };
-
-        // Return the mocked exports
-        return {
-            IUINode: mockIUINode
-        };
-    });
-
-    // Mock the components Interface module
-    jest.mock('fastflow-components', () => ({
-        // Add any required exports from the components module
-    }));
-
-    // Mock the NodesPool module
-    jest.mock('../../NodesPool', () => {
+    // Mock the NodesPool module - this needs special handling since it can't be added at the top level
+    jest.doMock('../../NodesPool', () => {
         return {
             NodesPool: MockNodesPool,
-            UI_CATEGORIES,
-            UICategory: undefined // TypeScript type, doesn't exist at runtime
+            UI_CATEGORIES
         };
     });
-
-    // Mock the logger to avoid unnecessary console output
-    jest.mock('../../utils/logger', () => ({
-        __esModule: true,
-        default: {
-            error: jest.fn(),
-            info: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn()
-        }
-    }));
 }
 
 // Helper to create test components of different categories
