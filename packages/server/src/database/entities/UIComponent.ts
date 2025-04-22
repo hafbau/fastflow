@@ -1,5 +1,6 @@
-import { Entity, Column, CreateDateColumn, UpdateDateColumn, PrimaryGeneratedColumn } from 'typeorm'
+import { Entity, Column, CreateDateColumn, UpdateDateColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm'
 import { IUIComponent } from '../../Interface'
+import { Screen } from './Screen'
 
 @Entity()
 export class UIComponent implements IUIComponent {
@@ -26,6 +27,13 @@ export class UIComponent implements IUIComponent {
 
     @Column({ nullable: true })
     icon: string
+
+    @Column('uuid', { nullable: true })
+    screenId: string
+
+    @ManyToOne(() => Screen, (screen) => screen.components, { nullable: true })
+    @JoinColumn({ name: 'screenId' })
+    screen: Screen
 
     @CreateDateColumn()
     createdDate: Date

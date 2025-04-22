@@ -1,6 +1,7 @@
-import { Entity, Column, CreateDateColumn, UpdateDateColumn, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { Entity, Column, CreateDateColumn, UpdateDateColumn, PrimaryGeneratedColumn, ManyToOne, OneToMany, JoinColumn } from 'typeorm'
 import { IUIFlow } from '../../Interface'
 import { ChatFlow } from './ChatFlow'
+import { Screen } from './Screen'
 
 @Entity()
 export class UIFlow implements IUIFlow {
@@ -22,6 +23,9 @@ export class UIFlow implements IUIFlow {
     @ManyToOne(() => ChatFlow, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'chatflowId' })
     chatflow: ChatFlow
+
+    @OneToMany(() => Screen, (screen) => screen.uiFlow)
+    screens: Screen[]
 
     @Column({ default: false })
     isPublic: boolean

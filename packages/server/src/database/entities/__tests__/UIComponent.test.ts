@@ -1,5 +1,8 @@
 import { DataSource } from 'typeorm'
 import { UIComponent } from '../UIComponent'
+import { Screen } from '../Screen'
+import { UIFlow } from '../UIFlow'
+import { ChatFlow } from '../ChatFlow'
 
 describe('UIComponent Entity', () => {
     let dataSource: DataSource;
@@ -10,7 +13,7 @@ describe('UIComponent Entity', () => {
             database: ':memory:',
             synchronize: true,
             logging: false,
-            entities: [UIComponent]
+            entities: [UIComponent, Screen, UIFlow, ChatFlow]
         })
         await dataSource.initialize()
     })

@@ -394,3 +394,16 @@ export interface IUIFlow {
     updatedDate: Date
     createdDate: Date
 }
+
+export interface IScreen {
+    id: string
+    path: string
+    queryParameters?: Record<string, any>
+    pathParameters?: Record<string, any>
+    title: string
+    description?: string
+    metadata?: Record<string, any>
+    uiFlowId: string
+    updatedDate: Date
+    createdDate: Date
+}

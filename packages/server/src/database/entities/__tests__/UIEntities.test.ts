@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm'
 import { UIFlow } from '../UIFlow'
 import { UIComponent } from '../UIComponent'
 import { ChatFlow } from '../ChatFlow'
+import { Screen } from '../Screen'
 
 describe('UI Entities', () => {
     let dataSource: DataSource
@@ -10,7 +11,7 @@ describe('UI Entities', () => {
         dataSource = new DataSource({
             type: 'sqlite',
             database: ':memory:',
-            entities: [UIFlow, UIComponent, ChatFlow],
+            entities: [UIFlow, UIComponent, ChatFlow, Screen],
             synchronize: true,
             logging: false
         })
