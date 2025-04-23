@@ -1,7 +1,7 @@
 // jest-dom adds custom jest matchers for asserting on DOM nodes.
 // allows you to do things like:
 // expect(element).toHaveTextContent(/hello/i)
-import '@testing-library/jest-dom';
+require('@testing-library/jest-dom');
 
 // Mock ResizeObserver which is not available in jsdom
 global.ResizeObserver = class ResizeObserver {
