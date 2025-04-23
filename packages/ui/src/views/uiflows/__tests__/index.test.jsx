@@ -2,10 +2,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'
 import UIFlows from '../index'
-import axios from '@/utils/axios'
+import axios from 'axios'
 
 // Mock dependencies
-jest.mock('@/utils/axios')
+jest.mock('axios')
 jest.mock('@/ui-component/cards/ItemCard', () => ({ title, description, actions, variant = 'card' }) => (
   <div data-testid={`item-card-${variant}`}>
     <div>{title}</div>

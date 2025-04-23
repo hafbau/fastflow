@@ -2,10 +2,10 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom'
 import { BrowserRouter } from 'react-router-dom'
 import UIFlowCreation from '../UIFlowCreation'
-import axios from '@/utils/axios'
+import axios from 'axios'
 
 // Mock dependencies
-jest.mock('@/utils/axios')
+jest.mock('axios')
 jest.mock('../ScreenEditor', () => ({ screen, onScreenUpdate }) => (
   <div data-testid="screen-editor">
     <button onClick={() => onScreenUpdate({ ...screen, title: 'Updated Title' })}>

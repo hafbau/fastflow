@@ -25,7 +25,7 @@ import { useTheme } from '@mui/material/styles'
 import MainCard from '@/ui-component/cards/MainCard'
 import { gridSpacing } from '@/store/constant'
 import ScreenEditor from './ScreenEditor'
-import axios from '@/utils/axios'
+import axios from 'axios'
 import { StyledButton } from '@/ui-component/button/StyledButton'
 import { IconArrowLeft, IconDeviceFloppy, IconPlus } from '@tabler/icons-react'
 

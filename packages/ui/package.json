@@ -5,8 +5,8 @@
     "homepage": "https://fastflow.ai",
     "type": "module",
     "author": {
-        "name": "HenryHeng",
-        "email": "henryheng@flowiseai.com"
+        "name": "Hafiz",
+        "email": "hafiz@leadevs.com"
     },
     "dependencies": {
         "@codemirror/lang-javascript": "^6.2.1",
@@ -68,7 +68,8 @@
         "build": "vite build",
         "clean": "rimraf build",
         "nuke": "rimraf build node_modules .turbo",
-        "test": "jest --config=jest.config.js"
+        "test": "jest --config=jest.config.cjs",
+        "test:react": "jest --config=jest.react.config.cjs"
     },
     "babel": {
         "presets": [

@@ -13,7 +13,7 @@ import WorkflowEmptySVG from '@/assets/images/workflow_empty.svg'
 import ViewHeader from '@/layout/MainLayout/ViewHeader'
 import ErrorBoundary from '@/ErrorBoundary'
 import { StyledButton } from '@/ui-component/button/StyledButton'
-import axios from '@/utils/axios'
+import axios from 'axios'
 
 // icons
 import { IconPlus, IconLayoutGrid, IconList, IconEye } from '@tabler/icons-react'
