@@ -79,10 +79,6 @@ export class App {
             this.nodesPool = new NodesPool()
             await this.nodesPool.initialize()
 
-            // Initialize UI components
-            await initializeUIComponents()
-            logger.info('🎨 [server]: UI Components initialized')
-
             // Initialize abort controllers pool
             this.abortControllerPool = new AbortControllerPool()
 
@@ -304,6 +300,16 @@ export async function start(): Promise<void> {
 
     await serverApp.initDatabase()
     await serverApp.config()
+    
+    // Initialize UI components after server is fully configured
+    try {
+        await initializeUIComponents()
+        logger.info('🎨 [server]: UI Components initialized')
+    } catch (error: any) {
+        // Log error but continue server startup
+        logger.error(`❌ [server]: UI Components initialization failed: ${error.message || 'Unknown error'}`)
+        logger.info('🎨 [server]: Server will continue without UI Components')
+    }
 
     server.listen(port, host, () => {
         logger.info(`⚡️ [server]: Fastflow Server is listening at ${host ? 'http://' + host : ''}:${port}`)
