@@ -28,12 +28,16 @@ export class UIComponent implements IUIComponent {
     @Column({ nullable: true })
     icon: string
 
-    @Column('uuid', { nullable: true })
-    screenId: string
+    @Column('uuid', { nullable: true, select: false })
+    screenId?: string
 
-    @ManyToOne(() => Screen, (screen) => screen.components, { nullable: true })
-    @JoinColumn({ name: 'screenId' })
-    screen: Screen
+    @ManyToOne(() => Screen, (screen) => screen.components, { 
+        nullable: true, 
+        onDelete: 'SET NULL', 
+        eager: false 
+    })
+    @JoinColumn({ name: 'screenId', referencedColumnName: 'id' })
+    screen?: Screen
 
     @CreateDateColumn()
     createdDate: Date

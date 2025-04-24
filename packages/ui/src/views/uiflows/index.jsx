@@ -13,7 +13,7 @@ import WorkflowEmptySVG from '@/assets/images/workflow_empty.svg'
 import ViewHeader from '@/layout/MainLayout/ViewHeader'
 import ErrorBoundary from '@/ErrorBoundary'
 import { StyledButton } from '@/ui-component/button/StyledButton'
-import axios from 'axios'
+import uiflowsApi from '@/api/uiflows'
 
 // icons
 import { IconPlus, IconLayoutGrid, IconList, IconEye } from '@tabler/icons-react'
@@ -35,11 +35,26 @@ const UIFlows = () => {
         const fetchUIFlows = async () => {
             try {
                 setLoading(true)
-                const response = await axios.get('/api/v1/uiflows')
-                setUIFlows(response.data)
+                console.log('Fetching UI flows...')
+                const response = await uiflowsApi.getAllUIFlows()
+                console.log('UI flows API response:', response)
+                
+                // Check if the response data is valid
+                if (response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
+                    // Handle case where the response is an object but not an array
+                    console.error('API returned unexpected data format:', response.data)
+                    setError(new Error('Invalid data format received from server'))
+                } else if (typeof response.data === 'string' && response.data.includes('<!DOCTYPE html>')) {
+                    // Handle case where HTML is returned instead of JSON
+                    console.error('API returned HTML instead of JSON data')
+                    setError(new Error('Authentication error or invalid endpoint'))
+                } else {
+                    // Ensure we set an empty array if data is not an array
+                    setUIFlows(Array.isArray(response.data) ? response.data : [])
+                }
             } catch (err) {
                 console.error('Error fetching UI flows:', err)
-                setError(err.message || 'Failed to fetch UI flows')
+                setError(err)
             } finally {
                 setLoading(false)
             }
@@ -48,12 +63,14 @@ const UIFlows = () => {
         fetchUIFlows()
     }, [])
 
-    // Filter UI flows based on search
-    const filteredUIFlows = uiFlows.filter(
-        (flow) => 
-            flow.name?.toLowerCase().includes(search.toLowerCase()) ||
-            flow.description?.toLowerCase().includes(search.toLowerCase())
-    )
+    // Ensure we're working with an array before filtering
+    const filteredUIFlows = Array.isArray(uiFlows) 
+        ? uiFlows.filter(
+            (flow) => 
+                flow?.name?.toLowerCase().includes(search.toLowerCase()) ||
+                flow?.description?.toLowerCase().includes(search.toLowerCase())
+        ) 
+        : []
 
     const handleChange = (event, nextView) => {
         if (nextView === null) return

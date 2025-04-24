@@ -108,7 +108,16 @@ const unregisterUIComponent = async (componentName: string): Promise<boolean> =>
 const initializeUIComponents = async () => {
     try {
         const appServer = getRunningExpressApp()
-        const components = await appServer.AppDataSource.getRepository(UIComponent).find()
+        let components = []
+        
+        try {
+            // Try to fetch components from the database
+            components = await appServer.AppDataSource.getRepository(UIComponent).find()
+        } catch (dbError) {
+            // If there's a database error (like missing column), log and return empty
+            logger.error(`Database error fetching UI components: ${getErrorMessage(dbError)}`)
+            return { success: 0, failed: 0, error: getErrorMessage(dbError) }
+        }
         
         let successCount = 0
         let failCount = 0
