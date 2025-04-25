@@ -1,1 +1,60 @@
- 
+# Package Manager Guidelines
+
+## Primary Package Manager: pnpm
+
+This project uses **pnpm** as the primary package manager. Always use pnpm commands instead of npm or yarn.
+
+### Key Commands
+
+- **Installing Dependencies:**
+  ```bash
+  # ✅ DO: Use pnpm commands
+  pnpm install
+  pnpm add <package>
+  pnpm add -D <package>  # dev dependencies
+
+  # ❌ DON'T: Use npm or yarn
+  npm install  # wrong
+  yarn add     # wrong
+  ```
+
+- **Running Scripts:**
+  ```bash
+  # ✅ DO: Use pnpm run
+  pnpm run test
+  pnpm run build
+  # or shorter form:
+  pnpm test
+  pnpm build
+
+  # ❌ DON'T: Use npm or yarn
+  npm run test   # wrong
+  yarn test      # wrong
+  ```
+
+### Workspace Commands
+
+For monorepo workspace operations:
+```bash
+# Install dependencies across all workspaces
+pnpm install
+
+# Run a command in a specific workspace
+pnpm --filter <workspace-name> <command>
+
+# Add a dependency to a specific workspace
+pnpm --filter <workspace-name> add <package>
+```
+
+### Lock File
+
+- Always commit `pnpm-lock.yaml`
+- Never modify the lock file manually
+- Run `pnpm install` after pulling changes that modify the lock file
+
+### Benefits of pnpm
+
+1. Efficient disk space usage through content-addressable storage
+2. Strict dependency management preventing phantom dependencies
+3. Fast installation and better monorepo support
+4. Built-in workspace features for monorepo management 

@@ -407,3 +407,26 @@ export interface IScreen {
     updatedDate: Date
     createdDate: Date
 }
+
+export interface IUITemplate {
+    id: string
+    name: string
+    description?: string
+    version: string
+    category?: string
+    tags?: string[]
+    data: {
+        screens: Array<{
+            id: string
+            name: string
+            components: Array<any>
+        }>
+        flowData: {
+            nodes: any[]
+            edges: any[]
+        },
+        metadata?: Record<string, any>
+    }
+    createdDate: Date
+    updatedDate: Date
+}

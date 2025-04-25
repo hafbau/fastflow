@@ -39,6 +39,7 @@ import screensRouter from './screens'
 import statsRouter from './stats'
 import toolsRouter from './tools'
 import uiComponentsRouter from './uicomponents'
+import uiComponentEventsRouter from './uicomponentevents'
 import uiFlowsRouter from './uiflows'
 import upsertHistoryRouter from './upsert-history'
 import variablesRouter from './variables'
@@ -89,6 +90,7 @@ router.use('/stats', statsRouter)
 router.use('/versions', versionRouter)
 router.use('/tools', toolsRouter)
 router.use('/ui-components', uiComponentsRouter)
+router.use('/ui-component-events', uiComponentEventsRouter)
 router.use('/ui-flows', uiFlowsRouter)
 router.use('/openai-assistants', openaiAssistantsRouter)
 router.use('/openai-assistants-files', openaiAssistantsFileRouter)
