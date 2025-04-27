@@ -175,7 +175,26 @@ export class UIEventManager {
         try {
             // Use custom event type for SSE stream
             const sseEventType = `ui-${event.type}`
-            this.sseStreamer.streamCustomEvent(uiFlowId, sseEventType, event.payload)
+            
+            // Enhance payload with timestamp if not already present
+            const enhancedPayload = {
+                ...event.payload,
+                timestamp: event.payload.timestamp || Date.now()
+            }
+            
+            // Add metadata for tracking
+            const metadata = {
+                id: `event-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+                type: event.type,
+                timestamp: Date.now()
+            }
+            
+            // Stream the event with metadata
+            this.sseStreamer.streamCustomEvent(
+                uiFlowId, 
+                sseEventType, 
+                enhancedPayload
+            )
             
             logger.debug(`Streamed ${event.type} event to clients for UI Flow ${uiFlowId}`)
         } catch (error) {

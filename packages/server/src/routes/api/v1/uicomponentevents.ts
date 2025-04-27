@@ -1,6 +1,7 @@
 import { Request, Response, Router } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { UIComponentEventService } from '../../../services/uiflow/UIComponentEventService'
+import { UIComponentQueueService } from '../../../services/uiflow/UIComponentQueueService'
 import { UIEventType } from '../../../events/UIEventManager'
 import { getDataSource } from '../../../DataSource'
 import { UIFlow } from '../../../database/entities/UIFlow'
@@ -89,7 +90,8 @@ uiComponentEventsRouter.post(
                 version: 1,
                 properties: (req.uiComponent as UIComponentWithProperties)?.properties || {},
                 baseClasses: ['UINode'],
-                category: 'UI'
+                category: 'UI',
+                inputs: req.body.inputs || {}
             }
             
             // Map string eventType to enum
@@ -185,6 +187,119 @@ uiComponentEventsRouter.post(
             if (error instanceof InternalFlowiseError) {
                 return res.status(error.statusCode).json({ error: error.message })
             }
+            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: getErrorMessage(error) })
+        }
+    }
+)
+
+/**
+ * @route POST /api/v1/uicomponentevents/queue/:uiFlowId/:componentId
+ * @description Queue UI component event for async processing
+ * @access Private
+ */
+uiComponentEventsRouter.post(
+    '/queue/:uiFlowId/:componentId',
+    validateUIComponentExistence,
+    async (req: Request, res: Response) => {
+        try {
+            const { uiFlowId, componentId } = req.params
+            const { eventType, payload, queueOptions } = req.body
+            
+            // Get UIComponent properties from database
+            const componentData = {
+                id: req.uiComponent?.id || '',
+                name: req.uiComponent?.type || '',
+                type: req.uiComponent?.type || '',
+                label: req.uiComponent?.type || '',
+                icon: 'ui-component',
+                version: 1,
+                inputs: {
+                    ...((req.uiComponent as UIComponentWithProperties)?.properties || {}),
+                    queueEnabled: true,
+                    queueOptions
+                },
+                baseClasses: ['UINode'],
+                category: 'UI'
+            }
+            
+            // Map string eventType to enum
+            let mappedEventType: UIEventType
+            switch (eventType) {
+                case 'component-update':
+                    mappedEventType = UIEventType.COMPONENT_UPDATE
+                    break
+                case 'component-interaction':
+                    mappedEventType = UIEventType.COMPONENT_INTERACTION
+                    break
+                case 'flow-progress':
+                    mappedEventType = UIEventType.FLOW_PROGRESS
+                    break
+                case 'flow-complete':
+                    mappedEventType = UIEventType.FLOW_COMPLETE
+                    break
+                case 'flow-error':
+                    mappedEventType = UIEventType.FLOW_ERROR
+                    break
+                case 'navigation':
+                    mappedEventType = UIEventType.NAVIGATION
+                    break
+                default:
+                    return res.status(StatusCodes.BAD_REQUEST).json({ error: `Invalid event type: ${eventType}` })
+            }
+            
+            // Construct the event payload
+            const eventPayload = {
+                uiFlowId,
+                componentId,
+                ...payload,
+                timestamp: Date.now()
+            }
+            
+            // Create event object
+            const event = {
+                type: mappedEventType,
+                payload: eventPayload
+            }
+            
+            // Get queue service and queue the event
+            const queueService = UIComponentQueueService.getInstance()
+            const jobId = await queueService.queueEvent(componentData, event)
+            
+            // Return success response with job ID
+            return res.status(StatusCodes.OK).json({
+                success: true,
+                message: `Event ${eventType} queued for component ${componentId}`,
+                jobId
+            })
+        } catch (error) {
+            logger.error('Error queueing UI component event:', error)
+            
+            if (error instanceof InternalFlowiseError) {
+                return res.status(error.statusCode).json({ error: error.message })
+            }
+            return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: getErrorMessage(error) })
+        }
+    }
+)
+
+/**
+ * @route GET /api/v1/uicomponentevents/queue/stats
+ * @description Get statistics for the UI component event queue
+ * @access Private
+ */
+uiComponentEventsRouter.get(
+    '/queue/stats',
+    async (_req: Request, res: Response) => {
+        try {
+            const queueService = UIComponentQueueService.getInstance()
+            const stats = await queueService.getJobCounts()
+            
+            return res.status(StatusCodes.OK).json({
+                success: true,
+                stats
+            })
+        } catch (error) {
+            logger.error('Error getting UI component queue stats:', error)
             return res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: getErrorMessage(error) })
         }
     }
