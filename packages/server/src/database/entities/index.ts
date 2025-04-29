@@ -11,9 +11,6 @@ import { Lead } from './Lead'
 import { UpsertHistory } from './UpsertHistory'
 import { ApiKey } from './ApiKey'
 import { CustomTemplate } from './CustomTemplate'
-import { UIFlow } from './UIFlow'
-import { UIComponent } from './UIComponent'
-import { Screen } from './Screen'
 
 export const entities = {
     ChatFlow,
@@ -28,8 +25,5 @@ export const entities = {
     Lead,
     UpsertHistory,
     ApiKey,
-    CustomTemplate,
-    UIFlow,
-    UIComponent,
-    Screen
+    CustomTemplate
 }

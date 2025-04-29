@@ -27,7 +27,6 @@ import { OpenTelemetry } from './metrics/OpenTelemetry'
 import { QueueManager } from './queue/QueueManager'
 import { RedisEventSubscriber } from './queue/RedisEventSubscriber'
 import { WHITELIST_URLS } from './utils/constants'
-import { initializeUIComponents } from './services/uicomponents'
 import 'global-agent/bootstrap'
 
 declare global {
@@ -300,16 +299,6 @@ export async function start(): Promise<void> {
 
     await serverApp.initDatabase()
     await serverApp.config()
-    
-    // Initialize UI components after server is fully configured
-    try {
-        await initializeUIComponents()
-        logger.info('🎨 [server]: UI Components initialized')
-    } catch (error: any) {
-        // Log error but continue server startup
-        logger.error(`❌ [server]: UI Components initialization failed: ${error.message || 'Unknown error'}`)
-        logger.info('🎨 [server]: Server will continue without UI Components')
-    }
 
     server.listen(port, host, () => {
         logger.info(`⚡️ [server]: Fastflow Server is listening at ${host ? 'http://' + host : ''}:${port}`)

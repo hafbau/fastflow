@@ -1807,16 +1807,3 @@ export const getMulterStorage = () => {
         return multer({ dest: getUploadPath() })
     }
 }
-
-/**
- * Get database configuration based on environment variables
- * @returns Database configuration object with type property
- */
-export const getDbConfig = () => {
-    const databaseType = process.env.DATABASE_TYPE || 'sqlite'
-    
-    return {
-        type: databaseType,
-        // Add other database config properties as needed
-    }
-}

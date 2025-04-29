@@ -140,23 +140,8 @@ export interface IUpsertHistory {
     date: Date
 }
 
-/**
- * Interface for UI node, extending the base INode interface
- */
-export interface IUINode extends INode {
-    renderComponent(): Promise<string>
-    handleEvent(event: any): Promise<void>
-    getProperties(): any[]
-    getCacheKey?(): string
-    getQueueOptions?(): { priority: number, attempts: number }
-}
-
 export interface IComponentNodes {
     [key: string]: INode
-}
-
-export interface IComponentUINodes {
-    [key: string]: IUINode
 }
 
 export interface IComponentCredentials {
@@ -369,64 +354,3 @@ export interface IVariableOverride {
 
 // DocumentStore related
 export * from './Interface.DocumentStore'
-
-export interface IUIComponent {
-    id: string
-    name: string
-    description?: string
-    type: string
-    category: string
-    schema: string
-    template: string
-    icon?: string
-    updatedDate: Date
-    createdDate: Date
-}
-
-export interface IUIFlow {
-    id: string
-    name: string
-    description?: string
-    flowData: string
-    chatflowId: string
-    isPublic?: boolean
-    deployed?: boolean
-    updatedDate: Date
-    createdDate: Date
-}
-
-export interface IScreen {
-    id: string
-    path: string
-    queryParameters?: Record<string, any>
-    pathParameters?: Record<string, any>
-    title: string
-    description?: string
-    metadata?: Record<string, any>
-    uiFlowId: string
-    updatedDate: Date
-    createdDate: Date
-}
-
-export interface IUITemplate {
-    id: string
-    name: string
-    description?: string
-    version: string
-    category?: string
-    tags?: string[]
-    data: {
-        screens: Array<{
-            id: string
-            name: string
-            components: Array<any>
-        }>
-        flowData: {
-            nodes: any[]
-            edges: any[]
-        },
-        metadata?: Record<string, any>
-    }
-    createdDate: Date
-    updatedDate: Date
-}

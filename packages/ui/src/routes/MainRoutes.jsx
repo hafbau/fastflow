@@ -10,11 +10,6 @@ const Chatflows = Loadable(lazy(() => import('@/views/chatflows')))
 // agents routing
 const Agentflows = Loadable(lazy(() => import('@/views/agentflows')))
 
-// uiflows routing
-const UIFlows = Loadable(lazy(() => import('@/views/uiflows')))
-const UIFlowPreview = Loadable(lazy(() => import('@/views/uiflows/UIFlowPreview')))
-const UIFlowCreation = Loadable(lazy(() => import('@/views/uiflows/UIFlowCreation')))
-
 // marketplaces routing
 const Marketplaces = Loadable(lazy(() => import('@/views/marketplaces')))
 
@@ -61,18 +56,6 @@ const MainRoutes = {
         {
             path: '/agentflows',
             element: <Agentflows />
-        },
-        {
-            path: '/uiflows',
-            element: <UIFlows />
-        },
-        {
-            path: '/uiflows/create',
-            element: <UIFlowCreation />
-        },
-        {
-            path: '/uiflows/preview/:uiFlowId',
-            element: <UIFlowPreview />
         },
         {
             path: '/marketplaces',

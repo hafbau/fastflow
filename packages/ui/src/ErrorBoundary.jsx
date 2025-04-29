@@ -6,48 +6,9 @@ import { IconCopy } from '@tabler/icons-react'
 const ErrorBoundary = ({ error }) => {
     const theme = useTheme()
 
-    // Format error message based on error type
-    const getErrorMessage = () => {
-        if (typeof error === 'string') {
-            return error
-        }
-        
-        if (error?.response?.status && error?.response?.data) {
-            return `Status: ${error.response.status}\n${error.response.data.message || JSON.stringify(error.response.data)}`
-        }
-        
-        if (error?.message) {
-            return error.message
-        }
-        
-        return JSON.stringify(error || 'Unknown error')
-    }
-
     const copyToClipboard = () => {
-        navigator.clipboard.writeText(getErrorMessage())
-    }
-
-    // Format error message for display
-    const renderErrorContent = () => {
-        if (typeof error === 'string') {
-            return <code>{error}</code>
-        }
-        
-        if (error?.response?.status) {
-            return (
-                <>
-                    <code>{`Status: ${error.response.status}`}</code>
-                    <br />
-                    <code>{error.response.data?.message || JSON.stringify(error.response.data)}</code>
-                </>
-            )
-        }
-        
-        if (error?.message) {
-            return <code>{error.message}</code>
-        }
-        
-        return <code>{JSON.stringify(error || 'Unknown error')}</code>
+        const errorMessage = `Status: ${error.response.status}\n${error.response.data.message}`
+        navigator.clipboard.writeText(errorMessage)
     }
 
     return (
@@ -67,7 +28,9 @@ const ErrorBoundary = ({ error }) => {
                             <IconCopy />
                         </IconButton>
                         <pre style={{ margin: 0 }}>
-                            {renderErrorContent()}
+                            <code>{`Status: ${error.response.status}`}</code>
+                            <br />
+                            <code>{error.response.data.message}</code>
                         </pre>
                     </Box>
                 </Card>
@@ -82,10 +45,7 @@ const ErrorBoundary = ({ error }) => {
 }
 
 ErrorBoundary.propTypes = {
-    error: PropTypes.oneOfType([
-        PropTypes.string,
-        PropTypes.object
-    ])
+    error: PropTypes.object
 }
 
 export default ErrorBoundary

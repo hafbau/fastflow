@@ -27,10 +27,6 @@ import { AddArtifactsToChatMessage1726156258465 } from './1726156258465-AddArtif
 import { AddCustomTemplate1725629836652 } from './1725629836652-AddCustomTemplate'
 import { AddFollowUpPrompts1726666294213 } from './1726666294213-AddFollowUpPrompts'
 import { AddTypeToAssistant1733011290987 } from './1733011290987-AddTypeToAssistant'
-import { AddUIEntities1716474000000 } from './1716474000000-AddUIEntities'
-import { AddScreenEntity1716500000000 } from './1716500000000-AddScreenEntity'
-import { MigrateExistingDataToScreenModel1716500000001 } from './1716500000001-MigrateExistingDataToScreenModel'
-import { FixUIComponentScreenId1716600000000 } from './1716600000000-FixUIComponentScreenId'
 
 export const sqliteMigrations = [
     Init1693835579790,
@@ -61,9 +57,5 @@ export const sqliteMigrations = [
     AddArtifactsToChatMessage1726156258465,
     AddCustomTemplate1725629836652,
     AddFollowUpPrompts1726666294213,
-    AddTypeToAssistant1733011290987,
-    AddUIEntities1716474000000,
-    AddScreenEntity1716500000000,
-    MigrateExistingDataToScreenModel1716500000001,
-    FixUIComponentScreenId1716600000000
+    AddTypeToAssistant1733011290987
 ]
