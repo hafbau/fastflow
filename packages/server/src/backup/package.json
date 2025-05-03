@@ -1,0 +1,26 @@
+{
+  "name": "flowstack-backup",
+  "version": "1.0.0",
+  "description": "Backup and recovery system for Flowstack",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest",
+    "backup": "node scripts/run-backup.js",
+    "verify-auth": "node scripts/verify-auth-backup.js",
+    "verify-db": "node scripts/verify-db-backup.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "commander": "^9.0.0",
+    "cron": "^2.0.0",
+    "nodemailer": "^6.7.0",
+    "@slack/webhook": "^6.0.0"
+  },
+  "devDependencies": {
+    "@types/cron": "^2.0.0",
+    "@types/nodemailer": "^6.4.0",
+    "@types/jest": "^29.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
+  }
+}

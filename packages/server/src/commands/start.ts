@@ -5,9 +5,24 @@ import { BaseCommand } from './base'
 
 export default class Start extends BaseCommand {
     async run(): Promise<void> {
-        logger.info('Starting Fastflow...')
-        await DataSource.init()
-        await Server.start()
+        try {
+            logger.info('Starting Fastflow...')
+            await DataSource.init()
+            await Server.start()
+        } catch (error: any) {
+            logger.error(`Failed to start Fastflow: ${error.message || 'Unknown error'}`)
+            if (error.stack) logger.error(error.stack)
+            
+            // If the database was initialized but server failed, try to clean up
+            try {
+                await this.stopProcess()
+            } catch (err) {
+                logger.error('Failed to clean up during error handling', err)
+            }
+            
+            // We'll rethrow to let the BaseCommand catch() method handle it
+            throw error
+        }
     }
 
     async catch(error: Error) {

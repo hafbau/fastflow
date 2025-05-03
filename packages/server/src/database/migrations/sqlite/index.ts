@@ -27,6 +27,8 @@ import { AddArtifactsToChatMessage1726156258465 } from './1726156258465-AddArtif
 import { AddCustomTemplate1725629836652 } from './1725629836652-AddCustomTemplate'
 import { AddFollowUpPrompts1726666294213 } from './1726666294213-AddFollowUpPrompts'
 import { AddTypeToAssistant1733011290987 } from './1733011290987-AddTypeToAssistant'
+import { CreateMultiTenancyTables1746196962000 } from './1746196962000-CreateMultiTenancyTables'
+import { AddMultiTenancyToExistingTables1746197062000 } from './1746197062000-AddMultiTenancyToExistingTables'
 
 export const sqliteMigrations = [
     Init1693835579790,
@@ -57,5 +59,7 @@ export const sqliteMigrations = [
     AddArtifactsToChatMessage1726156258465,
     AddCustomTemplate1725629836652,
     AddFollowUpPrompts1726666294213,
-    AddTypeToAssistant1733011290987
+    AddTypeToAssistant1733011290987,
+    CreateMultiTenancyTables1746196962000,
+    AddMultiTenancyToExistingTables1746197062000
 ]

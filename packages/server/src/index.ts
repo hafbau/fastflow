@@ -3,7 +3,7 @@ import { Request, Response } from 'express'
 import path from 'path'
 import cors from 'cors'
 import http from 'http'
-import basicAuth from 'express-basic-auth'
+import { authMiddleware } from './middlewares/auth'
 import { DataSource } from 'typeorm'
 import { MODE } from './Interface'
 import { getNodeModulesPackagePath, getEncryptionKey } from './utils'
@@ -16,6 +16,8 @@ import { AbortControllerPool } from './AbortControllerPool'
 import { RateLimiterManager } from './utils/rateLimit'
 import { getAPIKeys } from './utils/apiKey'
 import { sanitizeMiddleware, getCorsOptions, getAllowedIframeOrigins } from './utils/XSS'
+import { dynamicRateLimiter } from './middlewares/rateLimit'
+import rateLimitService from './services/rateLimit'
 import { Telemetry } from './utils/telemetry'
 import flowiseApiV1Router from './routes'
 import errorHandlerMiddleware from './middlewares/errors'
@@ -27,6 +29,10 @@ import { OpenTelemetry } from './metrics/OpenTelemetry'
 import { QueueManager } from './queue/QueueManager'
 import { RedisEventSubscriber } from './queue/RedisEventSubscriber'
 import { WHITELIST_URLS } from './utils/constants'
+import { supabaseAdmin, isSupabaseConfigured } from './utils/supabase'
+import { initializeEmailTemplates } from './utils/emailTemplates'
+import { initializeBackupSystem } from './backup'
+import { initializeRolesPermissions } from './scripts/initializeRolesPermissions'
 import 'global-agent/bootstrap'
 
 declare global {
@@ -151,71 +157,29 @@ export class App {
 
         // Add the sanitizeMiddleware to guard against XSS
         this.app.use(sanitizeMiddleware)
+        
+        // Add dynamic rate limiting for all API routes
+        this.app.use('/api/v1', dynamicRateLimiter())
 
-        const whitelistURLs = WHITELIST_URLS
-        const URL_CASE_INSENSITIVE_REGEX: RegExp = /\/api\/v1\//i
-        const URL_CASE_SENSITIVE_REGEX: RegExp = /\/api\/v1\//
-
-        if (process.env.FASTFLOW_USERNAME && process.env.FASTFLOW_PASSWORD) {
-            const username = process.env.FASTFLOW_USERNAME
-            const password = process.env.FASTFLOW_PASSWORD
-            const basicAuthMiddleware = basicAuth({
-                users: { [username]: password }
-            })
-            this.app.use(async (req, res, next) => {
-                // Step 1: Check if the req path contains /api/v1 regardless of case
-                if (URL_CASE_INSENSITIVE_REGEX.test(req.path)) {
-                    // Step 2: Check if the req path is case sensitive
-                    if (URL_CASE_SENSITIVE_REGEX.test(req.path)) {
-                        // Step 3: Check if the req path is in the whitelist
-                        const isWhitelisted = whitelistURLs.some((url) => req.path.startsWith(url))
-                        if (isWhitelisted) {
-                            next()
-                        } else if (req.headers['x-request-from'] === 'internal') {
-                            basicAuthMiddleware(req, res, next)
-                        } else {
-                            const isKeyValidated = await validateAPIKey(req)
-                            if (!isKeyValidated) {
-                                return res.status(401).json({ error: 'Unauthorized Access' })
-                            }
-                            next()
-                        }
-                    } else {
-                        return res.status(401).json({ error: 'Unauthorized Access' })
-                    }
-                } else {
-                    // If the req path does not contain /api/v1, then allow the request to pass through, example: /assets, /canvas
-                    next()
-                }
-            })
+        // Initialize Supabase email templates if Supabase is configured
+        if (isSupabaseConfigured()) {
+            logger.info('Initializing Supabase email templates')
+            initializeEmailTemplates(supabaseAdmin)
+                .then(() => logger.info('Supabase email templates initialized'))
+                .catch(err => logger.error('Failed to initialize Supabase email templates', err))
+            
+            // Initialize backup and recovery system
+            logger.info('Initializing backup and recovery system')
+            initializeBackupSystem()
         } else {
-            this.app.use(async (req, res, next) => {
-                // Step 1: Check if the req path contains /api/v1 regardless of case
-                if (URL_CASE_INSENSITIVE_REGEX.test(req.path)) {
-                    // Step 2: Check if the req path is case sensitive
-                    if (URL_CASE_SENSITIVE_REGEX.test(req.path)) {
-                        // Step 3: Check if the req path is in the whitelist
-                        const isWhitelisted = whitelistURLs.some((url) => req.path.startsWith(url))
-                        if (isWhitelisted) {
-                            next()
-                        } else if (req.headers['x-request-from'] === 'internal') {
-                            next()
-                        } else {
-                            const isKeyValidated = await validateAPIKey(req)
-                            if (!isKeyValidated) {
-                                return res.status(401).json({ error: 'Unauthorized Access' })
-                            }
-                            next()
-                        }
-                    } else {
-                        return res.status(401).json({ error: 'Unauthorized Access' })
-                    }
-                } else {
-                    // If the req path does not contain /api/v1, then allow the request to pass through, example: /assets, /canvas
-                    next()
-                }
-            })
+            logger.info('Supabase not configured, skipping email template and backup system initialization')
         }
+        
+        // Initialize roles and permissions
+        await initializeRolesPermissions(this)
+
+        // Use the unified authentication middleware
+        this.app.use(authMiddleware)
 
         if (process.env.ENABLE_METRICS === 'true') {
             switch (process.env.METRICS_PROVIDER) {
@@ -281,6 +245,15 @@ export class App {
             if (this.queueManager) {
                 removePromises.push(this.redisSubscriber.disconnect())
             }
+            // Clean up rate limiter resources
+            removePromises.push(rateLimitService.cleanup())
+            
+            // Stop backup scheduler if Supabase is configured
+            if (isSupabaseConfigured()) {
+                const { backupSchedulerService } = require('./backup');
+                backupSchedulerService.stopScheduledJobs();
+            }
+            
             await Promise.all(removePromises)
         } catch (e) {
             logger.error(`❌[server]: Fastflow Server shut down error: ${e}`)

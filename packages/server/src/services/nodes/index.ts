@@ -5,7 +5,7 @@ import { INodeData } from '../../Interface'
 import { INodeOptionsValue, ICommonObject, handleEscapeCharacters } from 'fastflow-components'
 import { databaseEntities } from '../../utils'
 import logger from '../../utils/logger'
-import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { getErrorMessage } from '../../errors/utils'
 
 // Get all component nodes
@@ -19,7 +19,7 @@ const getAllNodes = async () => {
         }
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: nodesService.getAllNodes - ${getErrorMessage(error)}`)
+        throw new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: nodesService.getAllNodes - ${getErrorMessage(error)}`)
     }
 }
 
@@ -37,7 +37,7 @@ const getAllNodesForCategory = async (category: string) => {
         }
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: nodesService.getAllNodesForCategory - ${getErrorMessage(error)}`
         )
@@ -52,10 +52,10 @@ const getNodeByName = async (nodeName: string) => {
             const dbResponse = appServer.nodesPool.componentNodes[nodeName]
             return dbResponse
         } else {
-            throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Node ${nodeName} not found`)
+            throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Node ${nodeName} not found`)
         }
     } catch (error) {
-        throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: nodesService.getAllNodes - ${getErrorMessage(error)}`)
+        throw new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: nodesService.getAllNodes - ${getErrorMessage(error)}`)
     }
 }
 
@@ -66,20 +66,20 @@ const getSingleNodeIcon = async (nodeName: string) => {
         if (Object.prototype.hasOwnProperty.call(appServer.nodesPool.componentNodes, nodeName)) {
             const nodeInstance = appServer.nodesPool.componentNodes[nodeName]
             if (nodeInstance.icon === undefined) {
-                throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Node ${nodeName} icon not found`)
+                throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Node ${nodeName} icon not found`)
             }
 
             if (nodeInstance.icon.endsWith('.svg') || nodeInstance.icon.endsWith('.png') || nodeInstance.icon.endsWith('.jpg')) {
                 const filepath = nodeInstance.icon
                 return filepath
             } else {
-                throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Node ${nodeName} icon is missing icon`)
+                throw new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Node ${nodeName} icon is missing icon`)
             }
         } else {
-            throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Node ${nodeName} not found`)
+            throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Node ${nodeName} not found`)
         }
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: nodesService.getSingleNodeIcon - ${getErrorMessage(error)}`
         )
@@ -105,10 +105,10 @@ const getSingleNodeAsyncOptions = async (nodeName: string, requestBody: any): Pr
                 return []
             }
         } else {
-            throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Node ${nodeName} not found`)
+            throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Node ${nodeName} not found`)
         }
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: nodesService.getSingleNodeAsyncOptions - ${getErrorMessage(error)}`
         )
@@ -148,13 +148,13 @@ const executeCustomFunction = async (requestBody: any) => {
 
                 return dbResponse
             } catch (error) {
-                throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error running custom function: ${error}`)
+                throw new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Error running custom function: ${error}`)
             }
         } else {
-            throw new InternalFlowiseError(StatusCodes.NOT_FOUND, `Node customFunction not found`)
+            throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Node customFunction not found`)
         }
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: nodesService.executeCustomFunction - ${getErrorMessage(error)}`
         )

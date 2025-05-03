@@ -1,7 +1,7 @@
 import { Request } from 'express'
 import { ChatFlow } from '../database/entities/ChatFlow'
 import { compareKeys } from './apiKey'
-import apikeyService from '../services/apikey'
+import apiKeyService from '../services/apiKeyService'
 
 /**
  * Validate Chatflow API Key
@@ -17,9 +17,9 @@ export const validateChatflowAPIKey = async (req: Request, chatflow: ChatFlow) =
 
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
-        const keys = await apikeyService.getAllApiKeys()
-        const apiSecret = keys.find((key: any) => key.id === chatFlowApiKeyId)?.apiSecret
-        if (!compareKeys(apiSecret, suppliedKey)) return false
+        const apiKey = await apiKeyService.getApiKeyById(chatFlowApiKeyId)
+        if (!apiKey || !apiKey.apiSecret) return false
+        if (!compareKeys(apiKey.apiSecret, suppliedKey)) return false
         return true
     }
     return false
@@ -35,11 +35,8 @@ export const validateAPIKey = async (req: Request) => {
 
     const suppliedKey = authorizationHeader.split(`Bearer `).pop()
     if (suppliedKey) {
-        const keys = await apikeyService.getAllApiKeys()
-        const apiSecret = keys.find((key: any) => key.apiKey === suppliedKey)?.apiSecret
-        if (!apiSecret) return false
-        if (!compareKeys(apiSecret, suppliedKey)) return false
-        return true
+        // Use the new API key service to validate the key
+        return await apiKeyService.validateApiKey(suppliedKey)
     }
     return false
 }

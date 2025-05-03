@@ -3,6 +3,7 @@ import { lazy } from 'react'
 // project imports
 import MainLayout from '@/layout/MainLayout'
 import Loadable from '@/ui-component/loading/Loadable'
+import AuthGuard from '@/utils/route-guard/AuthGuard'
 
 // chatflows routing
 const Chatflows = Loadable(lazy(() => import('@/views/chatflows')))
@@ -31,6 +32,9 @@ const Credentials = Loadable(lazy(() => import('@/views/credentials')))
 // variables routing
 const Variables = Loadable(lazy(() => import('@/views/variables')))
 
+// audit logs routing
+const AuditLogs = Loadable(lazy(() => import('@/views/audit-logs/AuditLogsPage')))
+
 // documents routing
 const Documents = Loadable(lazy(() => import('@/views/docstore')))
 const DocumentStoreDetail = Loadable(lazy(() => import('@/views/docstore/DocumentStoreDetail')))
@@ -43,7 +47,11 @@ const VectorStoreQuery = Loadable(lazy(() => import('@/views/docstore/VectorStor
 
 const MainRoutes = {
     path: '/',
-    element: <MainLayout />,
+    element: (
+        <AuthGuard>
+            <MainLayout />
+        </AuthGuard>
+    ),
     children: [
         {
             path: '/',
@@ -92,6 +100,10 @@ const MainRoutes = {
         {
             path: '/variables',
             element: <Variables />
+        },
+        {
+            path: '/audit-logs',
+            element: <AuditLogs />
         },
         {
             path: '/document-stores',

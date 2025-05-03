@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import documentStoreService from '../../services/documentstore'
 import { DocumentStore } from '../../database/entities/DocumentStore'
-import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { DocumentStoreDTO } from '../../Interface'
 import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { FASTFLOW_COUNTER_STATUS, FASTFLOW_METRIC_COUNTERS } from '../../Interface.Metrics'
@@ -10,7 +10,7 @@ import { FASTFLOW_COUNTER_STATUS, FASTFLOW_METRIC_COUNTERS } from '../../Interfa
 const createDocumentStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.body === 'undefined') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.createDocumentStore - body not provided!`
             )
@@ -39,7 +39,7 @@ const deleteLoaderFromDocumentStore = async (req: Request, res: Response, next: 
         const loaderId = req.params.loaderId
 
         if (!storeId || !loaderId) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.deleteLoaderFromDocumentStore - missing storeId or loaderId.`
             )
@@ -54,7 +54,7 @@ const deleteLoaderFromDocumentStore = async (req: Request, res: Response, next: 
 const getDocumentStoreById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.id === 'undefined' || req.params.id === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.getDocumentStoreById - id not provided!`
             )
@@ -72,13 +72,13 @@ const getDocumentStoreById = async (req: Request, res: Response, next: NextFunct
 const getDocumentStoreFileChunks = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.storeId === 'undefined' || req.params.storeId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.getDocumentStoreFileChunks - storeId not provided!`
             )
         }
         if (typeof req.params.fileId === 'undefined' || req.params.fileId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.getDocumentStoreFileChunks - fileId not provided!`
             )
@@ -100,19 +100,19 @@ const getDocumentStoreFileChunks = async (req: Request, res: Response, next: Nex
 const deleteDocumentStoreFileChunk = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.storeId === 'undefined' || req.params.storeId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.deleteDocumentStoreFileChunk - storeId not provided!`
             )
         }
         if (typeof req.params.loaderId === 'undefined' || req.params.loaderId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.deleteDocumentStoreFileChunk - loaderId not provided!`
             )
         }
         if (typeof req.params.chunkId === 'undefined' || req.params.chunkId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.deleteDocumentStoreFileChunk - chunkId not provided!`
             )
@@ -131,26 +131,26 @@ const deleteDocumentStoreFileChunk = async (req: Request, res: Response, next: N
 const editDocumentStoreFileChunk = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.storeId === 'undefined' || req.params.storeId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.editDocumentStoreFileChunk - storeId not provided!`
             )
         }
         if (typeof req.params.loaderId === 'undefined' || req.params.loaderId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.editDocumentStoreFileChunk - loaderId not provided!`
             )
         }
         if (typeof req.params.chunkId === 'undefined' || req.params.chunkId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.editDocumentStoreFileChunk - chunkId not provided!`
             )
         }
         const body = req.body
         if (typeof body === 'undefined') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.editDocumentStoreFileChunk - body not provided!`
             )
@@ -172,7 +172,7 @@ const saveProcessingLoader = async (req: Request, res: Response, next: NextFunct
     try {
         const appServer = getRunningExpressApp()
         if (typeof req.body === 'undefined') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.saveProcessingLoader - body not provided!`
             )
@@ -188,13 +188,13 @@ const saveProcessingLoader = async (req: Request, res: Response, next: NextFunct
 const processLoader = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.loaderId === 'undefined' || req.params.loaderId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.processLoader - loaderId not provided!`
             )
         }
         if (typeof req.body === 'undefined') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.processLoader - body not provided!`
             )
@@ -211,20 +211,20 @@ const processLoader = async (req: Request, res: Response, next: NextFunction) =>
 const updateDocumentStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.id === 'undefined' || req.params.id === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.updateDocumentStore - storeId not provided!`
             )
         }
         if (typeof req.body === 'undefined') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.updateDocumentStore - body not provided!`
             )
         }
         const store = await documentStoreService.getDocumentStoreById(req.params.id)
         if (!store) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.NOT_FOUND,
                 `Error: documentStoreController.updateDocumentStore - DocumentStore ${req.params.id} not found in the database`
             )
@@ -242,7 +242,7 @@ const updateDocumentStore = async (req: Request, res: Response, next: NextFuncti
 const deleteDocumentStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.id === 'undefined' || req.params.id === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.deleteDocumentStore - storeId not provided!`
             )
@@ -257,7 +257,7 @@ const deleteDocumentStore = async (req: Request, res: Response, next: NextFuncti
 const previewFileChunks = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.body === 'undefined') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.previewFileChunks - body not provided!`
             )
@@ -315,7 +315,7 @@ const queryVectorStore = async (req: Request, res: Response, next: NextFunction)
 const deleteVectorStoreFromStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.storeId === 'undefined' || req.params.storeId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.deleteVectorStoreFromStore - storeId not provided!`
             )
@@ -385,7 +385,7 @@ const getRecordManagerProviders = async (req: Request, res: Response, next: Next
 const upsertDocStoreMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.id === 'undefined' || req.params.id === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.upsertDocStoreMiddleware - storeId not provided!`
             )
@@ -411,7 +411,7 @@ const upsertDocStoreMiddleware = async (req: Request, res: Response, next: NextF
 const refreshDocStoreMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.id === 'undefined' || req.params.id === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.refreshDocStoreMiddleware - storeId not provided!`
             )
@@ -433,7 +433,7 @@ const refreshDocStoreMiddleware = async (req: Request, res: Response, next: Next
 const generateDocStoreToolDesc = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.id === 'undefined' || req.params.id === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.generateDocStoreToolDesc - storeId not provided!`
             )
@@ -451,13 +451,13 @@ const generateDocStoreToolDesc = async (req: Request, res: Response, next: NextF
 const getDocStoreConfigs = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params.id === 'undefined' || req.params.id === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.getDocStoreConfigs - storeId not provided!`
             )
         }
         if (typeof req.params.loaderId === 'undefined' || req.params.loaderId === '') {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: documentStoreController.getDocStoreConfigs - doc loader Id not provided!`
             )

@@ -1,13 +1,13 @@
 import { Request, Response, NextFunction } from 'express'
 import assistantsService from '../../services/assistants'
-import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { StatusCodes } from 'http-status-codes'
 import { AssistantType } from '../../Interface'
 
 const createAssistant = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (!req.body) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: assistantsController.createAssistant - body not provided!`
             )
@@ -22,7 +22,7 @@ const createAssistant = async (req: Request, res: Response, next: NextFunction) 
 const deleteAssistant = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params === 'undefined' || !req.params.id) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: assistantsController.deleteAssistant - id not provided!`
             )
@@ -47,7 +47,7 @@ const getAllAssistants = async (req: Request, res: Response, next: NextFunction)
 const getAssistantById = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params === 'undefined' || !req.params.id) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: assistantsController.getAssistantById - id not provided!`
             )
@@ -62,13 +62,13 @@ const getAssistantById = async (req: Request, res: Response, next: NextFunction)
 const updateAssistant = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (typeof req.params === 'undefined' || !req.params.id) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: assistantsController.updateAssistant - id not provided!`
             )
         }
         if (!req.body) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: assistantsController.updateAssistant - body not provided!`
             )
@@ -110,7 +110,7 @@ const getTools = async (req: Request, res: Response, next: NextFunction) => {
 const generateAssistantInstruction = async (req: Request, res: Response, next: NextFunction) => {
     try {
         if (!req.body) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.PRECONDITION_FAILED,
                 `Error: assistantsController.generateAssistantInstruction - body not provided!`
             )

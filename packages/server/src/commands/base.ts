@@ -102,8 +102,32 @@ export abstract class BaseCommand extends Command {
         process.exit(EXIT_CODE.FAILED)
     }
 
+    // Override the catch method to provide our own error handling
+    async catch(error: any): Promise<any> {
+        // Log the error details - don't try to access error.name directly
+        logger.error(`Command error: ${error.message || 'Unknown error'}`)
+        if (error.stack) logger.error(error.stack)
+        
+        // Wait briefly before exiting
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        
+        // Exit with failure code
+        await this.failExit()
+        return;
+    }
+
     async init(): Promise<void> {
-        await super.init()
+        // Wrap the super.init() call in try/catch to handle any @oclif/core errors
+        try {
+            await super.init()
+        } catch (error: any) {
+            logger.error(`Error during command initialization: ${error.message || 'Unknown error'}`)
+            if (error.stack) logger.error(error.stack)
+            
+            // Continue with initialization even if there's an error
+            // This allows our command to run even if oclif has internal errors
+            logger.info('Continuing with initialization despite error...')
+        }
 
         process.on('SIGTERM', this.onTerminate())
         process.on('SIGINT', this.onTerminate())
@@ -118,7 +142,16 @@ export abstract class BaseCommand extends Command {
             logger.error('unhandledRejection: ', err)
         })
 
-        const { flags } = await this.parse(BaseCommand)
+        // Try to parse flags, but continue if it fails
+        let flags: any = {}
+        try {
+            const parsed = await this.parse(BaseCommand)
+            flags = parsed.flags
+        } catch (error: any) {
+            logger.error(`Error parsing command flags: ${error.message || 'Unknown error'}`)
+            logger.info('Continuing with default environment variables...')
+        }
+
         if (flags.PORT) process.env.PORT = flags.PORT
         if (flags.CORS_ORIGINS) process.env.CORS_ORIGINS = flags.CORS_ORIGINS
         if (flags.IFRAME_ORIGINS) process.env.IFRAME_ORIGINS = flags.IFRAME_ORIGINS

@@ -54,7 +54,7 @@ import { CachePool } from '../CachePool'
 import { Variable } from '../database/entities/Variable'
 import { DocumentStore } from '../database/entities/DocumentStore'
 import { DocumentStoreFileChunk } from '../database/entities/DocumentStoreFileChunk'
-import { InternalFlowiseError } from '../errors/internalFlowiseError'
+import { InternalFastflowError } from '../errors/InternalFastflowError'
 import { StatusCodes } from 'http-status-codes'
 import {
     CreateSecretCommand,
@@ -291,11 +291,11 @@ export const getEndingNodes = (
     // If there are multiple endingnodes, the failed ones will be automatically ignored.
     // And only ensure that at least one can pass the verification.
     const verifiedEndingNodes: typeof endingNodes = []
-    let error: InternalFlowiseError | null = null
+    let error: InternalFastflowError | null = null
     for (const endingNode of endingNodes) {
         const endingNodeData = endingNode.data
         if (!endingNodeData) {
-            error = new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Ending node ${endingNode.id} data not found`)
+            error = new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Ending node ${endingNode.id} data not found`)
 
             continue
         }
@@ -311,7 +311,7 @@ export const getEndingNodes = (
                 endingNodeData.category !== 'Multi Agents' &&
                 endingNodeData.category !== 'Sequential Agents'
             ) {
-                error = new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Ending node must be either a Chain or Agent or Engine`)
+                error = new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Ending node must be either a Chain or Agent or Engine`)
                 continue
             }
         }
@@ -323,7 +323,7 @@ export const getEndingNodes = (
     }
 
     if (endingNodes.length === 0 || error === null) {
-        error = new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Ending nodes not found`)
+        error = new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Ending nodes not found`)
     }
 
     throw error

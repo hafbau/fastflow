@@ -1,7 +1,7 @@
 import path from 'path'
 import * as fs from 'fs'
 import { StatusCodes } from 'http-status-codes'
-import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { getErrorMessage } from '../../errors/utils'
 import { IReactFlowEdge, IReactFlowNode } from '../../Interface'
 import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
@@ -94,7 +94,7 @@ const getAllTemplates = async () => {
         const dbResponse = sortedTemplates
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: marketplacesService.getAllTemplates - ${getErrorMessage(error)}`
         )
@@ -106,7 +106,7 @@ const deleteCustomTemplate = async (templateId: string): Promise<DeleteResult> =
         const appServer = getRunningExpressApp()
         return await appServer.AppDataSource.getRepository(CustomTemplate).delete({ id: templateId })
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: marketplacesService.deleteCustomTemplate - ${getErrorMessage(error)}`
         )
@@ -138,7 +138,7 @@ const getAllCustomTemplates = async (): Promise<any> => {
         })
         return templates
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: marketplacesService.getAllCustomTemplates - ${getErrorMessage(error)}`
         )
@@ -178,7 +178,7 @@ const saveCustomTemplate = async (body: any): Promise<any> => {
         const flowTemplate = await appServer.AppDataSource.getRepository(CustomTemplate).save(entity)
         return flowTemplate
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: marketplacesService.saveCustomTemplate - ${getErrorMessage(error)}`
         )

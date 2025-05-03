@@ -293,6 +293,9 @@ export interface IApiKey {
     apiKey: string
     apiSecret: string
     updatedDate: Date
+    supabaseUserId?: string
+    organizationId?: string
+    workspaceId?: string
 }
 
 export interface ICustomTemplate {

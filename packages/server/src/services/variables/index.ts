@@ -1,7 +1,7 @@
 import { StatusCodes } from 'http-status-codes'
 import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { Variable } from '../../database/entities/Variable'
-import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { getErrorMessage } from '../../errors/utils'
 import { QueryRunner } from 'typeorm'
 import { validate } from 'uuid'
@@ -13,7 +13,7 @@ const createVariable = async (newVariable: Variable) => {
         const dbResponse = await appServer.AppDataSource.getRepository(Variable).save(variable)
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: variablesServices.createVariable - ${getErrorMessage(error)}`
         )
@@ -26,7 +26,7 @@ const deleteVariable = async (variableId: string): Promise<any> => {
         const dbResponse = await appServer.AppDataSource.getRepository(Variable).delete({ id: variableId })
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: variablesServices.deleteVariable - ${getErrorMessage(error)}`
         )
@@ -39,7 +39,7 @@ const getAllVariables = async () => {
         const dbResponse = await appServer.AppDataSource.getRepository(Variable).find()
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: variablesServices.getAllVariables - ${getErrorMessage(error)}`
         )
@@ -54,7 +54,7 @@ const getVariableById = async (variableId: string) => {
         })
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: variablesServices.getVariableById - ${getErrorMessage(error)}`
         )
@@ -68,7 +68,7 @@ const updateVariable = async (variable: Variable, updatedVariable: Variable) => 
         const dbResponse = await appServer.AppDataSource.getRepository(Variable).save(tmpUpdatedVariable)
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: variablesServices.updateVariable - ${getErrorMessage(error)}`
         )
@@ -79,7 +79,7 @@ const importVariables = async (newVariables: Partial<Variable>[], queryRunner?: 
     try {
         for (const data of newVariables) {
             if (data.id && !validate(data.id)) {
-                throw new InternalFlowiseError(StatusCodes.PRECONDITION_FAILED, `Error: importVariables - invalid id!`)
+                throw new InternalFastflowError(StatusCodes.PRECONDITION_FAILED, `Error: importVariables - invalid id!`)
             }
         }
 
@@ -121,7 +121,7 @@ const importVariables = async (newVariables: Partial<Variable>[], queryRunner?: 
 
         return insertResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: variableService.importVariables - ${getErrorMessage(error)}`
         )

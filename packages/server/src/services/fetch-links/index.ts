@@ -1,13 +1,13 @@
 import { webCrawl, xmlScrape } from 'fastflow-components'
 import { StatusCodes } from 'http-status-codes'
-import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { getErrorMessage } from '../../errors/utils'
 
 const getAllLinks = async (requestUrl: string, relativeLinksMethod: string, queryLimit: string): Promise<any> => {
     try {
         const url = decodeURIComponent(requestUrl)
         if (!relativeLinksMethod) {
-            throw new InternalFlowiseError(
+            throw new InternalFastflowError(
                 StatusCodes.INTERNAL_SERVER_ERROR,
                 `Please choose a Relative Links Method in Additional Parameters!`
             )
@@ -22,7 +22,7 @@ const getAllLinks = async (requestUrl: string, relativeLinksMethod: string, quer
         }
         return dbResponse
     } catch (error) {
-        throw new InternalFlowiseError(
+        throw new InternalFastflowError(
             StatusCodes.INTERNAL_SERVER_ERROR,
             `Error: fetchLinksService.getAllLinks - ${getErrorMessage(error)}`
         )

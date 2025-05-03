@@ -11,6 +11,29 @@ import { Lead } from './Lead'
 import { UpsertHistory } from './UpsertHistory'
 import { ApiKey } from './ApiKey'
 import { CustomTemplate } from './CustomTemplate'
+import { Organization } from './Organization'
+import { OrganizationInvitation } from './OrganizationInvitation'
+import { OrganizationMember } from './OrganizationMember'
+import { OrganizationSettings } from './OrganizationSettings'
+import { Workspace } from './Workspace'
+import { WorkspaceInvitation } from './WorkspaceInvitation'
+import { WorkspaceMember } from './WorkspaceMember'
+import { WorkspaceSettings } from './WorkspaceSettings'
+import { Role } from './Role'
+import { CustomRole } from './CustomRole'
+import { Permission } from './Permission'
+import { RolePermission } from './RolePermission'
+import { UserRole } from './UserRole'
+import { ResourcePermission } from './ResourcePermission'
+import { AuditLog } from './AuditLog'
+import { UserProfile } from './UserProfile'
+import { AccessReview } from './AccessReview'
+import { AccessReviewItem } from './AccessReviewItem'
+import { AccessReviewAction } from './AccessReviewAction'
+import { AccessReviewSchedule } from './AccessReviewSchedule'
+import { UserLifecycleState } from './UserLifecycleState'
+import { ProvisioningRule } from './ProvisioningRule'
+import { ProvisioningAction } from './ProvisioningAction'
 
 export const entities = {
     ChatFlow,
@@ -25,5 +48,28 @@ export const entities = {
     Lead,
     UpsertHistory,
     ApiKey,
-    CustomTemplate
+    CustomTemplate,
+    Organization,
+    OrganizationInvitation,
+    OrganizationMember,
+    OrganizationSettings,
+    Workspace,
+    WorkspaceInvitation,
+    WorkspaceMember,
+    WorkspaceSettings,
+    Role,
+    CustomRole,
+    Permission,
+    RolePermission,
+    UserRole,
+    ResourcePermission,
+    AuditLog,
+    UserProfile,
+    AccessReview,
+    AccessReviewItem,
+    AccessReviewAction,
+    AccessReviewSchedule,
+    UserLifecycleState,
+    ProvisioningRule,
+    ProvisioningAction
 }

@@ -1,5 +1,7 @@
 import { ICustomTemplate } from '../../Interface'
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
+import { Organization } from './Organization'
+import { Workspace } from './Workspace'
 
 @Entity('custom_template')
 export class CustomTemplate implements ICustomTemplate {
@@ -26,6 +28,20 @@ export class CustomTemplate implements ICustomTemplate {
 
     @Column({ nullable: true, type: 'text' })
     type?: string
+
+    @Column({ type: 'uuid', nullable: true })
+    organizationId?: string
+
+    @ManyToOne(() => Organization, { nullable: true })
+    @JoinColumn({ name: 'organizationId' })
+    organization?: Organization
+
+    @Column({ type: 'uuid', nullable: true })
+    workspaceId?: string
+
+    @ManyToOne(() => Workspace, { nullable: true })
+    @JoinColumn({ name: 'workspaceId' })
+    workspace?: Workspace
 
     @Column({ type: 'timestamp' })
     @CreateDateColumn()

@@ -3,7 +3,7 @@ import fs from 'fs'
 import contentDisposition from 'content-disposition'
 import { streamStorageFile } from 'fastflow-components'
 import { StatusCodes } from 'http-status-codes'
-import { InternalFlowiseError } from '../../errors/internalFlowiseError'
+import { InternalFastflowError } from '../../errors/InternalFastflowError'
 
 const streamUploadedFile = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -16,7 +16,7 @@ const streamUploadedFile = async (req: Request, res: Response, next: NextFunctio
         res.setHeader('Content-Disposition', contentDisposition(fileName))
         const fileStream = await streamStorageFile(chatflowId, chatId, fileName)
 
-        if (!fileStream) throw new InternalFlowiseError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: streamStorageFile`)
+        if (!fileStream) throw new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, `Error: streamStorageFile`)
 
         if (fileStream instanceof fs.ReadStream && fileStream?.pipe) {
             fileStream.pipe(res)

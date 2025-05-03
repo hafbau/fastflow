@@ -1,6 +1,6 @@
 import PropTypes from 'prop-types'
 import { useSelector, useDispatch } from 'react-redux'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 // material-ui
@@ -11,6 +11,7 @@ import { styled } from '@mui/material/styles'
 // project imports
 import LogoSection from '../LogoSection'
 import ProfileSection from './ProfileSection'
+import { getCurrentUser, signOut } from '@flowstack/auth-client'
 
 // assets
 import { IconMenu2 } from '@tabler/icons-react'
@@ -72,9 +73,21 @@ const Header = ({ handleLeftDrawerToggle }) => {
     const navigate = useNavigate()
 
     const customization = useSelector((state) => state.customization)
-
+    
     const [isDark, setIsDark] = useState(customization.isDarkMode)
+    const [username, setUsername] = useState('')
     const dispatch = useDispatch()
+    
+    useEffect(() => {
+        const fetchUser = async () => {
+            const user = await getCurrentUser()
+            if (user) {
+                setUsername(user.email || user.user_metadata?.full_name || '')
+            }
+        }
+        
+        fetchUser()
+    }, [])
 
     const changeDarkMode = () => {
         dispatch({ type: SET_DARKMODE, isDarkMode: !isDark })
@@ -82,11 +95,13 @@ const Header = ({ handleLeftDrawerToggle }) => {
         localStorage.setItem('isDarkMode', !isDark)
     }
 
-    const signOutClicked = () => {
-        localStorage.removeItem('username')
-        localStorage.removeItem('password')
-        navigate('/', { replace: true })
-        navigate(0)
+    const signOutClicked = async () => {
+        try {
+            await signOut()
+            navigate('/auth/login', { replace: true })
+        } catch (error) {
+            console.error('Error signing out:', error)
+        }
     }
 
     return (
@@ -128,7 +143,7 @@ const Header = ({ handleLeftDrawerToggle }) => {
             <Box sx={{ flexGrow: 1 }} />
             <MaterialUISwitch checked={isDark} onChange={changeDarkMode} />
             <Box sx={{ ml: 2 }}></Box>
-            <ProfileSection handleLogout={signOutClicked} username={localStorage.getItem('username') ?? ''} />
+            <ProfileSection handleLogout={signOutClicked} username={username} />
         </>
     )
 }

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Confirm Your Email</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            max-width: 150px;
+            margin-bottom: 20px;
+        }
+        .content {
+            background-color: #f9f9f9;
+            padding: 30px;
+            border-radius: 5px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4f46e5;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="https://fastflow.ai/assets/FastFlowAI_primary.png" alt="Flowstack Logo" class="logo">
+        <h1>Confirm Your Email Address</h1>
+    </div>
+    
+    <div class="content">
+        <p>Hello,</p>
+        
+        <p>Thank you for registering with Flowstack. To complete your registration and verify your email address, please click the button below:</p>
+        
+        <p style="text-align: center;">
+            <a href="{{ .ConfirmationURL }}" class="button">Confirm Email</a>
+        </p>
+        
+        <p>If you did not create an account with Flowstack, you can safely ignore this email.</p>
+        
+        <p>This confirmation link will expire in 24 hours.</p>
+        
+        <p>Best regards,<br>The Flowstack Team</p>
+    </div>
+    
+    <div class="footer">
+        <p>© 2025 Flowstack. All rights reserved.</p>
+        <p>If you have any questions, please contact us at support@fastflow.ai</p>
+    </div>
+</body>
+</html>

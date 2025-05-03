@@ -8,11 +8,23 @@ import {
     IconLock,
     IconRobot,
     IconVariable,
-    IconFiles
+    IconFiles,
+    IconHistory
 } from '@tabler/icons-react'
 
 // constant
-const icons = { IconUsersGroup, IconHierarchy, IconBuildingStore, IconKey, IconTool, IconLock, IconRobot, IconVariable, IconFiles }
+const icons = {
+    IconUsersGroup,
+    IconHierarchy,
+    IconBuildingStore,
+    IconKey,
+    IconTool,
+    IconLock,
+    IconRobot,
+    IconVariable,
+    IconFiles,
+    IconHistory
+}
 
 // ==============================|| DASHBOARD MENU ITEMS ||============================== //
 
@@ -84,6 +96,14 @@ const dashboard = {
             type: 'item',
             url: '/apikey',
             icon: icons.IconKey,
+            breadcrumbs: true
+        },
+        {
+            id: 'audit-logs',
+            title: 'Audit Logs',
+            type: 'item',
+            url: '/audit-logs',
+            icon: icons.IconHistory,
             breadcrumbs: true
         },
         {

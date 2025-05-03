@@ -41,7 +41,7 @@ import Transitions from '@/ui-component/extended/Transitions'
 
 // assets
 import ExportingGIF from '@/assets/images/Exporting.gif'
-import { IconFileExport, IconFileUpload, IconInfoCircle, IconLogout, IconSettings, IconX } from '@tabler/icons-react'
+import { IconFileExport, IconFileUpload, IconInfoCircle, IconLogout, IconSettings, IconUser, IconX } from '@tabler/icons-react'
 import './index.css'
 
 //API
@@ -425,6 +425,18 @@ const ProfileSection = ({ username, handleLogout }) => {
                                                     sx={{ borderRadius: `${customization.borderRadius}px` }}
                                                     onClick={() => {
                                                         setOpen(false)
+                                                        navigate('/account')
+                                                    }}
+                                                >
+                                                    <ListItemIcon>
+                                                        <IconUser stroke={1.5} size='1.3rem' />
+                                                    </ListItemIcon>
+                                                    <ListItemText primary={<Typography variant='body2'>Account Settings</Typography>} />
+                                                </ListItemButton>
+                                                <ListItemButton
+                                                    sx={{ borderRadius: `${customization.borderRadius}px` }}
+                                                    onClick={() => {
+                                                        setOpen(false)
                                                         setAboutDialogOpen(true)
                                                     }}
                                                 >
@@ -433,17 +445,15 @@ const ProfileSection = ({ username, handleLogout }) => {
                                                     </ListItemIcon>
                                                     <ListItemText primary={<Typography variant='body2'>About Fastflow</Typography>} />
                                                 </ListItemButton>
-                                                {localStorage.getItem('username') && localStorage.getItem('password') && (
-                                                    <ListItemButton
-                                                        sx={{ borderRadius: `${customization.borderRadius}px` }}
-                                                        onClick={handleLogout}
-                                                    >
-                                                        <ListItemIcon>
-                                                            <IconLogout stroke={1.5} size='1.3rem' />
-                                                        </ListItemIcon>
-                                                        <ListItemText primary={<Typography variant='body2'>Logout</Typography>} />
-                                                    </ListItemButton>
-                                                )}
+                                                <ListItemButton
+                                                    sx={{ borderRadius: `${customization.borderRadius}px` }}
+                                                    onClick={handleLogout}
+                                                >
+                                                    <ListItemIcon>
+                                                        <IconLogout stroke={1.5} size='1.3rem' />
+                                                    </ListItemIcon>
+                                                    <ListItemText primary={<Typography variant='body2'>Logout</Typography>} />
+                                                </ListItemButton>
                                             </List>
                                         </Box>
                                     </PerfectScrollbar>

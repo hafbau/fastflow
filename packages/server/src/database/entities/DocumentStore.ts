@@ -1,5 +1,7 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm'
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm'
 import { DocumentStoreStatus, IDocumentStore } from '../../Interface'
+import { Organization } from './Organization'
+import { Workspace } from './Workspace'
 
 @Entity()
 export class DocumentStore implements IDocumentStore {
@@ -17,6 +19,20 @@ export class DocumentStore implements IDocumentStore {
 
     @Column({ nullable: true, type: 'text' })
     whereUsed: string
+
+    @Column({ type: 'uuid', nullable: true })
+    organizationId?: string
+
+    @ManyToOne(() => Organization, { nullable: true })
+    @JoinColumn({ name: 'organizationId' })
+    organization?: Organization
+
+    @Column({ type: 'uuid', nullable: true })
+    workspaceId?: string
+
+    @ManyToOne(() => Workspace, { nullable: true })
+    @JoinColumn({ name: 'workspaceId' })
+    workspace?: Workspace
 
     @Column({ type: 'timestamp' })
     @CreateDateColumn()

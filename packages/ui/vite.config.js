@@ -25,6 +25,11 @@ export default defineConfig(async ({ mode }) => {
         resolve: {
             alias: {
                 '@': resolve(__dirname, 'src'),
+                'ui-component': resolve(__dirname, 'src/ui-component'),
+                'layout': resolve(__dirname, 'src/layout'),
+                'utils': resolve(__dirname, 'src/utils'),
+                'views': resolve(__dirname, 'src/views'),
+                'store': resolve(__dirname, 'src/store'),
                 '@codemirror/state': resolve(__dirname, '../../node_modules/@codemirror/state'),
                 '@codemirror/view': resolve(__dirname, '../../node_modules/@codemirror/view'),
                 '@codemirror/language': resolve(__dirname, '../../node_modules/@codemirror/language'),
@@ -34,18 +39,35 @@ export default defineConfig(async ({ mode }) => {
                 '@uiw/codemirror-theme-vscode': resolve(__dirname, '../../node_modules/@uiw/codemirror-theme-vscode'),
                 '@uiw/codemirror-theme-sublime': resolve(__dirname, '../../node_modules/@uiw/codemirror-theme-sublime'),
                 '@lezer/common': resolve(__dirname, '../../node_modules/@lezer/common'),
-                '@lezer/highlight': resolve(__dirname, '../../node_modules/@lezer/highlight')
+                '@lezer/highlight': resolve(__dirname, '../../node_modules/@lezer/highlight'),
+                '@flowstack/auth-client': resolve(__dirname, '../auth-client/dist/src')
             }
         },
         root: resolve(__dirname),
         build: {
-            outDir: './build'
+            outDir: './build',
+            rollupOptions: {
+                external: [
+                    '@tabler/icons', 
+                    'react-apexcharts', 
+                    '@reduxjs/toolkit', 
+                    '@mui/x-date-pickers',
+                    '@mui/x-date-pickers/DateTimePicker',
+                    '@mui/x-date-pickers/DatePicker',
+                    '@mui/x-date-pickers/TimePicker',
+                    '@mui/x-date-pickers/LocalizationProvider',
+                    '@mui/x-date-pickers/AdapterDateFns'
+                ]
+            }
         },
         server: {
             open: true,
             proxy,
             port: process.env.VITE_PORT ?? 8080,
             host: process.env.VITE_HOST
+        },
+        preview: {
+            port: 3000
         }
     }
 })

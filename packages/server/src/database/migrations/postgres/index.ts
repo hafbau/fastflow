@@ -28,6 +28,8 @@ import { AddCustomTemplate1725629836652 } from './1725629836652-AddCustomTemplat
 import { AddArtifactsToChatMessage1726156258465 } from './1726156258465-AddArtifactsToChatMessage'
 import { AddFollowUpPrompts1726666309552 } from './1726666309552-AddFollowUpPrompts'
 import { AddTypeToAssistant1733011290987 } from './1733011290987-AddTypeToAssistant'
+import { CreateMultiTenancyTables1746196962000 } from './1746196962000-CreateMultiTenancyTables'
+import { AddMultiTenancyToExistingTables1746197062000 } from './1746197062000-AddMultiTenancyToExistingTables'
 
 export const postgresMigrations = [
     Init1693891895163,
@@ -59,5 +61,7 @@ export const postgresMigrations = [
     AddCustomTemplate1725629836652,
     AddArtifactsToChatMessage1726156258465,
     AddFollowUpPrompts1726666309552,
-    AddTypeToAssistant1733011290987
+    AddTypeToAssistant1733011290987,
+    CreateMultiTenancyTables1746196962000,
+    AddMultiTenancyToExistingTables1746197062000
 ]
