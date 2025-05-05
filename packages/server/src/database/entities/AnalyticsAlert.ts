@@ -74,7 +74,7 @@ export class AnalyticsAlert {
      * Alert type
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AlertType,
         nullable: false
     })
@@ -85,7 +85,7 @@ export class AnalyticsAlert {
      * Alert severity
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AlertSeverity,
         nullable: false,
         default: AlertSeverity.MEDIUM
@@ -97,7 +97,7 @@ export class AnalyticsAlert {
      * Alert status
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AlertStatus,
         nullable: false,
         default: AlertStatus.OPEN
@@ -109,7 +109,7 @@ export class AnalyticsAlert {
      * Detected at timestamp
      */
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: false
     })
     @Index()
@@ -119,7 +119,7 @@ export class AnalyticsAlert {
      * Resolved at timestamp
      */
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: true
     })
     resolvedAt?: Date
@@ -192,7 +192,7 @@ export class AnalyticsAlert {
      * Alert context
      */
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: true
     })
     context?: Record<string, any>

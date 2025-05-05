@@ -1,34 +1,56 @@
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import logger from '../../utils/logger'
 import { ResourceAttribute } from '../../database/entities/ResourceAttribute'
 import { UserAttribute } from '../../database/entities/UserAttribute'
 import { EnvironmentAttribute } from '../../database/entities/EnvironmentAttribute'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { createClient } from 'redis'
 import config from '../../config'
+import { getInitializedDataSource } from '../../DataSource'
 
 /**
  * Service for managing attributes for ABAC (Attribute-Based Access Control)
  */
-export class AttributeService {
-    private resourceAttributeRepository: any
-    private userAttributeRepository: any
-    private environmentAttributeRepository: any
+class AttributeService {
+    private resourceAttributeRepository: Repository<ResourceAttribute> | null = null
+    private userAttributeRepository: Repository<UserAttribute> | null = null
+    private environmentAttributeRepository: Repository<EnvironmentAttribute> | null = null
     private redisClient: any
+    private isInitialized: boolean = false
 
     /**
      * Constructor
      */
     constructor() {
-        const appServer = getRunningExpressApp()
-        this.resourceAttributeRepository = appServer.AppDataSource.getRepository(ResourceAttribute)
-        this.userAttributeRepository = appServer.AppDataSource.getRepository(UserAttribute)
-        this.environmentAttributeRepository = appServer.AppDataSource.getRepository(EnvironmentAttribute)
-        
+        // Repositories will be initialized lazily
         // Initialize Redis client if needed
         // this.initializeRedisClient()
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.resourceAttributeRepository = dataSource.getRepository(ResourceAttribute)
+            this.userAttributeRepository = dataSource.getRepository(UserAttribute)
+            this.environmentAttributeRepository = dataSource.getRepository(EnvironmentAttribute)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize AttributeService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -92,8 +114,10 @@ export class AttributeService {
         value: any
     ): Promise<ResourceAttribute> {
         try {
+            await this.ensureInitialized()
+            
             // Check if attribute already exists
-            const existingAttribute = await this.resourceAttributeRepository.findOne({
+            const existingAttribute = await this.resourceAttributeRepository!.findOne({
                 where: {
                     resourceType,
                     resourceId,
@@ -105,7 +129,7 @@ export class AttributeService {
                 // Update existing attribute
                 existingAttribute.value = value
                 existingAttribute.updatedAt = new Date()
-                const result = await this.resourceAttributeRepository.save(existingAttribute)
+                const result = await this.resourceAttributeRepository!.save(existingAttribute)
                 
                 // Clear cache
                 await this.clearCache('resource', `${resourceType}:${resourceId}`, key)
@@ -119,7 +143,7 @@ export class AttributeService {
                 attribute.key = key
                 attribute.value = value
                 
-                const result = await this.resourceAttributeRepository.save(attribute)
+                const result = await this.resourceAttributeRepository!.save(attribute)
                 
                 // Clear cache
                 await this.clearCache('resource', `${resourceType}:${resourceId}`, key)
@@ -144,6 +168,7 @@ export class AttributeService {
         key: string
     ): Promise<any> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey('resource', `${resourceType}:${resourceId}`, key)
@@ -154,7 +179,7 @@ export class AttributeService {
                 }
             }
             
-            const attribute = await this.resourceAttributeRepository.findOne({
+            const attribute = await this.resourceAttributeRepository!.findOne({
                 where: {
                     resourceType,
                     resourceId,
@@ -187,6 +212,7 @@ export class AttributeService {
         resourceId: string
     ): Promise<Record<string, any>> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey('resource', `${resourceType}:${resourceId}`)
@@ -197,7 +223,7 @@ export class AttributeService {
                 }
             }
             
-            const attributes = await this.resourceAttributeRepository.find({
+            const attributes = await this.resourceAttributeRepository!.find({
                 where: {
                     resourceType,
                     resourceId
@@ -234,7 +260,8 @@ export class AttributeService {
         key: string
     ): Promise<boolean> {
         try {
-            const result = await this.resourceAttributeRepository.delete({
+            await this.ensureInitialized()
+            const result = await this.resourceAttributeRepository!.delete({
                 resourceType,
                 resourceId,
                 key
@@ -243,7 +270,7 @@ export class AttributeService {
             // Clear cache
             await this.clearCache('resource', `${resourceType}:${resourceId}`, key)
             
-            return result.affected > 0
+            return (result.affected ?? 0) > 0
         } catch (error: any) {
             logger.error(`[AttributeService] Delete resource attribute error: ${error.message}`)
             return false
@@ -261,8 +288,9 @@ export class AttributeService {
         value: any
     ): Promise<UserAttribute> {
         try {
+            await this.ensureInitialized()
             // Check if attribute already exists
-            const existingAttribute = await this.userAttributeRepository.findOne({
+            const existingAttribute = await this.userAttributeRepository!.findOne({
                 where: {
                     userId,
                     key
@@ -273,7 +301,7 @@ export class AttributeService {
                 // Update existing attribute
                 existingAttribute.value = value
                 existingAttribute.updatedAt = new Date()
-                const result = await this.userAttributeRepository.save(existingAttribute)
+                const result = await this.userAttributeRepository!.save(existingAttribute)
                 
                 // Clear cache
                 await this.clearCache('user', userId, key)
@@ -286,7 +314,7 @@ export class AttributeService {
                 attribute.key = key
                 attribute.value = value
                 
-                const result = await this.userAttributeRepository.save(attribute)
+                const result = await this.userAttributeRepository!.save(attribute)
                 
                 // Clear cache
                 await this.clearCache('user', userId, key)
@@ -310,6 +338,7 @@ export class AttributeService {
         key: string
     ): Promise<any> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey('user', userId, key)
@@ -320,7 +349,7 @@ export class AttributeService {
                 }
             }
             
-            const attribute = await this.userAttributeRepository.findOne({
+            const attribute = await this.userAttributeRepository!.findOne({
                 where: {
                     userId,
                     key
@@ -349,6 +378,7 @@ export class AttributeService {
      */
     async getUserAttributes(userId: string): Promise<Record<string, any>> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey('user', userId)
@@ -359,7 +389,7 @@ export class AttributeService {
                 }
             }
             
-            const attributes = await this.userAttributeRepository.find({
+            const attributes = await this.userAttributeRepository!.find({
                 where: {
                     userId
                 }
@@ -394,7 +424,9 @@ export class AttributeService {
         key: string
     ): Promise<boolean> {
         try {
-            const result = await this.userAttributeRepository.delete({
+            await this.ensureInitialized()
+            
+            const result = await this.userAttributeRepository!.delete({
                 userId,
                 key
             })
@@ -402,7 +434,7 @@ export class AttributeService {
             // Clear cache
             await this.clearCache('user', userId, key)
             
-            return result.affected > 0
+            return (result.affected ?? 0) > 0
         } catch (error: any) {
             logger.error(`[AttributeService] Delete user attribute error: ${error.message}`)
             return false
@@ -421,12 +453,13 @@ export class AttributeService {
         workspaceId?: string
     ): Promise<EnvironmentAttribute> {
         try {
+            await this.ensureInitialized()
             // Check if attribute already exists
             const whereClause: any = { key }
             if (organizationId) whereClause.organizationId = organizationId
             if (workspaceId) whereClause.workspaceId = workspaceId
             
-            const existingAttribute = await this.environmentAttributeRepository.findOne({
+            const existingAttribute = await this.environmentAttributeRepository!.findOne({
                 where: whereClause
             })
 
@@ -434,7 +467,7 @@ export class AttributeService {
                 // Update existing attribute
                 existingAttribute.value = value
                 existingAttribute.updatedAt = new Date()
-                const result = await this.environmentAttributeRepository.save(existingAttribute)
+                const result = await this.environmentAttributeRepository!.save(existingAttribute)
                 
                 // Clear cache
                 const envId = this.getEnvironmentId(organizationId, workspaceId)
@@ -449,7 +482,7 @@ export class AttributeService {
                 attribute.organizationId = organizationId
                 attribute.workspaceId = workspaceId
                 
-                const result = await this.environmentAttributeRepository.save(attribute)
+                const result = await this.environmentAttributeRepository!.save(attribute)
                 
                 // Clear cache
                 const envId = this.getEnvironmentId(organizationId, workspaceId)
@@ -475,6 +508,7 @@ export class AttributeService {
         workspaceId?: string
     ): Promise<any> {
         try {
+            await this.ensureInitialized()
             const envId = this.getEnvironmentId(organizationId, workspaceId)
             
             // Check cache first
@@ -497,7 +531,7 @@ export class AttributeService {
             
             if (workspaceId && organizationId) {
                 // Try workspace-specific
-                attribute = await this.environmentAttributeRepository.findOne({
+                attribute = await this.environmentAttributeRepository!.findOne({
                     where: {
                         key,
                         workspaceId,
@@ -508,25 +542,25 @@ export class AttributeService {
             
             if (!attribute && organizationId) {
                 // Try organization-specific
-                attribute = await this.environmentAttributeRepository.findOne({
+                attribute = await this.environmentAttributeRepository!.findOne({
                     where: {
                         key,
                         organizationId,
-                        workspaceId: null,
+                        workspaceId: undefined,
                         isActive: true
-                    }
+                    } as any
                 })
             }
             
             if (!attribute) {
                 // Try global
-                attribute = await this.environmentAttributeRepository.findOne({
+                attribute = await this.environmentAttributeRepository!.findOne({
                     where: {
                         key,
-                        organizationId: null,
-                        workspaceId: null,
+                        organizationId: undefined,
+                        workspaceId: undefined,
                         isActive: true
-                    }
+                    } as any
                 })
             }
             
@@ -555,6 +589,7 @@ export class AttributeService {
         workspaceId?: string
     ): Promise<Record<string, any>> {
         try {
+            await this.ensureInitialized()
             const envId = this.getEnvironmentId(organizationId, workspaceId)
             
             // Check cache first
@@ -568,12 +603,12 @@ export class AttributeService {
             }
             
             // Get global attributes
-            const globalAttributes = await this.environmentAttributeRepository.find({
+            const globalAttributes = await this.environmentAttributeRepository!.find({
                 where: {
-                    organizationId: null,
-                    workspaceId: null,
+                    organizationId: undefined,
+                    workspaceId: undefined,
                     isActive: true
-                }
+                } as any
             })
             
             const result: Record<string, any> = {}
@@ -585,12 +620,12 @@ export class AttributeService {
             
             // Add organization-specific attributes (overriding globals)
             if (organizationId) {
-                const orgAttributes = await this.environmentAttributeRepository.find({
+                const orgAttributes = await this.environmentAttributeRepository!.find({
                     where: {
                         organizationId,
-                        workspaceId: null,
+                        workspaceId: undefined,
                         isActive: true
-                    }
+                    } as any
                 })
                 
                 for (const attribute of orgAttributes) {
@@ -600,7 +635,7 @@ export class AttributeService {
             
             // Add workspace-specific attributes (overriding org and globals)
             if (workspaceId) {
-                const workspaceAttributes = await this.environmentAttributeRepository.find({
+                const workspaceAttributes = await this.environmentAttributeRepository!.find({
                     where: {
                         workspaceId,
                         isActive: true
@@ -636,17 +671,19 @@ export class AttributeService {
         workspaceId?: string
     ): Promise<boolean> {
         try {
+            await this.ensureInitialized()
+            
             const whereClause: any = { key }
             if (organizationId) whereClause.organizationId = organizationId
             if (workspaceId) whereClause.workspaceId = workspaceId
             
-            const result = await this.environmentAttributeRepository.delete(whereClause)
+            const result = await this.environmentAttributeRepository!.delete(whereClause)
             
             // Clear cache
             const envId = this.getEnvironmentId(organizationId, workspaceId)
             await this.clearCache('env', envId, key)
             
-            return result.affected > 0
+            return (result.affected ?? 0) > 0
         } catch (error: any) {
             logger.error(`[AttributeService] Delete environment attribute error: ${error.message}`)
             return false
@@ -667,5 +704,9 @@ export class AttributeService {
     }
 }
 
-export const attributeService = new AttributeService()
+// Create a singleton instance
+const attributeService = new AttributeService()
 export default attributeService
+
+// Export the class for use with the service factory
+export { AttributeService }

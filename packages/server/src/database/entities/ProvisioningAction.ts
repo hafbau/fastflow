@@ -46,12 +46,12 @@ export class ProvisioningAction {
     id: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ProvisioningActionType
     })
     type: ProvisioningActionType
 
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     parameters: Record<string, any>
 
     @Column({ name: 'target_user_id', nullable: true })
@@ -69,7 +69,7 @@ export class ProvisioningAction {
     rule: ProvisioningRule
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ProvisioningActionStatus,
         default: ProvisioningActionStatus.PENDING
     })

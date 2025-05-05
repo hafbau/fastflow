@@ -9,14 +9,13 @@ import { Request, Response, NextFunction } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { AuthContext } from './types'
-import userService from '../../services/UserService'
+import UserService from '../../services/UserService'
 import UserOrganizationService from '../../services/UserOrganizationService'
 import WorkspaceMemberService from '../../services/WorkspaceMemberService'
-import rolesPermissionsService from '../../services/RolesPermissionsService'
+import { RolesPermissionsService } from '../../services/RolesPermissionsService'
 
-// Create service instances
-const userOrganizationService = new UserOrganizationService()
-const workspaceMemberService = new WorkspaceMemberService()
+// Import the service factory
+import { createService } from '../../services-factory'
 
 /**
  * Middleware to create user context with organization and workspace information
@@ -50,6 +49,11 @@ export const createUserContext = async (req: Request, res: Response, next: NextF
     }
     
     try {
+      // Create service instances using the factory
+      const userOrganizationService = await createService(UserOrganizationService)
+      const workspaceMemberService = await createService(WorkspaceMemberService)
+      const rolesPermissionsService = await createService(RolesPermissionsService)
+      
       // Get user's organizations and roles
       const userOrgs = await userOrganizationService.getUserOrganizations(user.id)
       

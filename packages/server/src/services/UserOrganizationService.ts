@@ -1,26 +1,50 @@
-import { getRepository } from 'typeorm'
+import { getRepository, Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 import { UserOrganization } from '../database/entities/UserOrganization'
 import { Organization } from '../database/entities/Organization'
 import { UserProfile } from '../database/entities/UserProfile'
 import logger from '../utils/logger'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * Service for managing user organization memberships
  */
 export class UserOrganizationService {
-    private userOrgRepository: any
-    private organizationRepository: any
-    private userProfileRepository: any
+    private userOrgRepository: Repository<UserOrganization> | null = null
+    private organizationRepository: Repository<Organization> | null = null
+    private userProfileRepository: Repository<UserProfile> | null = null
+    private isInitialized = false
 
     /**
      * Constructor
      */
     constructor() {
-        this.userOrgRepository = getRepository(UserOrganization)
-        this.organizationRepository = getRepository(Organization)
-        this.userProfileRepository = getRepository(UserProfile)
+        // Repositories will be initialized on demand
+    }
+    
+    /**
+     * Initialize repositories lazily
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.userOrgRepository = dataSource.getRepository(UserOrganization)
+            this.organizationRepository = dataSource.getRepository(Organization)
+            this.userProfileRepository = dataSource.getRepository(UserProfile)
+            
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize UserOrganizationService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -32,8 +56,11 @@ export class UserOrganizationService {
      */
     async addUserToOrganization(userId: string, organizationId: string, role: string = 'member'): Promise<UserOrganization> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Check if user exists
-            const user = await this.userProfileRepository.findOne({
+            const user = await this.userProfileRepository!.findOne({
                 where: { id: userId } as any
             })
 
@@ -42,7 +69,7 @@ export class UserOrganizationService {
             }
 
             // Check if organization exists
-            const organization = await this.organizationRepository.findOne({
+            const organization = await this.organizationRepository!.findOne({
                 where: { id: organizationId } as any
             })
 
@@ -51,7 +78,7 @@ export class UserOrganizationService {
             }
 
             // Check if user is already a member of the organization
-            const existingMembership = await this.userOrgRepository.findOne({
+            const existingMembership = await this.userOrgRepository!.findOne({
                 where: {
                     userId,
                     organizationId
@@ -62,20 +89,20 @@ export class UserOrganizationService {
                 // Update role if different
                 if (existingMembership.role !== role) {
                     existingMembership.role = role
-                    await this.userOrgRepository.save(existingMembership)
+                    await this.userOrgRepository!.save(existingMembership)
                 }
                 return existingMembership
             }
 
             // Create new membership
-            const userOrg = this.userOrgRepository.create({
+            const userOrg = this.userOrgRepository!.create({
                 userId,
                 organizationId,
                 role,
                 isActive: true
             })
 
-            await this.userOrgRepository.save(userOrg)
+            await this.userOrgRepository!.save(userOrg)
             return userOrg
         } catch (error: any) {
             logger.error(`[UserOrganizationService] Add user to organization error: ${error.message}`)
@@ -91,8 +118,11 @@ export class UserOrganizationService {
      */
     async removeUserFromOrganization(userId: string, organizationId: string): Promise<void> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Check if user is a member of the organization
-            const membership = await this.userOrgRepository.findOne({
+            const membership = await this.userOrgRepository!.findOne({
                 where: {
                     userId,
                     organizationId
@@ -104,7 +134,7 @@ export class UserOrganizationService {
             }
 
             // Delete membership
-            await this.userOrgRepository.delete(membership.id)
+            await this.userOrgRepository!.delete(membership.id)
         } catch (error: any) {
             logger.error(`[UserOrganizationService] Remove user from organization error: ${error.message}`)
             throw error
@@ -120,8 +150,11 @@ export class UserOrganizationService {
      */
     async updateUserRole(userId: string, organizationId: string, role: string): Promise<UserOrganization> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Check if user is a member of the organization
-            const membership = await this.userOrgRepository.findOne({
+            const membership = await this.userOrgRepository!.findOne({
                 where: {
                     userId,
                     organizationId
@@ -134,7 +167,7 @@ export class UserOrganizationService {
 
             // Update role
             membership.role = role
-            await this.userOrgRepository.save(membership)
+            await this.userOrgRepository!.save(membership)
             return membership
         } catch (error: any) {
             logger.error(`[UserOrganizationService] Update user role error: ${error.message}`)
@@ -149,8 +182,11 @@ export class UserOrganizationService {
      */
     async getUserOrganizations(userId: string): Promise<Organization[]> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Get user memberships
-            const memberships = await this.userOrgRepository.find({
+            const memberships = await this.userOrgRepository!.find({
                 where: {
                     userId,
                     isActive: true
@@ -173,8 +209,11 @@ export class UserOrganizationService {
      */
     async getOrganizationMembers(organizationId: string): Promise<UserProfile[]> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Get organization memberships
-            const memberships = await this.userOrgRepository.find({
+            const memberships = await this.userOrgRepository!.find({
                 where: {
                     organizationId,
                     isActive: true
@@ -198,7 +237,10 @@ export class UserOrganizationService {
      */
     async isUserMemberOfOrganization(userId: string, organizationId: string): Promise<boolean> {
         try {
-            const membership = await this.userOrgRepository.findOne({
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
+            const membership = await this.userOrgRepository!.findOne({
                 where: {
                     userId,
                     organizationId,
@@ -221,7 +263,10 @@ export class UserOrganizationService {
      */
     async getUserRole(userId: string, organizationId: string): Promise<string | null> {
         try {
-            const membership = await this.userOrgRepository.findOne({
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
+            const membership = await this.userOrgRepository!.findOne({
                 where: {
                     userId,
                     organizationId,

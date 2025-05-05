@@ -1,4 +1,4 @@
-import { getRepository } from 'typeorm'
+import { getRepository, Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 import { WorkspaceMember } from '../database/entities/WorkspaceMember'
@@ -6,24 +6,48 @@ import { Workspace } from '../database/entities/Workspace'
 import { UserProfile } from '../database/entities/UserProfile'
 import { UserOrganizationService } from './UserOrganizationService'
 import logger from '../utils/logger'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * Service for managing workspace memberships
  */
 export class WorkspaceMemberService {
-    private workspaceMemberRepository: any
-    private workspaceRepository: any
-    private userProfileRepository: any
-    private userOrganizationService: UserOrganizationService
+    private workspaceMemberRepository: Repository<WorkspaceMember> | null = null
+    private workspaceRepository: Repository<Workspace> | null = null
+    private userProfileRepository: Repository<UserProfile> | null = null
+    private userOrganizationService: UserOrganizationService | null = null
+    private isInitialized = false
 
     /**
      * Constructor
      */
     constructor() {
-        this.workspaceMemberRepository = getRepository(WorkspaceMember)
-        this.workspaceRepository = getRepository(Workspace)
-        this.userProfileRepository = getRepository(UserProfile)
-        this.userOrganizationService = new UserOrganizationService()
+        // Repositories will be initialized on demand
+    }
+    
+    /**
+     * Initialize repositories lazily
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.workspaceMemberRepository = dataSource.getRepository(WorkspaceMember)
+            this.workspaceRepository = dataSource.getRepository(Workspace)
+            this.userProfileRepository = dataSource.getRepository(UserProfile)
+            this.userOrganizationService = new UserOrganizationService()
+            
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize WorkspaceMemberService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -35,8 +59,11 @@ export class WorkspaceMemberService {
      */
     async addUserToWorkspace(userId: string, workspaceId: string, role: string = 'member'): Promise<WorkspaceMember> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Check if user exists
-            const user = await this.userProfileRepository.findOne({
+            const user = await this.userProfileRepository!.findOne({
                 where: { id: userId } as any
             })
 
@@ -45,7 +72,7 @@ export class WorkspaceMemberService {
             }
 
             // Check if workspace exists
-            const workspace = await this.workspaceRepository.findOne({
+            const workspace = await this.workspaceRepository!.findOne({
                 where: { id: workspaceId } as any,
                 relations: ['organization']
             })
@@ -55,7 +82,7 @@ export class WorkspaceMemberService {
             }
 
             // Check if user is a member of the organization
-            const isMember = await this.userOrganizationService.isUserMemberOfOrganization(
+            const isMember = await this.userOrganizationService!.isUserMemberOfOrganization(
                 userId,
                 workspace.organizationId
             )
@@ -68,7 +95,7 @@ export class WorkspaceMemberService {
             }
 
             // Check if user is already a member of the workspace
-            const existingMembership = await this.workspaceMemberRepository.findOne({
+            const existingMembership = await this.workspaceMemberRepository!.findOne({
                 where: {
                     userId,
                     workspaceId
@@ -79,20 +106,20 @@ export class WorkspaceMemberService {
                 // Update role if different
                 if (existingMembership.role !== role) {
                     existingMembership.role = role
-                    await this.workspaceMemberRepository.save(existingMembership)
+                    await this.workspaceMemberRepository!.save(existingMembership)
                 }
                 return existingMembership
             }
 
             // Create new membership
-            const workspaceMember = this.workspaceMemberRepository.create({
+            const workspaceMember = this.workspaceMemberRepository!.create({
                 userId,
                 workspaceId,
                 role,
                 isActive: true
             })
 
-            await this.workspaceMemberRepository.save(workspaceMember)
+            await this.workspaceMemberRepository!.save(workspaceMember)
             return workspaceMember
         } catch (error: any) {
             logger.error(`[WorkspaceMemberService] Add user to workspace error: ${error.message}`)
@@ -108,8 +135,11 @@ export class WorkspaceMemberService {
      */
     async removeUserFromWorkspace(userId: string, workspaceId: string): Promise<void> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Check if user is a member of the workspace
-            const membership = await this.workspaceMemberRepository.findOne({
+            const membership = await this.workspaceMemberRepository!.findOne({
                 where: {
                     userId,
                     workspaceId
@@ -121,7 +151,7 @@ export class WorkspaceMemberService {
             }
 
             // Delete membership
-            await this.workspaceMemberRepository.delete(membership.id)
+            await this.workspaceMemberRepository!.delete(membership.id)
         } catch (error: any) {
             logger.error(`[WorkspaceMemberService] Remove user from workspace error: ${error.message}`)
             throw error
@@ -137,8 +167,11 @@ export class WorkspaceMemberService {
      */
     async updateUserRole(userId: string, workspaceId: string, role: string): Promise<WorkspaceMember> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Check if user is a member of the workspace
-            const membership = await this.workspaceMemberRepository.findOne({
+            const membership = await this.workspaceMemberRepository!.findOne({
                 where: {
                     userId,
                     workspaceId
@@ -151,7 +184,7 @@ export class WorkspaceMemberService {
 
             // Update role
             membership.role = role
-            await this.workspaceMemberRepository.save(membership)
+            await this.workspaceMemberRepository!.save(membership)
             return membership
         } catch (error: any) {
             logger.error(`[WorkspaceMemberService] Update user role error: ${error.message}`)
@@ -166,8 +199,11 @@ export class WorkspaceMemberService {
      */
     async getUserWorkspaces(userId: string): Promise<Workspace[]> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Get user memberships
-            const memberships = await this.workspaceMemberRepository.find({
+            const memberships = await this.workspaceMemberRepository!.find({
                 where: {
                     userId,
                     isActive: true
@@ -190,8 +226,11 @@ export class WorkspaceMemberService {
      */
     async getWorkspaceMembers(workspaceId: string): Promise<UserProfile[]> {
         try {
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
             // Get workspace memberships
-            const memberships = await this.workspaceMemberRepository.find({
+            const memberships = await this.workspaceMemberRepository!.find({
                 where: {
                     workspaceId,
                     isActive: true
@@ -215,7 +254,10 @@ export class WorkspaceMemberService {
      */
     async isUserMemberOfWorkspace(userId: string, workspaceId: string): Promise<boolean> {
         try {
-            const membership = await this.workspaceMemberRepository.findOne({
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
+            const membership = await this.workspaceMemberRepository!.findOne({
                 where: {
                     userId,
                     workspaceId,
@@ -238,7 +280,10 @@ export class WorkspaceMemberService {
      */
     async getUserRole(userId: string, workspaceId: string): Promise<string | null> {
         try {
-            const membership = await this.workspaceMemberRepository.findOne({
+            // Ensure repositories are initialized
+            await this.ensureInitialized()
+            
+            const membership = await this.workspaceMemberRepository!.findOne({
                 where: {
                     userId,
                     workspaceId,

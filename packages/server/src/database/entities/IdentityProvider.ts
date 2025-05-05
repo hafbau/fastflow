@@ -45,14 +45,14 @@ export class IdentityProvider {
     slug: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: IdentityProviderType,
         default: IdentityProviderType.SAML
     })
     type: IdentityProviderType
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: IdentityProviderStatus,
         default: IdentityProviderStatus.INACTIVE
     })

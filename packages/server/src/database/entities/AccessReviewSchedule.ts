@@ -48,21 +48,21 @@ export class AccessReviewSchedule {
     description?: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewFrequency,
         default: AccessReviewFrequency.QUARTERLY
     })
     frequency: AccessReviewFrequency
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewScheduleStatus,
         default: AccessReviewScheduleStatus.ACTIVE
     })
     status: AccessReviewScheduleStatus
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewScope,
         default: AccessReviewScope.ORGANIZATION
     })
@@ -91,16 +91,16 @@ export class AccessReviewSchedule {
     @Column({ type: 'integer', default: 7 })
     durationDays: number
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'datetime', nullable: true })
     lastRunAt?: Date
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'datetime', nullable: true })
     nextRunAt?: Date
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     settings?: Record<string, any>
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata?: Record<string, any>
 
     @CreateDateColumn()

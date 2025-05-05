@@ -1,6 +1,7 @@
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { v4 as uuidv4 } from 'uuid'
 import logger from '../../utils/logger'
+import { getInitializedDataSource } from '../../DataSource'
 
 /**
  * Audit log entity
@@ -44,12 +45,43 @@ export interface AuditLogResult {
  * Service for managing audit logs
  */
 class AuditLogsService {
+    // Repository instance
+    private auditLogRepository: Repository<any> | null = null
+    
+    // Initialization flag
+    private isInitialized: boolean = false
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // In a real implementation, we would get an actual AuditLog repository
+            // For now, we'll just keep a placeholder
+            // this.auditLogRepository = dataSource.getRepository(AuditLog)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize AuditLogsService repositories', error)
+            throw error
+        }
+    }
     /**
      * Create an audit log
      * @param data Audit log data
      */
     async createAuditLog(data: Partial<AuditLog>): Promise<AuditLog> {
         try {
+            await this.ensureInitialized()
+            
             const auditLog: AuditLog = {
                 id: data.id || uuidv4(),
                 userId: data.userId || '',
@@ -68,8 +100,7 @@ class AuditLogsService {
             })
             
             // In a real implementation, we would save to the database:
-            // const auditLogRepo = getRepository(AuditLog)
-            // await auditLogRepo.save(auditLog)
+            // await this.auditLogRepository!.save(auditLog)
             
             return auditLog
         } catch (error) {
@@ -84,14 +115,15 @@ class AuditLogsService {
      */
     async getAuditLogById(id: string): Promise<AuditLog | null> {
         try {
+            await this.ensureInitialized()
+            
             // In a real implementation, this would query the database
             // For now, we'll just return null
             
             return null
             
             // In a real implementation, we would query the database:
-            // const auditLogRepo = getRepository(AuditLog)
-            // return auditLogRepo.findOne({ where: { id } })
+            // return this.auditLogRepository!.findOne({ where: { id } })
         } catch (error) {
             logger.error(`Error getting audit log: ${error}`)
             return null
@@ -104,6 +136,8 @@ class AuditLogsService {
      */
     async getAuditLogs(filters: AuditLogFilters): Promise<AuditLogResult> {
         try {
+            await this.ensureInitialized()
+            
             // In a real implementation, this would query the database
             // For now, we'll just return an empty result
             
@@ -113,8 +147,7 @@ class AuditLogsService {
             }
             
             // In a real implementation, we would query the database:
-            // const auditLogRepo = getRepository(AuditLog)
-            // const query = auditLogRepo.createQueryBuilder('audit_log')
+            // const query = this.auditLogRepository!.createQueryBuilder('audit_log')
             
             // if (filters.userId) {
             //     query.andWhere('audit_log.userId = :userId', { userId: filters.userId })
@@ -186,6 +219,8 @@ class AuditLogsService {
         userAgent?: string
     ): Promise<void> {
         try {
+            await this.ensureInitialized()
+            
             // In a real implementation, this would save to a database
             // For now, we'll just log to the console
             
@@ -207,8 +242,7 @@ class AuditLogsService {
             })
             
             // In a real implementation, we would save to the database:
-            // const auditLogRepo = getRepository(AuditLog)
-            // await auditLogRepo.save(auditLog)
+            // await this.auditLogRepository!.save(auditLog)
         } catch (error) {
             logger.error(`Error logging audit event: ${error}`)
         }
@@ -222,14 +256,15 @@ class AuditLogsService {
      */
     async getUserAuditLogs(userId: string, limit: number = 50, offset: number = 0): Promise<AuditLog[]> {
         try {
+            await this.ensureInitialized()
+            
             // In a real implementation, this would query the database
             // For now, we'll just return an empty array
             
             return []
             
             // In a real implementation, we would query the database:
-            // const auditLogRepo = getRepository(AuditLog)
-            // return auditLogRepo.find({
+            // return this.auditLogRepository!.find({
             //     where: { userId },
             //     order: { createdAt: 'DESC' },
             //     take: limit,
@@ -255,14 +290,15 @@ class AuditLogsService {
         offset: number = 0
     ): Promise<AuditLog[]> {
         try {
+            await this.ensureInitialized()
+            
             // In a real implementation, this would query the database
             // For now, we'll just return an empty array
             
             return []
             
             // In a real implementation, we would query the database:
-            // const auditLogRepo = getRepository(AuditLog)
-            // return auditLogRepo.find({
+            // return this.auditLogRepository!.find({
             //     where: { resourceType, resourceId },
             //     order: { createdAt: 'DESC' },
             //     take: limit,

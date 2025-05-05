@@ -52,7 +52,7 @@ export class AccessReview {
     description?: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewStatus,
         default: AccessReviewStatus.PENDING,
         nullable: false
@@ -104,14 +104,14 @@ export class AccessReview {
     resourceType?: string
 
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: false
     })
     @Index()
     dueDate: Date
 
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: true
     })
     completedDate?: Date
@@ -123,7 +123,7 @@ export class AccessReview {
     reviewNotes?: string
 
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: true,
         default: {}
     })
@@ -142,7 +142,7 @@ export class AccessReview {
     createdBy: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewType,
         default: AccessReviewType.AD_HOC,
         nullable: false
@@ -150,7 +150,7 @@ export class AccessReview {
     type: AccessReviewType
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewScope,
         default: AccessReviewScope.ORGANIZATION,
         nullable: false
@@ -158,7 +158,7 @@ export class AccessReview {
     scope: AccessReviewScope
 
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: true
     })
     startDate?: Date
@@ -170,7 +170,7 @@ export class AccessReview {
     assignedTo?: string
 
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: true
     })
     settings?: Record<string, any>

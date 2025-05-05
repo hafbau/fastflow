@@ -45,21 +45,21 @@ export class ProvisioningRule {
     description: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ProvisioningRuleType
     })
     type: ProvisioningRuleType
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ProvisioningRuleTrigger
     })
     trigger: ProvisioningRuleTrigger
 
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     conditions: Record<string, any>
 
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     actions: Record<string, any>
 
     @Column({ name: 'organization_id', nullable: true })
@@ -77,7 +77,7 @@ export class ProvisioningRule {
     workspace: Workspace
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ProvisioningRuleStatus,
         default: ProvisioningRuleStatus.DRAFT
     })

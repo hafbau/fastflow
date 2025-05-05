@@ -8,11 +8,11 @@ export class Telemetry {
     postHog?: PostHog
 
     constructor() {
-        if (process.env.DISABLE_FASTFLOW_TELEMETRY !== 'true') {
-            this.postHog = new PostHog('phc_jEDuFYnOnuXsws986TLWzuisbRjwFqTl9JL8tDMgqme')
-        } else {
-            this.postHog = undefined
-        }
+        // if (process.env.DISABLE_FASTFLOW_TELEMETRY !== 'true') {
+        //     this.postHog = new PostHog('phc_jEDuFYnOnuXsws986TLWzuisbRjwFqTl9JL8tDMgqme')
+        // } else {
+        //     this.postHog = undefined
+        // }
     }
 
     async id(): Promise<string> {

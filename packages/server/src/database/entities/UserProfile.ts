@@ -27,19 +27,19 @@ export class UserProfile {
     @Column({ length: 50, default: 'ACTIVE' })
     status: string
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     preferences?: Record<string, any>
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata?: Record<string, any>
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'datetime', nullable: true })
     lastLogin?: Date
 
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'datetime' })
     createdAt: Date
 
-    @UpdateDateColumn()
+    @UpdateDateColumn({ type: 'datetime' })
     updatedAt: Date
 }
 

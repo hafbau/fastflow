@@ -48,13 +48,13 @@ export class AccessReviewItem {
     review: AccessReview
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewItemType
     })
     type: AccessReviewItemType
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewItemStatus,
         default: AccessReviewItemStatus.PENDING
     })
@@ -81,10 +81,10 @@ export class AccessReviewItem {
     @Column({ type: 'uuid', nullable: true })
     reviewedBy?: string
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'datetime', nullable: true })
     reviewedAt?: Date
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata?: Record<string, any>
 
     @Column({ type: 'boolean', default: false })

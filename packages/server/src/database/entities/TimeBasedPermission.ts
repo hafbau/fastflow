@@ -31,14 +31,14 @@ export class TimeBasedPermission {
     /**
      * User ID
      */
-    @Column()
+    @Column({ type: 'varchar' })
     @Index()
     userId: string
 
     /**
      * Permission ID
      */
-    @Column()
+    @Column({ type: 'varchar' })
     @Index()
     permissionId: string
 
@@ -52,14 +52,14 @@ export class TimeBasedPermission {
     /**
      * Resource type (optional)
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     @Index()
     resourceType?: string
 
     /**
      * Resource ID (optional)
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     @Index()
     resourceId?: string
 
@@ -67,7 +67,7 @@ export class TimeBasedPermission {
      * Type of time-based permission
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: TimeBasedPermissionType,
         default: TimeBasedPermissionType.TEMPORARY
     })
@@ -76,14 +76,14 @@ export class TimeBasedPermission {
     /**
      * Start time for the permission
      */
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     @Index()
     startTime: Date
 
     /**
      * End time for the permission (optional for recurring)
      */
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'datetime', nullable: true })
     @Index()
     endTime?: Date
 
@@ -97,36 +97,36 @@ export class TimeBasedPermission {
      *   daysOfMonth: number[] // 1-31
      * }
      */
-    @Column({ type: 'json', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     schedule?: any
 
     /**
      * Reason for granting this time-based permission
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     reason?: string
 
     /**
      * Whether the time-based permission is active
      */
-    @Column({ default: true })
+    @Column({ default: true, type: 'boolean' })
     isActive: boolean
 
     /**
      * Created by user ID
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     createdBy?: string
 
     /**
      * Created at timestamp
      */
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'datetime' })
     createdAt: Date
 
     /**
      * Updated at timestamp
      */
-    @UpdateDateColumn()
+    @UpdateDateColumn({ type: 'datetime' })
     updatedAt: Date
 }

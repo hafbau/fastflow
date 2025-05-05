@@ -34,7 +34,7 @@ export class ApiKey implements IApiKey {
     @Column({ type: 'uuid', nullable: true })
     supabaseUserId?: string
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     @UpdateDateColumn()
     updatedDate: Date
 }

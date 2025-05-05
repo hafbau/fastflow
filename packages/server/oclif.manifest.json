@@ -1,0 +1,38 @@
+{
+  "version": "2.2.7-patch.1",
+  "commands": {
+    "start": {
+      "id": "start",
+      "description": "start command",
+      "pluginName": "fastflow",
+      "pluginAlias": "fastflow",
+      "pluginType": "core",
+      "hidden": false,
+      "aliases": [],
+      "flags": {},
+      "args": []
+    },
+    "test": {
+      "id": "test",
+      "description": "test command",
+      "pluginName": "fastflow",
+      "pluginAlias": "fastflow",
+      "pluginType": "core",
+      "hidden": false,
+      "aliases": [],
+      "flags": {},
+      "args": []
+    },
+    "worker": {
+      "id": "worker",
+      "description": "worker command",
+      "pluginName": "fastflow",
+      "pluginAlias": "fastflow",
+      "pluginType": "core",
+      "hidden": false,
+      "aliases": [],
+      "flags": {},
+      "args": []
+    }
+  }
+}

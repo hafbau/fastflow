@@ -37,7 +37,7 @@ export class AnalyticsDashboard {
     description?: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: DashboardType
     })
     dashboardType: DashboardType
@@ -52,7 +52,7 @@ export class AnalyticsDashboard {
     workspaceId?: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: DashboardVisibility,
         default: DashboardVisibility.PRIVATE
     })
@@ -62,21 +62,21 @@ export class AnalyticsDashboard {
      * Layout configuration for the dashboard
      * Contains information about widgets, their positions, sizes, and configurations
      */
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     layout: Record<string, any>
 
     /**
      * Filter configuration for the dashboard
      * Contains default filters applied to the dashboard
      */
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     filters?: Record<string, any>
 
     /**
      * Time range configuration for the dashboard
      * Contains default time range for the dashboard
      */
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     timeRange?: {
         start?: string;
         end?: string;
@@ -93,7 +93,7 @@ export class AnalyticsDashboard {
     @Column({ type: 'boolean', default: true })
     isActive: boolean
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata?: Record<string, any>
 
     @CreateDateColumn()

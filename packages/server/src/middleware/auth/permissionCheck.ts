@@ -9,8 +9,9 @@ import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { AuthContext, PermissionCheckOptions } from './types'
 import { getCurrentOrganizationId, getCurrentWorkspaceId } from './userContext'
-import rolesPermissionsService from '../../services/RolesPermissionsService'
-import resourcePermissionService from '../../services/ResourcePermissionService'
+import { RolesPermissionsService } from '../../services/RolesPermissionsService'
+import { ResourcePermissionService } from '../../services/ResourcePermissionService'
+import { createService } from '../../services-factory'
 
 /**
  * Check if user has permission to perform an action
@@ -90,9 +91,12 @@ export const checkPermission = (options: PermissionCheckOptions) => {
           const rId = typeof options.resourceId === 'function' ? options.resourceId(req) : options.resourceId
           const resourceId = rId || req.params.id
           
-          if (resourceId && await hasResourcePermission(authContext, options.resourceType, options.action, resourceId)) {
-            next()
-            return
+          if (resourceId) {
+            const hasPermission = await hasResourcePermission(authContext, options.resourceType, options.action, resourceId)
+            if (hasPermission) {
+              next()
+              return
+            }
           }
           break
       }
@@ -210,6 +214,10 @@ export const hasResourcePermission = async (
   
   // If not, check for resource-specific permissions
   try {
+    // Create service instances using the factory
+    const resourcePermissionService = await createService(ResourcePermissionService)
+    const rolesPermissionsService = await createService(RolesPermissionsService)
+    
     // Check if the user has a direct resource permission
     const hasDirectPermission = await resourcePermissionService.hasResourcePermission(
       authContext.user.id,

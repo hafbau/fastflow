@@ -29,7 +29,7 @@ export class Attribute {
      * Type of attribute (resource, user, environment)
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AttributeType,
         default: AttributeType.RESOURCE
     })

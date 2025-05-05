@@ -13,7 +13,7 @@ export class EnvironmentAttribute {
     @Column({ length: 100 })
     key: string
 
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     value: any
 
     @Column({ type: 'uuid', nullable: true })
@@ -25,9 +25,9 @@ export class EnvironmentAttribute {
     @Column({ type: 'boolean', default: true })
     isActive: boolean
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updatedAt: Date
 }

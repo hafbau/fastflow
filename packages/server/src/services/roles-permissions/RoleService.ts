@@ -5,21 +5,57 @@ import { RolePermission } from '../../database/entities/RolePermission'
 import { UserRole } from '../../database/entities/UserRole'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { getErrorMessage } from '../../errors/utils'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
-import { permissionService } from './PermissionService'
+import permissionService from './PermissionService'
 import organizationsService from '../organizations'
 import workspacesService from '../workspaces'
+import { Repository } from 'typeorm'
+import { getInitializedDataSource } from '../../DataSource'
+import logger from '../../utils/logger'
 
 /**
  * Role Service
  * Handles role management, assignment, and hierarchy
  */
-export class RoleService {
+class RoleService {
     // In-memory cache for roles
     private roleCache: Map<string, any>
+    
+    // Repository instances
+    private roleRepository: Repository<Role> | null = null
+    private rolePermissionRepository: Repository<RolePermission> | null = null
+    private userRoleRepository: Repository<UserRole> | null = null
+    
+    // Initialization flag
+    private isInitialized: boolean = false
 
     constructor() {
         this.roleCache = new Map<string, any>()
+        // Repositories will be initialized lazily when needed
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.roleRepository = dataSource.getRepository(Role)
+            this.rolePermissionRepository = dataSource.getRepository(RolePermission)
+            this.userRoleRepository = dataSource.getRepository(UserRole)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize RoleService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -27,6 +63,8 @@ export class RoleService {
      */
     async getAllRoles(): Promise<Role[]> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = 'all_roles'
             const cachedRoles = this.roleCache.get(cacheKey) as Role[] | undefined
             
@@ -34,8 +72,7 @@ export class RoleService {
                 return cachedRoles
             }
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Role).find({
+            const dbResponse = await this.roleRepository!.find({
                 order: {
                     name: 'ASC'
                 },
@@ -57,6 +94,8 @@ export class RoleService {
      */
     async getSystemRoles(): Promise<Role[]> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = 'system_roles'
             const cachedRoles = this.roleCache.get(cacheKey) as Role[] | undefined
             
@@ -64,8 +103,7 @@ export class RoleService {
                 return cachedRoles
             }
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Role).find({
+            const dbResponse = await this.roleRepository!.find({
                 where: {
                     type: RoleType.SYSTEM
                 },
@@ -89,6 +127,8 @@ export class RoleService {
      */
     async getRolesByOrganizationId(organizationId: string): Promise<Role[]> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `org_roles_${organizationId}`
             const cachedRoles = this.roleCache.get(cacheKey) as Role[] | undefined
             
@@ -99,8 +139,7 @@ export class RoleService {
             // Verify organization exists
             await organizationsService.getOrganizationById(organizationId)
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Role).find({
+            const dbResponse = await this.roleRepository!.find({
                 where: {
                     organizationId: organizationId
                 },
@@ -126,6 +165,8 @@ export class RoleService {
      */
     async getRoleById(roleId: string): Promise<Role> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `role_${roleId}`
             const cachedRole = this.roleCache.get(cacheKey) as Role | undefined
             
@@ -133,8 +174,7 @@ export class RoleService {
                 return cachedRole
             }
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Role).findOne({
+            const dbResponse = await this.roleRepository!.findOne({
                 where: {
                     id: roleId
                 },
@@ -161,15 +201,15 @@ export class RoleService {
      */
     async createRole(role: Partial<Role>): Promise<Role> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
             
             // Verify organization exists if provided
             if (role.organizationId) {
                 await organizationsService.getOrganizationById(role.organizationId)
             }
             
-            const newRole = appServer.AppDataSource.getRepository(Role).create(role)
-            const dbResponse = await appServer.AppDataSource.getRepository(Role).save(newRole)
+            const newRole = this.roleRepository!.create(role)
+            const dbResponse = await this.roleRepository!.save(newRole)
             
             // Invalidate cache
             this.invalidateRoleCache()
@@ -190,7 +230,8 @@ export class RoleService {
      */
     async updateRole(roleId: string, updateData: Partial<Role>): Promise<Role> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
+            
             const role = await this.getRoleById(roleId)
             
             // Prevent updating system roles type
@@ -206,8 +247,8 @@ export class RoleService {
                 await organizationsService.getOrganizationById(updateData.organizationId)
             }
             
-            const updatedRole = appServer.AppDataSource.getRepository(Role).merge(role, updateData)
-            await appServer.AppDataSource.getRepository(Role).save(updatedRole)
+            const updatedRole = this.roleRepository!.merge(role, updateData)
+            await this.roleRepository!.save(updatedRole)
             
             // Invalidate cache
             this.invalidateRoleCache()
@@ -228,7 +269,8 @@ export class RoleService {
      */
     async deleteRole(roleId: string): Promise<void> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
+            
             const role = await this.getRoleById(roleId)
             
             // Prevent deleting system roles
@@ -239,7 +281,7 @@ export class RoleService {
                 )
             }
             
-            await appServer.AppDataSource.getRepository(Role).delete({ id: roleId })
+            await this.roleRepository!.delete({ id: roleId })
             
             // Invalidate cache
             this.invalidateRoleCache()
@@ -257,7 +299,8 @@ export class RoleService {
      */
     async cloneRole(roleId: string, newRoleData: Partial<Role>): Promise<Role> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
+            
             const sourceRole = await this.getRoleById(roleId)
             
             // Create new role
@@ -271,7 +314,7 @@ export class RoleService {
             const createdRole = await this.createRole(newRole)
             
             // Copy permissions from source role
-            const rolePermissions = await appServer.AppDataSource.getRepository(RolePermission).find({
+            const rolePermissions = await this.rolePermissionRepository!.find({
                 where: {
                     roleId: sourceRole.id
                 },
@@ -297,6 +340,8 @@ export class RoleService {
      */
     async getRolePermissions(roleId: string): Promise<Permission[]> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `role_permissions_${roleId}`
             const cachedPermissions = this.roleCache.get(cacheKey) as Permission[] | undefined
             
@@ -307,8 +352,7 @@ export class RoleService {
             // Verify role exists
             await this.getRoleById(roleId)
             
-            const appServer = getRunningExpressApp()
-            const rolePermissions = await appServer.AppDataSource.getRepository(RolePermission).find({
+            const rolePermissions = await this.rolePermissionRepository!.find({
                 where: {
                     roleId: roleId
                 },
@@ -333,14 +377,14 @@ export class RoleService {
      */
     async assignPermissionToRole(roleId: string, permissionId: string): Promise<void> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
             
             // Verify role and permission exist
             await this.getRoleById(roleId)
             await permissionService.getPermissionById(permissionId)
             
             // Check if assignment already exists
-            const existingAssignment = await appServer.AppDataSource.getRepository(RolePermission).findOneBy({
+            const existingAssignment = await this.rolePermissionRepository!.findOneBy({
                 roleId: roleId,
                 permissionId: permissionId
             })
@@ -350,12 +394,12 @@ export class RoleService {
             }
             
             // Create new assignment
-            const rolePermission = appServer.AppDataSource.getRepository(RolePermission).create({
+            const rolePermission = this.rolePermissionRepository!.create({
                 roleId: roleId,
                 permissionId: permissionId
             })
             
-            await appServer.AppDataSource.getRepository(RolePermission).save(rolePermission)
+            await this.rolePermissionRepository!.save(rolePermission)
             
             // Invalidate cache
             this.invalidateRoleCache()
@@ -374,13 +418,13 @@ export class RoleService {
      */
     async removePermissionFromRole(roleId: string, permissionId: string): Promise<void> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
             
             // Verify role and permission exist
             await this.getRoleById(roleId)
             await permissionService.getPermissionById(permissionId)
             
-            await appServer.AppDataSource.getRepository(RolePermission).delete({
+            await this.rolePermissionRepository!.delete({
                 roleId: roleId,
                 permissionId: permissionId
             })
@@ -402,7 +446,7 @@ export class RoleService {
      */
     async assignRoleToUser(userId: string, roleId: string, workspaceId?: string): Promise<void> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
             
             // Verify role exists
             const role = await this.getRoleById(roleId)
@@ -421,7 +465,7 @@ export class RoleService {
             }
             
             // Check if assignment already exists
-            const existingAssignment = await appServer.AppDataSource.getRepository(UserRole).findOneBy({
+            const existingAssignment = await this.userRoleRepository!.findOneBy({
                 userId: userId,
                 roleId: roleId,
                 workspaceId: workspaceId
@@ -432,13 +476,13 @@ export class RoleService {
             }
             
             // Create new assignment
-            const userRole = appServer.AppDataSource.getRepository(UserRole).create({
+            const userRole = this.userRoleRepository!.create({
                 userId: userId,
                 roleId: roleId,
                 workspaceId: workspaceId
             })
             
-            await appServer.AppDataSource.getRepository(UserRole).save(userRole)
+            await this.userRoleRepository!.save(userRole)
             
             // Invalidate user permission cache
             permissionService.invalidateUserPermissionCache(userId)
@@ -456,7 +500,7 @@ export class RoleService {
      */
     async removeRoleFromUser(userId: string, roleId: string, workspaceId?: string): Promise<void> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
             
             // Verify role exists
             await this.getRoleById(roleId)
@@ -475,7 +519,7 @@ export class RoleService {
                 whereClause.workspaceId = workspaceId
             }
             
-            await appServer.AppDataSource.getRepository(UserRole).delete(whereClause)
+            await this.userRoleRepository!.delete(whereClause)
             
             // Invalidate user permission cache
             permissionService.invalidateUserPermissionCache(userId)
@@ -493,8 +537,9 @@ export class RoleService {
      */
     async getUserRoles(userId: string): Promise<UserRole[]> {
         try {
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(UserRole).find({
+            await this.ensureInitialized()
+            
+            const dbResponse = await this.userRoleRepository!.find({
                 where: {
                     userId: userId
                 },
@@ -525,5 +570,9 @@ export class RoleService {
     }
 }
 
-// Export singleton instance
-export const roleService = new RoleService()
+// Create a singleton instance
+const roleService = new RoleService()
+export default roleService
+
+// Export the class for use with the service factory
+export { RoleService }

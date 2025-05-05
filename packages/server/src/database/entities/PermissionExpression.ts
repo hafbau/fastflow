@@ -51,13 +51,13 @@ export class PermissionExpression {
     description?: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ExpressionType,
         default: ExpressionType.CONDITION
     })
     type: ExpressionType
 
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     expression: any
 
     @Column({ type: 'uuid', nullable: true })
@@ -67,9 +67,9 @@ export class PermissionExpression {
     @JoinColumn({ name: 'permissionId' })
     permission?: Permission
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updatedAt: Date
 }

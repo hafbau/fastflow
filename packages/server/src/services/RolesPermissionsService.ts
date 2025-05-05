@@ -4,7 +4,7 @@
  * This service provides methods for managing roles and permissions.
  */
 
-import { getRepository } from 'typeorm'
+import { getRepository, Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 import logger from '../utils/logger'
@@ -12,6 +12,7 @@ import { Permission } from '../database/entities/Permission'
 import { Role } from '../database/entities/Role'
 import { UserRole } from '../database/entities/UserRole'
 import { RolePermission } from '../database/entities/RolePermission'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * Service for managing roles and permissions
@@ -26,10 +27,30 @@ export class RolesPermissionsService {
      * Constructor
      */
     constructor() {
-        this.permissionRepository = getRepository(Permission)
-        this.roleRepository = getRepository(Role)
-        this.userRoleRepository = getRepository(UserRole)
-        this.rolePermissionRepository = getRepository(RolePermission)
+        // Initialize repositories only when needed
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.permissionRepository) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.permissionRepository = dataSource.getRepository(Permission)
+            this.roleRepository = dataSource.getRepository(Role)
+            this.userRoleRepository = dataSource.getRepository(UserRole)
+            this.rolePermissionRepository = dataSource.getRepository(RolePermission)
+        } catch (error) {
+            logger.error('Failed to initialize RolesPermissionsService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -38,7 +59,8 @@ export class RolesPermissionsService {
      */
     async getAllRoles(): Promise<Role[]> {
         try {
-            return await this.roleRepository.find()
+            await this.ensureInitialized()
+            return await this.roleRepository!.find()
         } catch (error: any) {
             logger.error(`[RolesPermissionsService] Get all roles error: ${error.message}`)
             throw error
@@ -51,7 +73,8 @@ export class RolesPermissionsService {
      */
     async getAllPermissions(): Promise<Permission[]> {
         try {
-            return await this.permissionRepository.find()
+            await this.ensureInitialized()
+            return await this.permissionRepository!.find()
         } catch (error: any) {
             logger.error(`[RolesPermissionsService] Get all permissions error: ${error.message}`)
             throw error
@@ -65,7 +88,8 @@ export class RolesPermissionsService {
      */
     async getPermissionsByResourceType(resourceType: string): Promise<Permission[]> {
         try {
-            return await this.permissionRepository.find({
+            await this.ensureInitialized()
+            return await this.permissionRepository!.find({
                 where: { resourceType } as any
             })
         } catch (error: any) {
@@ -81,7 +105,8 @@ export class RolesPermissionsService {
      */
     async getUserRoles(userId: string): Promise<Role[]> {
         try {
-            const userRoles = await this.userRoleRepository.find({
+            await this.ensureInitialized()
+            const userRoles = await this.userRoleRepository!.find({
                 where: { userId } as any,
                 relations: ['role']
             })
@@ -100,7 +125,8 @@ export class RolesPermissionsService {
      */
     async getRolePermissions(roleId: string): Promise<Permission[]> {
         try {
-            const rolePermissions = await this.rolePermissionRepository.find({
+            await this.ensureInitialized()
+            const rolePermissions = await this.rolePermissionRepository!.find({
                 where: { roleId } as any,
                 relations: ['permission']
             })
@@ -179,4 +205,5 @@ export class RolesPermissionsService {
     }
 }
 
+// Export a singleton instance for backward compatibility
 export default new RolesPermissionsService()

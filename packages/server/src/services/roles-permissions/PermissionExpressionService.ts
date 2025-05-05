@@ -1,29 +1,51 @@
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import logger from '../../utils/logger'
 import { PermissionExpression, ExpressionType, ExpressionOperator } from '../../database/entities/PermissionExpression'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import attributeService from './AttributeService'
 import { createClient } from 'redis'
 import config from '../../config'
+import { getInitializedDataSource } from '../../DataSource'
 
 /**
  * Service for managing and evaluating permission expressions
  */
-export class PermissionExpressionService {
-    private expressionRepository: any
+class PermissionExpressionService {
+    private expressionRepository: Repository<PermissionExpression> | null = null
     private redisClient: any
+    private isInitialized: boolean = false
 
     /**
      * Constructor
      */
     constructor() {
-        const appServer = getRunningExpressApp()
-        this.expressionRepository = appServer.AppDataSource.getRepository(PermissionExpression)
-        
+        // Repositories will be initialized lazily when needed
         // Initialize Redis client if needed
         // this.initializeRedisClient()
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.expressionRepository = dataSource.getRepository(PermissionExpression)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize PermissionExpressionService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -60,11 +82,13 @@ export class PermissionExpressionService {
      */
     async createExpression(expressionData: Partial<PermissionExpression>): Promise<PermissionExpression> {
         try {
+            await this.ensureInitialized()
+            
             // Validate expression
             this.validateExpression(expressionData.expression)
             
-            const expression = this.expressionRepository.create(expressionData)
-            return await this.expressionRepository.save(expression)
+            const expression = this.expressionRepository!.create(expressionData)
+            return await this.expressionRepository!.save(expression)
         } catch (error: any) {
             logger.error(`[PermissionExpressionService] Create expression error: ${error.message}`)
             throw new InternalFastflowError(
@@ -79,7 +103,9 @@ export class PermissionExpressionService {
      */
     async getExpressionById(id: string): Promise<PermissionExpression> {
         try {
-            const expression = await this.expressionRepository.findOne({
+            await this.ensureInitialized()
+            
+            const expression = await this.expressionRepository!.findOne({
                 where: { id }
             })
             
@@ -115,7 +141,7 @@ export class PermissionExpressionService {
             }
             
             Object.assign(expression, expressionData)
-            return await this.expressionRepository.save(expression)
+            return await this.expressionRepository!.save(expression)
         } catch (error: any) {
             if (error instanceof InternalFastflowError) throw error
             
@@ -132,7 +158,9 @@ export class PermissionExpressionService {
      */
     async deleteExpression(id: string): Promise<void> {
         try {
-            const result = await this.expressionRepository.delete(id)
+            await this.ensureInitialized()
+            
+            const result = await this.expressionRepository!.delete(id)
             
             if (result.affected === 0) {
                 throw new InternalFastflowError(
@@ -166,6 +194,7 @@ export class PermissionExpressionService {
         }
     ): Promise<boolean> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey(expressionId, context)
@@ -733,5 +762,9 @@ export class PermissionExpressionService {
     }
 }
 
-export const permissionExpressionService = new PermissionExpressionService()
+// Create a singleton instance
+const permissionExpressionService = new PermissionExpressionService()
 export default permissionExpressionService
+
+// Export the class for use with the service factory
+export { PermissionExpressionService }

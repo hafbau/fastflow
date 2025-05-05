@@ -23,7 +23,7 @@ export class UserOrganization {
     @Column({ default: true })
     isActive: boolean
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata?: Record<string, any>
 
     @CreateDateColumn()

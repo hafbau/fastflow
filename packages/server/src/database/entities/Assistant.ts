@@ -35,11 +35,11 @@ export class Assistant implements IAssistant {
     @JoinColumn({ name: 'workspaceId' })
     workspace?: Workspace
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     @CreateDateColumn()
     createdDate: Date
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     @UpdateDateColumn()
     updatedDate: Date
 }

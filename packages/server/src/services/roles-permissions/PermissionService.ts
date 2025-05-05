@@ -6,18 +6,56 @@ import { UserRole } from '../../database/entities/UserRole'
 import { ResourcePermission } from '../../database/entities/ResourcePermission'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import { getErrorMessage } from '../../errors/utils'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
+import { Repository } from 'typeorm'
+import { getInitializedDataSource } from '../../DataSource'
+import logger from '../../utils/logger'
 
 /**
  * Permission Service
  * Handles permission management, checking, and caching
  */
-export class PermissionService {
+class PermissionService {
     // In-memory cache for permissions
     private permissionCache: Map<string, any>
+    
+    // Repository instances
+    private permissionRepository: Repository<Permission> | null = null
+    private rolePermissionRepository: Repository<RolePermission> | null = null
+    private userRoleRepository: Repository<UserRole> | null = null
+    private resourcePermissionRepository: Repository<ResourcePermission> | null = null
+    
+    // Initialization flag
+    private isInitialized: boolean = false
 
     constructor() {
         this.permissionCache = new Map<string, any>()
+        // Repositories will be initialized lazily when needed
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.permissionRepository = dataSource.getRepository(Permission)
+            this.rolePermissionRepository = dataSource.getRepository(RolePermission)
+            this.userRoleRepository = dataSource.getRepository(UserRole)
+            this.resourcePermissionRepository = dataSource.getRepository(ResourcePermission)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize PermissionService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -25,6 +63,8 @@ export class PermissionService {
      */
     async getAllPermissions(): Promise<Permission[]> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = 'all_permissions'
             const cachedPermissions = this.permissionCache.get(cacheKey) as Permission[] | undefined
             
@@ -32,8 +72,7 @@ export class PermissionService {
                 return cachedPermissions
             }
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Permission).find({
+            const dbResponse = await this.permissionRepository!.find({
                 order: {
                     resourceType: 'ASC',
                     action: 'ASC'
@@ -55,6 +94,8 @@ export class PermissionService {
      */
     async getPermissionById(permissionId: string): Promise<Permission> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `permission_${permissionId}`
             const cachedPermission = this.permissionCache.get(cacheKey) as Permission | undefined
             
@@ -62,8 +103,7 @@ export class PermissionService {
                 return cachedPermission
             }
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Permission).findOneBy({
+            const dbResponse = await this.permissionRepository!.findOneBy({
                 id: permissionId
             })
             
@@ -87,6 +127,8 @@ export class PermissionService {
      */
     async getPermissionByName(name: string): Promise<Permission> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `permission_name_${name}`
             const cachedPermission = this.permissionCache.get(cacheKey) as Permission | undefined
             
@@ -94,8 +136,7 @@ export class PermissionService {
                 return cachedPermission
             }
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Permission).findOneBy({
+            const dbResponse = await this.permissionRepository!.findOneBy({
                 name
             })
             
@@ -119,6 +160,8 @@ export class PermissionService {
      */
     async getPermissionsByResourceType(resourceType: string): Promise<Permission[]> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `permissions_resource_${resourceType}`
             const cachedPermissions = this.permissionCache.get(cacheKey) as Permission[] | undefined
             
@@ -126,8 +169,7 @@ export class PermissionService {
                 return cachedPermissions
             }
             
-            const appServer = getRunningExpressApp()
-            const dbResponse = await appServer.AppDataSource.getRepository(Permission).find({
+            const dbResponse = await this.permissionRepository!.find({
                 where: {
                     resourceType
                 },
@@ -151,15 +193,15 @@ export class PermissionService {
      */
     async createPermission(permission: Partial<Permission>): Promise<Permission> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
             
             // Generate permission name if not provided
             if (!permission.name && permission.resourceType && permission.action) {
                 permission.name = `${permission.resourceType}:${permission.action}`
             }
             
-            const newPermission = appServer.AppDataSource.getRepository(Permission).create(permission)
-            const dbResponse = await appServer.AppDataSource.getRepository(Permission).save(newPermission)
+            const newPermission = this.permissionRepository!.create(permission)
+            const dbResponse = await this.permissionRepository!.save(newPermission)
             
             // Invalidate cache
             this.invalidatePermissionCache()
@@ -178,7 +220,8 @@ export class PermissionService {
      */
     async updatePermission(permissionId: string, updateData: Partial<Permission>): Promise<Permission> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
+            
             const permission = await this.getPermissionById(permissionId)
             
             // Generate permission name if resourceType or action changed
@@ -188,8 +231,8 @@ export class PermissionService {
                 updateData.name = `${resourceType}:${action}`
             }
             
-            const updatedPermission = appServer.AppDataSource.getRepository(Permission).merge(permission, updateData)
-            await appServer.AppDataSource.getRepository(Permission).save(updatedPermission)
+            const updatedPermission = this.permissionRepository!.merge(permission, updateData)
+            await this.permissionRepository!.save(updatedPermission)
             
             // Invalidate cache
             this.invalidatePermissionCache()
@@ -209,9 +252,10 @@ export class PermissionService {
      */
     async deletePermission(permissionId: string): Promise<void> {
         try {
-            const appServer = getRunningExpressApp()
+            await this.ensureInitialized()
+            
             await this.getPermissionById(permissionId) // Check if permission exists
-            await appServer.AppDataSource.getRepository(Permission).delete({ id: permissionId })
+            await this.permissionRepository!.delete({ id: permissionId })
             
             // Invalidate cache
             this.invalidatePermissionCache()
@@ -234,6 +278,8 @@ export class PermissionService {
         action: string
     ): Promise<boolean> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `permission_check_${userId}_${resourceType}_${resourceId}_${action}`
             const cachedResult = this.permissionCache.get(cacheKey) as boolean | undefined
             
@@ -241,10 +287,8 @@ export class PermissionService {
                 return cachedResult
             }
             
-            const appServer = getRunningExpressApp()
-            
             // Check direct resource permission
-            const directPermission = await appServer.AppDataSource.getRepository(ResourcePermission).findOneBy({
+            const directPermission = await this.resourcePermissionRepository!.findOneBy({
                 userId,
                 resourceType,
                 resourceId,
@@ -257,7 +301,7 @@ export class PermissionService {
             }
             
             // Check role-based permissions
-            const userRoles = await appServer.AppDataSource.getRepository(UserRole).find({
+            const userRoles = await this.userRoleRepository!.find({
                 where: {
                     userId
                 },
@@ -265,7 +309,7 @@ export class PermissionService {
             })
             
             for (const userRole of userRoles) {
-                const rolePermissions = await appServer.AppDataSource.getRepository(RolePermission).find({
+                const rolePermissions = await this.rolePermissionRepository!.find({
                     where: {
                         roleId: userRole.roleId
                     },
@@ -298,6 +342,8 @@ export class PermissionService {
      */
     async getUserPermissions(userId: string): Promise<Permission[]> {
         try {
+            await this.ensureInitialized()
+            
             const cacheKey = `user_permissions_${userId}`
             const cachedPermissions = this.permissionCache.get(cacheKey) as Permission[] | undefined
             
@@ -305,10 +351,8 @@ export class PermissionService {
                 return cachedPermissions
             }
             
-            const appServer = getRunningExpressApp()
-            
             // Get user roles
-            const userRoles = await appServer.AppDataSource.getRepository(UserRole).find({
+            const userRoles = await this.userRoleRepository!.find({
                 where: {
                     userId
                 }
@@ -319,7 +363,7 @@ export class PermissionService {
             const processedPermissionIds = new Set<string>()
             
             for (const userRole of userRoles) {
-                const rolePermissions = await appServer.AppDataSource.getRepository(RolePermission).find({
+                const rolePermissions = await this.rolePermissionRepository!.find({
                     where: {
                         roleId: userRole.roleId
                     },
@@ -394,5 +438,9 @@ export class PermissionService {
     }
 }
 
-// Export singleton instance
-export const permissionService = new PermissionService()
+// Create a singleton instance
+const permissionService = new PermissionService()
+export default permissionService
+
+// Export the class for use with the service factory
+export { PermissionService }

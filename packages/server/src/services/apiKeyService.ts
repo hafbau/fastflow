@@ -1,10 +1,11 @@
 import { randomBytes } from 'crypto'
 import moment from 'moment'
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { ApiKey } from '../database/entities/ApiKey'
 import { generateAPIKey, generateSecretHash, compareKeys } from '../utils/apiKey'
 import logger from '../utils/logger'
 import { appConfig } from '../AppConfig'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * API Key Service
@@ -12,6 +13,34 @@ import { appConfig } from '../AppConfig'
  * Includes compatibility with the existing file-based API key system
  */
 class ApiKeyService {
+    // Repository instance
+    private apiKeyRepository: Repository<ApiKey> | null = null
+    
+    // Initialization flag
+    private isInitialized: boolean = false
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.apiKeyRepository = dataSource.getRepository(ApiKey)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize ApiKeyService repositories', error)
+            throw error
+        }
+    }
     /**
      * Get all API keys
      * @returns {Promise<ApiKey[]>}
@@ -20,8 +49,8 @@ class ApiKeyService {
         try {
             // If using database storage
             if (appConfig.apiKeys.storageType === 'database') {
-                const apiKeyRepository = getRepository(ApiKey)
-                return apiKeyRepository.find()
+                await this.ensureInitialized()
+                return this.apiKeyRepository!.find()
             }
             
             // Fall back to file-based storage (legacy mode)
@@ -42,8 +71,8 @@ class ApiKeyService {
         try {
             // If using database storage
             if (appConfig.apiKeys.storageType === 'database') {
-                const apiKeyRepository = getRepository(ApiKey)
-                return apiKeyRepository.findOne({ where: { id } })
+                await this.ensureInitialized()
+                return this.apiKeyRepository!.findOne({ where: { id } })
             }
             
             // Fall back to file-based storage (legacy mode)
@@ -65,8 +94,8 @@ class ApiKeyService {
         try {
             // If using database storage
             if (appConfig.apiKeys.storageType === 'database') {
-                const apiKeyRepository = getRepository(ApiKey)
-                return apiKeyRepository.findOne({ where: { apiKey } })
+                await this.ensureInitialized()
+                return this.apiKeyRepository!.findOne({ where: { apiKey } })
             }
             
             // Fall back to file-based storage (legacy mode)
@@ -100,8 +129,8 @@ class ApiKeyService {
             
             // If using database storage
             if (appConfig.apiKeys.storageType === 'database') {
-                const apiKeyRepository = getRepository(ApiKey)
-                const newApiKey = apiKeyRepository.create({
+                await this.ensureInitialized()
+                const newApiKey = this.apiKeyRepository!.create({
                     id,
                     keyName,
                     apiKey,
@@ -111,7 +140,7 @@ class ApiKeyService {
                     workspaceId
                 })
                 
-                return await apiKeyRepository.save(newApiKey)
+                return await this.apiKeyRepository!.save(newApiKey)
             }
             
             // Fall back to file-based storage (legacy mode)
@@ -145,8 +174,8 @@ class ApiKeyService {
         try {
             // If using database storage
             if (appConfig.apiKeys.storageType === 'database') {
-                const apiKeyRepository = getRepository(ApiKey)
-                const apiKey = await apiKeyRepository.findOne({ where: { id } })
+                await this.ensureInitialized()
+                const apiKey = await this.apiKeyRepository!.findOne({ where: { id } })
                 
                 if (!apiKey) {
                     return null
@@ -157,7 +186,7 @@ class ApiKeyService {
                 if (organizationId) apiKey.organizationId = organizationId
                 if (workspaceId) apiKey.workspaceId = workspaceId
                 
-                return await apiKeyRepository.save(apiKey)
+                return await this.apiKeyRepository!.save(apiKey)
             }
             
             // Fall back to file-based storage (legacy mode)
@@ -182,8 +211,8 @@ class ApiKeyService {
         try {
             // If using database storage
             if (appConfig.apiKeys.storageType === 'database') {
-                const apiKeyRepository = getRepository(ApiKey)
-                const result = await apiKeyRepository.delete(id)
+                await this.ensureInitialized()
+                const result = await this.apiKeyRepository!.delete(id)
                 return result.affected ? result.affected > 0 : false
             }
             
@@ -236,8 +265,8 @@ class ApiKeyService {
         try {
             // If using database storage
             if (appConfig.apiKeys.storageType === 'database') {
-                const apiKeyRepository = getRepository(ApiKey)
-                return apiKeyRepository.find({ where: { supabaseUserId } })
+                await this.ensureInitialized()
+                return this.apiKeyRepository!.find({ where: { supabaseUserId } })
             }
             
             // For file-based storage, we can't filter by Supabase user ID
@@ -261,6 +290,8 @@ class ApiKeyService {
                 return 0
             }
             
+            await this.ensureInitialized()
+            
             // Get keys from file
             const { getAPIKeys } = require('../utils/apiKey')
             const fileKeys = await getAPIKeys()
@@ -270,15 +301,14 @@ class ApiKeyService {
             }
             
             // Save keys to database
-            const apiKeyRepository = getRepository(ApiKey)
             let migratedCount = 0
             
             for (const key of fileKeys) {
                 // Check if key already exists in database
-                const existingKey = await apiKeyRepository.findOne({ where: { apiKey: key.apiKey } })
+                const existingKey = await this.apiKeyRepository!.findOne({ where: { apiKey: key.apiKey } })
                 
                 if (!existingKey) {
-                    const newKey = apiKeyRepository.create({
+                    const newKey = this.apiKeyRepository!.create({
                         id: key.id || randomBytes(10).toString('hex'),
                         keyName: key.keyName,
                         apiKey: key.apiKey,
@@ -286,7 +316,7 @@ class ApiKeyService {
                         updatedDate: key.updatedDate || new Date()
                     })
                     
-                    await apiKeyRepository.save(newKey)
+                    await this.apiKeyRepository!.save(newKey)
                     migratedCount++
                 }
             }

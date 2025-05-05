@@ -34,7 +34,7 @@ export class OrganizationInvitation {
     @Column({ length: 255, unique: true })
     token: string
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     expiresAt: Date
 
     @Column({ length: 50, default: 'pending' })

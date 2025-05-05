@@ -14,7 +14,7 @@ import config from '../../config'
  * Service for managing fine-grained permissions
  * Integrates attribute-based access control, conditional permissions, and time-based permissions
  */
-export class FineGrainedPermissionService {
+class FineGrainedPermissionService {
     private redisClient: any
 
     /**
@@ -476,5 +476,9 @@ export class FineGrainedPermissionService {
     }
 }
 
-export const fineGrainedPermissionService = new FineGrainedPermissionService()
+// Create a singleton instance
+const fineGrainedPermissionService = new FineGrainedPermissionService()
 export default fineGrainedPermissionService
+
+// Export the class for use with the service factory
+export { FineGrainedPermissionService }

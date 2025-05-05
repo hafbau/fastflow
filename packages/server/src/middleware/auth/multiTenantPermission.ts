@@ -7,7 +7,7 @@
 
 import { Request, Response, NextFunction } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { permissionService } from '../../services/roles-permissions/PermissionService'
+import permissionService from '../../services/roles-permissions/PermissionService'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 
 interface MultiTenantPermissionOptions {

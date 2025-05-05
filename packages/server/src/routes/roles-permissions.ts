@@ -3,7 +3,7 @@ import { StatusCodes } from 'http-status-codes'
 import { authenticateUser } from '../middleware/auth'
 import { validateRequestBody } from '../middleware/validator'
 import rolesPermissionsService from '../services/roles-permissions'
-import { permissionService } from '../services/roles-permissions/PermissionService'
+import permissionService from '../services/roles-permissions/PermissionService'
 
 const router = express.Router()
 

@@ -43,7 +43,7 @@ export class IdentityProviderAttribute {
     sourceAttribute: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AttributeMappingType,
         default: AttributeMappingType.CUSTOM
     })

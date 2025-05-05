@@ -1,16 +1,18 @@
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 import logger from '../utils/logger'
 import { UserLifecycleState, UserLifecycleStateType } from '../database/entities/UserLifecycleState'
 import { ProvisioningAction, ProvisioningActionType, ProvisioningActionStatus } from '../database/entities/ProvisioningAction'
-import { ProvisioningRule, ProvisioningRuleType, ProvisioningRuleTrigger } from '../database/entities/ProvisioningRule'
+import { ProvisioningRule, ProvisioningRuleType, ProvisioningRuleTrigger, ProvisioningRuleStatus } from '../database/entities/ProvisioningRule'
 import { UserProfile } from '../database/entities/UserProfile'
+import { UserRole } from '../database/entities/UserRole'
 import { UserService, UserStatus } from './UserService'
 import { UserOrganizationService } from './UserOrganizationService'
 import { WorkspaceMemberService } from './WorkspaceMemberService'
 import rolesPermissionsService from './RolesPermissionsService'
 import auditLogsService from './audit-logs'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * User lifecycle event types
@@ -44,25 +46,57 @@ export interface UserLifecycleEvent {
  * Service for managing user lifecycle
  */
 export class UserLifecycleService {
-    private userLifecycleStateRepository: any
-    private provisioningActionRepository: any
-    private provisioningRuleRepository: any
-    private userProfileRepository: any
+    // Repository instances
+    private userLifecycleStateRepository: Repository<UserLifecycleState> | null = null
+    private provisioningActionRepository: Repository<ProvisioningAction> | null = null
+    private provisioningRuleRepository: Repository<ProvisioningRule> | null = null
+    private userProfileRepository: Repository<UserProfile> | null = null
+    private userRoleRepository: Repository<UserRole> | null = null
+    
+    // Services
     private userService: UserService
     private userOrganizationService: UserOrganizationService
     private workspaceMemberService: WorkspaceMemberService
+    
+    // Initialization flag
+    private isInitialized: boolean = false
 
     /**
      * Constructor
      */
     constructor() {
-        this.userLifecycleStateRepository = getRepository(UserLifecycleState)
-        this.provisioningActionRepository = getRepository(ProvisioningAction)
-        this.provisioningRuleRepository = getRepository(ProvisioningRule)
-        this.userProfileRepository = getRepository(UserProfile)
+        // Services can be instantiated immediately, they will handle their own lazy initialization
         this.userService = new UserService()
         this.userOrganizationService = new UserOrganizationService()
         this.workspaceMemberService = new WorkspaceMemberService()
+        // Repositories will be initialized lazily when needed
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.userLifecycleStateRepository = dataSource.getRepository(UserLifecycleState)
+            this.provisioningActionRepository = dataSource.getRepository(ProvisioningAction)
+            this.provisioningRuleRepository = dataSource.getRepository(ProvisioningRule)
+            this.userProfileRepository = dataSource.getRepository(UserProfile)
+            this.userRoleRepository = dataSource.getRepository(UserRole)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize UserLifecycleService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -105,6 +139,8 @@ export class UserLifecycleService {
      * @returns Promise<UserLifecycleState>
      */
     private async updateUserLifecycleState(event: UserLifecycleEvent): Promise<UserLifecycleState | undefined> {
+        await this.ensureInitialized()
+        
         let newState: UserLifecycleStateType | null = null
 
         // Determine new state based on event type
@@ -131,14 +167,14 @@ export class UserLifecycleService {
 
         if (newState) {
             // Create new lifecycle state record
-            const lifecycleState = this.userLifecycleStateRepository.create({
+            const lifecycleState = this.userLifecycleStateRepository!.create({
                 userId: event.userId,
                 state: newState,
                 changedBy: event.triggeredBy,
                 metadata: event.metadata
             })
 
-            return await this.userLifecycleStateRepository.save(lifecycleState)
+            return await this.userLifecycleStateRepository!.save(lifecycleState)
         }
 
         return undefined
@@ -150,11 +186,13 @@ export class UserLifecycleService {
      * @returns Promise<ProvisioningRule[]>
      */
     private async findApplicableRules(event: UserLifecycleEvent): Promise<ProvisioningRule[]> {
+        await this.ensureInitialized()
+        
         // Find rules triggered by events
-        const rules = await this.provisioningRuleRepository.find({
+        const rules = await this.provisioningRuleRepository!.find({
             where: {
                 trigger: ProvisioningRuleTrigger.EVENT,
-                status: 'ACTIVE'
+                status: ProvisioningRuleStatus.ACTIVE
             }
         })
 
@@ -197,13 +235,15 @@ export class UserLifecycleService {
      * @returns Promise<void>
      */
     private async executeRule(rule: ProvisioningRule, event: UserLifecycleEvent): Promise<void> {
+        await this.ensureInitialized()
+        
         logger.info(`[UserLifecycleService] Executing rule: ${rule.name} for user ${event.userId}`)
 
         // Create actions for each action defined in the rule
         const actions = Array.isArray(rule.actions) ? rule.actions : Object.values(rule.actions);
         
         for (const actionDef of actions) {
-            const action = this.provisioningActionRepository.create({
+            const action = this.provisioningActionRepository!.create({
                 type: actionDef.type,
                 parameters: actionDef.parameters,
                 targetUserId: event.userId,
@@ -212,7 +252,7 @@ export class UserLifecycleService {
                 initiatedBy: event.triggeredBy
             })
 
-            await this.provisioningActionRepository.save(action)
+            await this.provisioningActionRepository!.save(action)
 
             // If action doesn't require approval, execute it immediately
             if (!actionDef.requiresApproval) {
@@ -227,10 +267,12 @@ export class UserLifecycleService {
      * @returns Promise<ProvisioningAction>
      */
     async executeAction(action: ProvisioningAction): Promise<ProvisioningAction> {
+        await this.ensureInitialized()
+        
         try {
             // Update action status to in progress
             action.status = ProvisioningActionStatus.IN_PROGRESS
-            await this.provisioningActionRepository.save(action)
+            await this.provisioningActionRepository!.save(action)
 
             // Execute action based on type
             switch (action.type) {
@@ -271,14 +313,14 @@ export class UserLifecycleService {
             // Update action status to completed
             action.status = ProvisioningActionStatus.COMPLETED
             action.completedAt = new Date()
-            await this.provisioningActionRepository.save(action)
+            await this.provisioningActionRepository!.save(action)
 
             return action
         } catch (error: any) {
             // Update action status to failed
             action.status = ProvisioningActionStatus.FAILED
             action.statusMessage = error.message
-            await this.provisioningActionRepository.save(action)
+            await this.provisioningActionRepository!.save(action)
 
             logger.error(`[UserLifecycleService] Error executing action: ${error.message}`)
             throw error
@@ -291,6 +333,7 @@ export class UserLifecycleService {
      * @returns Promise<void>
      */
     private async executeUserActivationAction(action: ProvisioningAction): Promise<void> {
+        await this.ensureInitialized()
         await this.userService.updateUserStatus(action.targetUserId, UserStatus.ACTIVE)
     }
 
@@ -300,6 +343,7 @@ export class UserLifecycleService {
      * @returns Promise<void>
      */
     private async executeUserDeactivationAction(action: ProvisioningAction): Promise<void> {
+        await this.ensureInitialized()
         await this.userService.updateUserStatus(action.targetUserId, UserStatus.INACTIVE)
     }
 
@@ -309,19 +353,18 @@ export class UserLifecycleService {
      * @returns Promise<void>
      */
     private async executeRoleAssignmentAction(action: ProvisioningAction): Promise<void> {
+        await this.ensureInitialized()
+        
         const { roleId, workspaceId } = action.parameters
 
-        // Get role repository
-        const roleRepository = getRepository('UserRole')
-
         // Create user role
-        const userRole = roleRepository.create({
+        const userRole = this.userRoleRepository!.create({
             userId: action.targetUserId,
             roleId,
             workspaceId: workspaceId || null
         })
 
-        await roleRepository.save(userRole)
+        await this.userRoleRepository!.save(userRole)
     }
 
     /**
@@ -330,13 +373,12 @@ export class UserLifecycleService {
      * @returns Promise<void>
      */
     private async executeRoleRemovalAction(action: ProvisioningAction): Promise<void> {
+        await this.ensureInitialized()
+        
         const { roleId, workspaceId } = action.parameters
 
-        // Get role repository
-        const roleRepository = getRepository('UserRole')
-
         // Find user role
-        const userRole = await roleRepository.findOne({
+        const userRole = await this.userRoleRepository!.findOne({
             where: {
                 userId: action.targetUserId,
                 roleId,
@@ -345,7 +387,7 @@ export class UserLifecycleService {
         })
 
         if (userRole) {
-            await roleRepository.remove(userRole)
+            await this.userRoleRepository!.remove(userRole)
         }
     }
 
@@ -421,8 +463,10 @@ export class UserLifecycleService {
      */
     async getUserLifecycleStateHistory(userId: string): Promise<UserLifecycleState[]> {
         try {
-            return await this.userLifecycleStateRepository.find({
-                where: { userId } as any,
+            await this.ensureInitialized()
+            
+            return await this.userLifecycleStateRepository!.find({
+                where: { userId },
                 order: { createdAt: 'DESC' }
             })
         } catch (error: any) {
@@ -438,8 +482,10 @@ export class UserLifecycleService {
      */
     async getUserCurrentLifecycleState(userId: string): Promise<UserLifecycleState | undefined> {
         try {
-            const states = await this.userLifecycleStateRepository.find({
-                where: { userId } as any,
+            await this.ensureInitialized()
+            
+            const states = await this.userLifecycleStateRepository!.find({
+                where: { userId },
                 order: { createdAt: 'DESC' },
                 take: 1
             })
@@ -459,14 +505,16 @@ export class UserLifecycleService {
      */
     async getUserProvisioningActions(userId: string, status?: ProvisioningActionStatus): Promise<ProvisioningAction[]> {
         try {
+            await this.ensureInitialized()
+            
             const query: any = { targetUserId: userId }
             
             if (status) {
                 query.status = status
             }
 
-            return await this.provisioningActionRepository.find({
-                where: query as any,
+            return await this.provisioningActionRepository!.find({
+                where: query,
                 order: { createdAt: 'DESC' }
             })
         } catch (error: any) {
@@ -481,8 +529,10 @@ export class UserLifecycleService {
      */
     async getPendingApprovalActions(): Promise<ProvisioningAction[]> {
         try {
-            return await this.provisioningActionRepository.find({
-                where: { status: ProvisioningActionStatus.REQUIRES_APPROVAL } as any,
+            await this.ensureInitialized()
+            
+            return await this.provisioningActionRepository!.find({
+                where: { status: ProvisioningActionStatus.REQUIRES_APPROVAL },
                 order: { createdAt: 'ASC' }
             })
         } catch (error: any) {
@@ -499,7 +549,11 @@ export class UserLifecycleService {
      */
     async approveAction(actionId: string, approvedBy: string): Promise<ProvisioningAction> {
         try {
-            const action = await this.provisioningActionRepository.findOne(actionId)
+            await this.ensureInitialized()
+            
+            const action = await this.provisioningActionRepository!.findOne({
+                where: { id: actionId }
+            })
 
             if (!action) {
                 throw new InternalFastflowError(
@@ -519,7 +573,7 @@ export class UserLifecycleService {
             action.status = ProvisioningActionStatus.APPROVED
             action.approvedBy = approvedBy
             action.approvalDate = new Date()
-            await this.provisioningActionRepository.save(action)
+            await this.provisioningActionRepository!.save(action)
 
             // Execute the action
             return await this.executeAction(action)
@@ -538,7 +592,11 @@ export class UserLifecycleService {
      */
     async rejectAction(actionId: string, rejectedBy: string, reason: string): Promise<ProvisioningAction> {
         try {
-            const action = await this.provisioningActionRepository.findOne(actionId)
+            await this.ensureInitialized()
+            
+            const action = await this.provisioningActionRepository!.findOne({
+                where: { id: actionId }
+            })
 
             if (!action) {
                 throw new InternalFastflowError(
@@ -559,7 +617,7 @@ export class UserLifecycleService {
             action.approvedBy = rejectedBy
             action.approvalDate = new Date()
             action.statusMessage = reason
-            await this.provisioningActionRepository.save(action)
+            await this.provisioningActionRepository!.save(action)
 
             return action
         } catch (error: any) {
@@ -575,6 +633,8 @@ export class UserLifecycleService {
      */
     async createProvisioningRule(ruleData: Partial<ProvisioningRule>): Promise<ProvisioningRule> {
         try {
+            await this.ensureInitialized()
+            
             // Validate required fields
             if (!ruleData.name) {
                 throw new InternalFastflowError(
@@ -612,8 +672,8 @@ export class UserLifecycleService {
             }
 
             // Create the rule
-            const rule = this.provisioningRuleRepository.create(ruleData)
-            return await this.provisioningRuleRepository.save(rule)
+            const rule = this.provisioningRuleRepository!.create(ruleData)
+            return await this.provisioningRuleRepository!.save(rule)
         } catch (error: any) {
             logger.error(`[UserLifecycleService] Error creating provisioning rule: ${error.message}`)
             throw error
@@ -627,6 +687,8 @@ export class UserLifecycleService {
      */
     async getAllProvisioningRules(filters: any = {}): Promise<ProvisioningRule[]> {
         try {
+            await this.ensureInitialized()
+            
             const query: any = {}
 
             if (filters.type) {
@@ -649,7 +711,7 @@ export class UserLifecycleService {
                 query.workspaceId = filters.workspaceId
             }
 
-            return await this.provisioningRuleRepository.find({
+            return await this.provisioningRuleRepository!.find({
                 where: query,
                 order: { createdAt: 'DESC' }
             })
@@ -666,7 +728,11 @@ export class UserLifecycleService {
      */
     async getProvisioningRuleById(ruleId: string): Promise<ProvisioningRule> {
         try {
-            const rule = await this.provisioningRuleRepository.findOne(ruleId)
+            await this.ensureInitialized()
+            
+            const rule = await this.provisioningRuleRepository!.findOne({
+                where: { id: ruleId }
+            })
 
             if (!rule) {
                 throw new InternalFastflowError(
@@ -690,12 +756,14 @@ export class UserLifecycleService {
      */
     async updateProvisioningRule(ruleId: string, updateData: Partial<ProvisioningRule>): Promise<ProvisioningRule> {
         try {
+            await this.ensureInitialized()
+            
             const rule = await this.getProvisioningRuleById(ruleId)
 
             // Update fields
             Object.assign(rule, updateData)
 
-            return await this.provisioningRuleRepository.save(rule)
+            return await this.provisioningRuleRepository!.save(rule)
         } catch (error: any) {
             logger.error(`[UserLifecycleService] Error updating provisioning rule: ${error.message}`)
             throw error
@@ -709,8 +777,10 @@ export class UserLifecycleService {
      */
     async deleteProvisioningRule(ruleId: string): Promise<boolean> {
         try {
+            await this.ensureInitialized()
+            
             const rule = await this.getProvisioningRuleById(ruleId)
-            await this.provisioningRuleRepository.remove(rule)
+            await this.provisioningRuleRepository!.remove(rule)
             return true
         } catch (error: any) {
             logger.error(`[UserLifecycleService] Error deleting provisioning rule: ${error.message}`)

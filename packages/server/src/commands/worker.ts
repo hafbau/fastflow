@@ -1,7 +1,7 @@
 import logger from '../utils/logger'
 import { QueueManager } from '../queue/QueueManager'
 import { BaseCommand } from './base'
-import { getDataSource } from '../DataSource'
+import { getInitializedDataSource } from '../DataSource'
 import { Telemetry } from '../utils/telemetry'
 import { NodesPool } from '../NodesPool'
 import { CachePool } from '../CachePool'
@@ -54,9 +54,8 @@ export default class Worker extends BaseCommand {
     }
 
     async prepareData() {
-        // Init database
-        const appDataSource = getDataSource()
-        await appDataSource.initialize()
+        // Init database with proper async handling
+        const appDataSource = await getInitializedDataSource()
         await appDataSource.runMigrations({ transaction: 'each' })
 
         // Initialize abortcontroller pool

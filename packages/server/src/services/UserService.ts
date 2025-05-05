@@ -1,11 +1,12 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { StatusCodes } from 'http-status-codes'
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 import logger from '../utils/logger'
 import { getSupabaseAdmin, getSupabaseClient } from '../utils/supabase'
 import { EmailTemplateType, loadEmailTemplate } from '../utils/emailTemplates'
 import { UserProfile as UserProfileEntity } from '../database/entities/UserProfile'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * User status enum
@@ -96,7 +97,8 @@ export interface UserSearchResult {
 export class UserService {
     private supabaseAdmin: SupabaseClient
     private supabaseClient: SupabaseClient
-    private userProfileRepository: any
+    private userProfileRepository: Repository<UserProfileEntity> | null = null
+    private isInitialized: boolean = false
 
     /**
      * Constructor
@@ -111,7 +113,30 @@ export class UserService {
 
         this.supabaseAdmin = admin
         this.supabaseClient = client
-        this.userProfileRepository = getRepository(UserProfileEntity)
+        // Repository will be initialized lazily
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.userProfileRepository = dataSource.getRepository(UserProfileEntity)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize UserService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -217,6 +242,8 @@ export class UserService {
      */
     async getUserById(userId: string): Promise<UserProfile> {
         try {
+            await this.ensureInitialized()
+            
             const { data, error } = await this.supabaseAdmin.auth.admin.getUserById(userId)
 
             if (error) {
@@ -228,7 +255,7 @@ export class UserService {
             }
 
             // Get user profile from database
-            const userProfile = await this.userProfileRepository.findOne({
+            const userProfile = await this.userProfileRepository!.findOne({
                 where: { id: userId } as any
             })
 
@@ -254,6 +281,8 @@ export class UserService {
      */
     async getUserByEmail(email: string): Promise<UserProfile> {
         try {
+            await this.ensureInitialized()
+            
             // Supabase doesn't have a direct method to get user by email
             // We need to list users and filter by email
             const { data, error } = await this.supabaseAdmin.auth.admin.listUsers()
@@ -269,7 +298,7 @@ export class UserService {
             }
 
             // Get user profile from database
-            const userProfile = await this.userProfileRepository.findOne({
+            const userProfile = await this.userProfileRepository!.findOne({
                 where: { id: user.id } as any
             })
 
@@ -394,6 +423,7 @@ export class UserService {
      */
     async deleteUser(userId: string): Promise<void> {
         try {
+            await this.ensureInitialized()
             // Delete user from Supabase
             const { error } = await this.supabaseAdmin.auth.admin.deleteUser(userId)
 
@@ -402,7 +432,7 @@ export class UserService {
             }
 
             // Delete user profile from database
-            await this.userProfileRepository.delete(userId)
+            await this.userProfileRepository!.delete(userId)
         } catch (error: any) {
             logger.error(`[UserService] Delete user error: ${error.message}`)
             throw error
@@ -459,6 +489,7 @@ export class UserService {
      */
     async searchUsers(options: UserSearchOptions = {}): Promise<UserSearchResult> {
         try {
+            await this.ensureInitialized()
             const page = options.page || 1
             const limit = options.limit || 20
             
@@ -519,7 +550,7 @@ export class UserService {
             const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
 
             // Get user profiles from database
-            const userProfiles = await this.userProfileRepository.find()
+            const userProfiles = await this.userProfileRepository!.find()
             
             // Create a map of user profiles by ID for quick lookup
             const profileMap = new Map<string, UserProfileEntity>()
@@ -583,6 +614,7 @@ export class UserService {
      */
     private async createOrUpdateUserProfile(userId: string, options: UserUpdateOptions): Promise<UserProfile> {
         try {
+            await this.ensureInitialized()
             // Get Supabase user data
             const { data, error } = await this.supabaseAdmin.auth.admin.getUserById(userId)
 
@@ -595,7 +627,7 @@ export class UserService {
             }
 
             // Check if user profile exists
-            let userProfile = await this.userProfileRepository.findOne({
+            let userProfile = await this.userProfileRepository!.findOne({
                 where: { id: userId } as any
             })
 
@@ -611,10 +643,10 @@ export class UserService {
                 userProfile.metadata = options.metadata !== undefined ? { ...userProfile.metadata, ...options.metadata } : userProfile.metadata
                 userProfile.lastLogin = data.user.last_sign_in_at ? new Date(data.user.last_sign_in_at) : userProfile.lastLogin
                 
-                await this.userProfileRepository.save(userProfile)
+                await this.userProfileRepository!.save(userProfile)
             } else {
                 // Create new profile
-                userProfile = this.userProfileRepository.create({
+                userProfile = this.userProfileRepository!.create({
                     id: userId,
                     firstName: options.firstName,
                     lastName: options.lastName,
@@ -627,7 +659,7 @@ export class UserService {
                     lastLogin: data.user.last_sign_in_at ? new Date(data.user.last_sign_in_at) : undefined
                 })
                 
-                await this.userProfileRepository.save(userProfile)
+                await this.userProfileRepository!.save(userProfile)
             }
 
             // Return combined user data

@@ -1,29 +1,51 @@
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import logger from '../../utils/logger'
 import { ConditionalPermission } from '../../database/entities/ConditionalPermission'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import permissionExpressionService from './PermissionExpressionService'
 import { createClient } from 'redis'
 import config from '../../config'
+import { getInitializedDataSource } from '../../DataSource'
 
 /**
  * Service for managing conditional permissions
  */
-export class ConditionalPermissionService {
-    private conditionalPermissionRepository: any
+class ConditionalPermissionService {
+    private conditionalPermissionRepository: Repository<ConditionalPermission> | null = null
     private redisClient: any
+    private isInitialized: boolean = false
 
     /**
      * Constructor
      */
     constructor() {
-        const appServer = getRunningExpressApp()
-        this.conditionalPermissionRepository = appServer.AppDataSource.getRepository(ConditionalPermission)
-        
+        // Repositories will be initialized lazily when needed
         // Initialize Redis client if needed
         // this.initializeRedisClient()
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.conditionalPermissionRepository = dataSource.getRepository(ConditionalPermission)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize ConditionalPermissionService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -93,8 +115,10 @@ export class ConditionalPermissionService {
      */
     async createConditionalPermission(conditionalPermission: Partial<ConditionalPermission>): Promise<ConditionalPermission> {
         try {
-            const newPermission = this.conditionalPermissionRepository.create(conditionalPermission)
-            const result = await this.conditionalPermissionRepository.save(newPermission)
+            await this.ensureInitialized()
+            
+            const newPermission = this.conditionalPermissionRepository!.create(conditionalPermission)
+            const result = await this.conditionalPermissionRepository!.save(newPermission)
             
             // Clear cache
             if (conditionalPermission.userId) {
@@ -121,7 +145,9 @@ export class ConditionalPermissionService {
      */
     async getConditionalPermissionById(id: string): Promise<ConditionalPermission> {
         try {
-            const conditionalPermission = await this.conditionalPermissionRepository.findOne({
+            await this.ensureInitialized()
+            
+            const conditionalPermission = await this.conditionalPermissionRepository!.findOne({
                 where: { id },
                 relations: ['permission', 'expression']
             })
@@ -150,6 +176,7 @@ export class ConditionalPermissionService {
      */
     async getConditionalPermissionsForUser(userId: string): Promise<ConditionalPermission[]> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey(userId)
@@ -160,7 +187,7 @@ export class ConditionalPermissionService {
                 }
             }
             
-            const conditionalPermissions = await this.conditionalPermissionRepository.find({
+            const conditionalPermissions = await this.conditionalPermissionRepository!.find({
                 where: {
                     userId,
                     isActive: true
@@ -193,6 +220,7 @@ export class ConditionalPermissionService {
         resourceId?: string
     ): Promise<ConditionalPermission[]> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey(userId, permissionId, resourceType, resourceId)
@@ -212,7 +240,7 @@ export class ConditionalPermissionService {
             if (resourceType) whereClause.resourceType = resourceType
             if (resourceId) whereClause.resourceId = resourceId
             
-            const conditionalPermissions = await this.conditionalPermissionRepository.find({
+            const conditionalPermissions = await this.conditionalPermissionRepository!.find({
                 where: whereClause,
                 relations: ['permission', 'expression']
             })
@@ -240,10 +268,11 @@ export class ConditionalPermissionService {
         updates: Partial<ConditionalPermission>
     ): Promise<ConditionalPermission> {
         try {
+            await this.ensureInitialized()
             const conditionalPermission = await this.getConditionalPermissionById(id)
             
             Object.assign(conditionalPermission, updates)
-            const result = await this.conditionalPermissionRepository.save(conditionalPermission)
+            const result = await this.conditionalPermissionRepository!.save(conditionalPermission)
             
             // Clear cache
             if (conditionalPermission.userId) {
@@ -272,9 +301,10 @@ export class ConditionalPermissionService {
      */
     async deleteConditionalPermission(id: string): Promise<void> {
         try {
+            await this.ensureInitialized()
             const conditionalPermission = await this.getConditionalPermissionById(id)
             
-            await this.conditionalPermissionRepository.delete(id)
+            await this.conditionalPermissionRepository!.delete(id)
             
             // Clear cache
             if (conditionalPermission.userId) {
@@ -448,5 +478,9 @@ export class ConditionalPermissionService {
     }
 }
 
-export const conditionalPermissionService = new ConditionalPermissionService()
+// Create a singleton instance
+const conditionalPermissionService = new ConditionalPermissionService()
 export default conditionalPermissionService
+
+// Export the class for use with the service factory
+export { ConditionalPermissionService }

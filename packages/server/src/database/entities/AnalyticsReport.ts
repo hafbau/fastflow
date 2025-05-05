@@ -74,7 +74,7 @@ export class AnalyticsReport {
      * Report type
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ReportType,
         nullable: false
     })
@@ -85,7 +85,7 @@ export class AnalyticsReport {
      * Report format
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ReportFormat,
         nullable: false,
         default: ReportFormat.PDF
@@ -96,7 +96,7 @@ export class AnalyticsReport {
      * Report schedule
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: ReportSchedule,
         nullable: false,
         default: ReportSchedule.ONCE
@@ -107,7 +107,7 @@ export class AnalyticsReport {
      * Last generated timestamp
      */
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: true
     })
     lastGeneratedAt?: Date
@@ -116,7 +116,7 @@ export class AnalyticsReport {
      * Next scheduled timestamp
      */
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: true
     })
     nextScheduledAt?: Date
@@ -125,7 +125,7 @@ export class AnalyticsReport {
      * Report configuration
      */
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: false
     })
     configuration: Record<string, any>
@@ -134,7 +134,7 @@ export class AnalyticsReport {
      * Report filters
      */
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: true
     })
     filters?: Record<string, any>
@@ -143,7 +143,7 @@ export class AnalyticsReport {
      * Report data
      */
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: true
     })
     data?: Record<string, any>
@@ -195,7 +195,7 @@ export class AnalyticsReport {
      * Recipients
      */
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: true
     })
     recipients?: string[]

@@ -1,8 +1,8 @@
 /**
- * Monkey patch for @oclif/core to handle property access errors
- * 
- * This patches the process.emitWarning function to handle errors with read-only properties
- * which happens in Node.js 20+ when oclif tries to set the error name property
+ * Monkey patch for @oclif/core to handle property access errors in Node.js 20+
+ *
+ * This is a lightweight patch that only handles process.emitWarning.
+ * The main issue with Plugin.addErrorScope is fixed via patch-package.
  */
 
 // Only apply the patch if we're using Node.js 20 or later
@@ -17,32 +17,13 @@ if (parseInt(nodeVersion, 10) >= 20) {
       // If it's an Error object, ensure we don't have problems with read-only properties
       if (warning instanceof Error) {
         try {
-          // Create a safe error object with writable properties
-          const safeWarning = {
-            message: warning.message || '',
-            name: warning.name || 'Error',
-            stack: warning.stack || '',
-          };
-          
-          // Copy any additional properties
-          for (const prop in warning) {
-            if (!['message', 'name', 'stack'].includes(prop) && typeof warning[prop] !== 'function') {
-              try {
-                safeWarning[prop] = warning[prop];
-              } catch (e) {
-                // Ignore if we can't copy a property
-              }
-            }
-          }
-          
-          // Call the original function with our safe warning object
-          return originalEmitWarning(safeWarning.message, {
-            type: safeWarning.name,
+          // Call the original function with extracted properties to avoid read-only property issues
+          return originalEmitWarning(warning.message || '', {
+            type: warning.name || 'Warning',
             code: warning.code,
             detail: warning.detail,
           });
         } catch (error) {
-          // If something goes wrong with our approach, fall back to original behavior
           console.error('Error in emitWarning patch:', error);
         }
       }
@@ -51,7 +32,7 @@ if (parseInt(nodeVersion, 10) >= 20) {
       return originalEmitWarning(warning, options);
     };
     
-    console.log('Applied process.emitWarning patch for Node.js compatibility');
+    console.log('Applied process.emitWarning patch for Node.js 20+ compatibility');
   } catch (error) {
     console.error('Failed to apply process.emitWarning patch:', error);
   }

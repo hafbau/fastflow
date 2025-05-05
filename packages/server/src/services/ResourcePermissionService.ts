@@ -4,7 +4,7 @@
  * This service provides methods for managing resource-level permissions.
  */
 
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../errors/InternalFastflowError/index'
 import logger from '../utils/logger'
@@ -13,23 +13,48 @@ import { Permission } from '../database/entities/Permission'
 import rolesPermissionsService from './RolesPermissionsService'
 import { createClient } from 'redis'
 import config from '../config'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * Service for managing resource-level permissions
  */
 export class ResourcePermissionService {
-    private resourcePermissionRepository: any
+    private resourcePermissionRepository: Repository<ResourcePermission> | null = null
     private redisClient: any
+    private isInitialized: boolean = false
 
     /**
      * Constructor
      */
     constructor() {
-        this.resourcePermissionRepository = getRepository(ResourcePermission)
+        // Repositories will be initialized lazily when needed
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
         
-        // Initialize Redis client if needed
-        // Commented out for now as caching config is not available
-        // this.initializeRedisClient()
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.resourcePermissionRepository = dataSource.getRepository(ResourcePermission)
+            
+            // Mark as initialized
+            this.isInitialized = true
+            
+            // Initialize Redis client if needed
+            // Commented out for now as caching config is not available
+            // await this.initializeRedisClient()
+        } catch (error) {
+            logger.error('Failed to initialize ResourcePermissionService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -110,8 +135,10 @@ export class ResourcePermissionService {
         permission: string
     ): Promise<ResourcePermission> {
         try {
+            await this.ensureInitialized()
+            
             // Check if permission already exists
-            const existingPermission = await this.resourcePermissionRepository.findOne({
+            const existingPermission = await this.resourcePermissionRepository!.findOne({
                 where: {
                     userId,
                     resourceType,
@@ -131,7 +158,7 @@ export class ResourcePermissionService {
             resourcePermission.resourceId = resourceId
             resourcePermission.permission = permission
 
-            const result = await this.resourcePermissionRepository.save(resourcePermission)
+            const result = await this.resourcePermissionRepository!.save(resourcePermission)
             
             // Clear cache
             await this.clearCache(userId, resourceType, resourceId)
@@ -161,7 +188,9 @@ export class ResourcePermissionService {
         permission: string
     ): Promise<boolean> {
         try {
-            const result = await this.resourcePermissionRepository.delete({
+            await this.ensureInitialized()
+            
+            const result = await this.resourcePermissionRepository!.delete({
                 userId,
                 resourceType,
                 resourceId,
@@ -171,7 +200,7 @@ export class ResourcePermissionService {
             // Clear cache
             await this.clearCache(userId, resourceType, resourceId)
             
-            return result.affected > 0
+            return (result.affected ?? 0) > 0
         } catch (error: any) {
             logger.error(`[ResourcePermissionService] Remove permission error: ${error.message}`)
             throw new InternalFastflowError(
@@ -192,14 +221,16 @@ export class ResourcePermissionService {
         resourceId: string
     ): Promise<boolean> {
         try {
-            const result = await this.resourcePermissionRepository.delete({
+            await this.ensureInitialized()
+            
+            const result = await this.resourcePermissionRepository!.delete({
                 resourceType,
                 resourceId
             })
             
             // We can't efficiently clear cache for all users, so we'll let it expire naturally
             
-            return result.affected > 0
+            return (result.affected ?? 0) > 0
         } catch (error: any) {
             logger.error(`[ResourcePermissionService] Remove all permissions for resource error: ${error.message}`)
             throw new InternalFastflowError(
@@ -222,6 +253,8 @@ export class ResourcePermissionService {
         resourceId: string
     ): Promise<string[]> {
         try {
+            await this.ensureInitialized()
+            
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey(userId, resourceType, resourceId)
@@ -232,7 +265,7 @@ export class ResourcePermissionService {
                 }
             }
             
-            const resourcePermissions = await this.resourcePermissionRepository.find({
+            const resourcePermissions = await this.resourcePermissionRepository!.find({
                 where: {
                     userId,
                     resourceType,
@@ -273,7 +306,9 @@ export class ResourcePermissionService {
         permission: string
     ): Promise<string[]> {
         try {
-            const resourcePermissions = await this.resourcePermissionRepository.find({
+            await this.ensureInitialized()
+            
+            const resourcePermissions = await this.resourcePermissionRepository!.find({
                 where: {
                     userId,
                     resourceType,
@@ -306,6 +341,8 @@ export class ResourcePermissionService {
         permission: string
     ): Promise<boolean> {
         try {
+            await this.ensureInitialized()
+            
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey(userId, resourceType, resourceId)
@@ -318,7 +355,7 @@ export class ResourcePermissionService {
             }
             
             // First check if the user has a direct resource permission
-            const count = await this.resourcePermissionRepository.count({
+            const count = await this.resourcePermissionRepository!.count({
                 where: {
                     userId,
                     resourceType,
@@ -393,7 +430,9 @@ export class ResourcePermissionService {
         permission: string
     ): Promise<string[]> {
         try {
-            const resourcePermissions = await this.resourcePermissionRepository.find({
+            await this.ensureInitialized()
+            
+            const resourcePermissions = await this.resourcePermissionRepository!.find({
                 where: {
                     resourceType,
                     resourceId,

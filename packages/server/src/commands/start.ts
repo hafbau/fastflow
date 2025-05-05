@@ -1,5 +1,5 @@
 import * as Server from '../index'
-import * as DataSource from '../DataSource'
+import { init, getInitializedDataSource } from '../DataSource'
 import logger from '../utils/logger'
 import { BaseCommand } from './base'
 
@@ -7,7 +7,16 @@ export default class Start extends BaseCommand {
     async run(): Promise<void> {
         try {
             logger.info('Starting Fastflow...')
-            await DataSource.init()
+            
+            // Initialize database with proper async handling
+            const dataSource = await init()
+            
+            // Ensure the data source is properly initialized and set as default
+            if (!dataSource.isInitialized) {
+                await dataSource.initialize()
+            }
+            
+            // Start the server
             await Server.start()
         } catch (error: any) {
             logger.error(`Failed to start Fastflow: ${error.message || 'Unknown error'}`)

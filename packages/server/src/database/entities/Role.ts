@@ -25,11 +25,12 @@ export class Role {
     description?: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: RoleType,
-        default: RoleType.CUSTOM
+        default: RoleType.CUSTOM,
+        nullable: true // Make it nullable to handle existing records without this field
     })
-    type: RoleType
+    type?: RoleType
 
     @Column({ type: 'uuid', nullable: true })
     organizationId?: string

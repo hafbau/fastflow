@@ -1,10 +1,11 @@
 import { Request, Response, NextFunction } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { getRepository, In } from 'typeorm'
+import { In } from 'typeorm'
 import { UserRole } from '../database/entities/UserRole'
 import { RolePermission } from '../database/entities/RolePermission'
 import { Permission } from '../database/entities/Permission'
 import logger from '../utils/logger'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * Middleware to check if a user has the required permission
@@ -24,8 +25,11 @@ export const checkRolePermission = (permissionName: string) => {
                 })
             }
 
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
             // Get user roles
-            const userRoleRepository = getRepository(UserRole)
+            const userRoleRepository = dataSource.getRepository(UserRole)
             const userRoles = await userRoleRepository.find({
                 where: { userId },
                 relations: ['role']
@@ -42,8 +46,8 @@ export const checkRolePermission = (permissionName: string) => {
             const roleIds = userRoles.map(userRole => userRole.roleId)
 
             // Check if any of the user's roles has the required permission
-            const rolePermissionRepository = getRepository(RolePermission)
-            const permissionRepository = getRepository(Permission)
+            const rolePermissionRepository = dataSource.getRepository(RolePermission)
+            const permissionRepository = dataSource.getRepository(Permission)
 
             // Find the permission ID by name
             const permission = await permissionRepository.findOne({
@@ -102,8 +106,11 @@ export const checkAdminRole = () => {
                 })
             }
 
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
             // Get user roles
-            const userRoleRepository = getRepository(UserRole)
+            const userRoleRepository = dataSource.getRepository(UserRole)
             const userRoles = await userRoleRepository.find({
                 where: { userId },
                 relations: ['role']

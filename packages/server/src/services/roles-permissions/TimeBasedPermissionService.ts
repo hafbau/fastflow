@@ -1,28 +1,50 @@
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import logger from '../../utils/logger'
 import { TimeBasedPermission, TimeBasedPermissionType } from '../../database/entities/TimeBasedPermission'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
 import { createClient } from 'redis'
 import config from '../../config'
+import { getInitializedDataSource } from '../../DataSource'
 
 /**
  * Service for managing time-based permissions
  */
-export class TimeBasedPermissionService {
-    private timeBasedPermissionRepository: any
+class TimeBasedPermissionService {
+    private timeBasedPermissionRepository: Repository<TimeBasedPermission> | null = null
     private redisClient: any
+    private isInitialized: boolean = false
 
     /**
      * Constructor
      */
     constructor() {
-        const appServer = getRunningExpressApp()
-        this.timeBasedPermissionRepository = appServer.AppDataSource.getRepository(TimeBasedPermission)
-        
+        // Repositories will be initialized lazily when needed
         // Initialize Redis client if needed
         // this.initializeRedisClient()
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.timeBasedPermissionRepository = dataSource.getRepository(TimeBasedPermission)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize TimeBasedPermissionService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -92,11 +114,13 @@ export class TimeBasedPermissionService {
      */
     async createTimeBasedPermission(timeBasedPermission: Partial<TimeBasedPermission>): Promise<TimeBasedPermission> {
         try {
+            await this.ensureInitialized()
+            
             // Validate time-based permission
             this.validateTimeBasedPermission(timeBasedPermission)
             
-            const newPermission = this.timeBasedPermissionRepository.create(timeBasedPermission)
-            const result = await this.timeBasedPermissionRepository.save(newPermission)
+            const newPermission = this.timeBasedPermissionRepository!.create(timeBasedPermission)
+            const result = await this.timeBasedPermissionRepository!.save(newPermission)
             
             // Clear cache
             if (timeBasedPermission.userId) {
@@ -125,7 +149,9 @@ export class TimeBasedPermissionService {
      */
     async getTimeBasedPermissionById(id: string): Promise<TimeBasedPermission> {
         try {
-            const timeBasedPermission = await this.timeBasedPermissionRepository.findOne({
+            await this.ensureInitialized()
+            
+            const timeBasedPermission = await this.timeBasedPermissionRepository!.findOne({
                 where: { id },
                 relations: ['permission']
             })
@@ -154,6 +180,7 @@ export class TimeBasedPermissionService {
      */
     async getTimeBasedPermissionsForUser(userId: string): Promise<TimeBasedPermission[]> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey(userId)
@@ -164,7 +191,7 @@ export class TimeBasedPermissionService {
                 }
             }
             
-            const timeBasedPermissions = await this.timeBasedPermissionRepository.find({
+            const timeBasedPermissions = await this.timeBasedPermissionRepository!.find({
                 where: {
                     userId,
                     isActive: true
@@ -197,6 +224,7 @@ export class TimeBasedPermissionService {
         resourceId?: string
     ): Promise<TimeBasedPermission[]> {
         try {
+            await this.ensureInitialized()
             // Check cache first
             if (this.redisClient) {
                 const cacheKey = this.getCacheKey(userId, permissionId, resourceType, resourceId)
@@ -216,7 +244,7 @@ export class TimeBasedPermissionService {
             if (resourceType) whereClause.resourceType = resourceType
             if (resourceId) whereClause.resourceId = resourceId
             
-            const timeBasedPermissions = await this.timeBasedPermissionRepository.find({
+            const timeBasedPermissions = await this.timeBasedPermissionRepository!.find({
                 where: whereClause,
                 relations: ['permission']
             })
@@ -244,6 +272,7 @@ export class TimeBasedPermissionService {
         updates: Partial<TimeBasedPermission>
     ): Promise<TimeBasedPermission> {
         try {
+            await this.ensureInitialized()
             const timeBasedPermission = await this.getTimeBasedPermissionById(id)
             
             // Validate updates
@@ -255,7 +284,7 @@ export class TimeBasedPermissionService {
             }
             
             Object.assign(timeBasedPermission, updates)
-            const result = await this.timeBasedPermissionRepository.save(timeBasedPermission)
+            const result = await this.timeBasedPermissionRepository!.save(timeBasedPermission)
             
             // Clear cache
             if (timeBasedPermission.userId) {
@@ -284,9 +313,10 @@ export class TimeBasedPermissionService {
      */
     async deleteTimeBasedPermission(id: string): Promise<void> {
         try {
+            await this.ensureInitialized()
             const timeBasedPermission = await this.getTimeBasedPermissionById(id)
             
-            await this.timeBasedPermissionRepository.delete(id)
+            await this.timeBasedPermissionRepository!.delete(id)
             
             // Clear cache
             if (timeBasedPermission.userId) {
@@ -318,6 +348,7 @@ export class TimeBasedPermissionService {
         resourceId?: string
     ): Promise<boolean> {
         try {
+            await this.ensureInitialized()
             // Get all time-based permissions for this user and permission
             const timeBasedPermissions = await this.getTimeBasedPermissionsForPermission(
                 userId,
@@ -362,6 +393,7 @@ export class TimeBasedPermissionService {
         resourceId?: string
     ): Promise<Record<string, boolean>> {
         try {
+            await this.ensureInitialized()
             const result: Record<string, boolean> = {}
             
             // Initialize all permissions as false
@@ -622,13 +654,14 @@ export class TimeBasedPermissionService {
      */
     async cleanupExpiredPermissions(): Promise<number> {
         try {
+            await this.ensureInitialized()
             const now = new Date()
             
             // Find expired temporary permissions
-            const result = await this.timeBasedPermissionRepository.update(
+            const result = await this.timeBasedPermissionRepository!.update(
                 {
                     type: TimeBasedPermissionType.TEMPORARY,
-                    endTime: { $lt: now },
+                    endTime: { $lt: now } as any,
                     isActive: true
                 },
                 {
@@ -636,7 +669,7 @@ export class TimeBasedPermissionService {
                 }
             )
             
-            return result.affected || 0
+            return result.affected ?? 0
         } catch (error: any) {
             logger.error(`[TimeBasedPermissionService] Cleanup expired permissions error: ${error.message}`)
             return 0
@@ -644,5 +677,9 @@ export class TimeBasedPermissionService {
     }
 }
 
-export const timeBasedPermissionService = new TimeBasedPermissionService()
+// Create a singleton instance
+const timeBasedPermissionService = new TimeBasedPermissionService()
 export default timeBasedPermissionService
+
+// Export the class for use with the service factory
+export { TimeBasedPermissionService }

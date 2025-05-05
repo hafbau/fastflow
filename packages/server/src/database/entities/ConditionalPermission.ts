@@ -22,14 +22,14 @@ export class ConditionalPermission {
     /**
      * User ID
      */
-    @Column()
+    @Column({ type: 'varchar' })
     @Index()
     userId: string
 
     /**
      * Permission ID
      */
-    @Column()
+    @Column({ type: 'varchar' })
     @Index()
     permissionId: string
 
@@ -43,14 +43,14 @@ export class ConditionalPermission {
     /**
      * Resource type (optional)
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     @Index()
     resourceType?: string
 
     /**
      * Resource ID (optional)
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     @Index()
     resourceId?: string
 
@@ -58,36 +58,36 @@ export class ConditionalPermission {
      * Expression for condition evaluation
      * Stored as JSON
      */
-    @Column({ type: 'json' })
+    @Column({ type: 'simple-json' })
     expression: any
 
     /**
      * Description of the condition
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     description?: string
 
     /**
      * Whether the conditional permission is active
      */
-    @Column({ default: true })
+    @Column({ default: true, type: 'boolean' })
     isActive: boolean
 
     /**
      * Created by user ID
      */
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     createdBy?: string
 
     /**
      * Created at timestamp
      */
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'datetime' })
     createdAt: Date
 
     /**
      * Updated at timestamp
      */
-    @UpdateDateColumn()
+    @UpdateDateColumn({ type: 'datetime' })
     updatedAt: Date
 }

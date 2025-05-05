@@ -26,7 +26,7 @@ export class Permission {
     action: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: PermissionScope,
         default: PermissionScope.RESOURCE
     })

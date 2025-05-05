@@ -1,0 +1,21 @@
+diff --git a/node_modules/@oclif/core/lib/config/plugin.js b/node_modules/@oclif/core/lib/config/plugin.js
+index 23a2791..18ef521 100644
+--- a/node_modules/@oclif/core/lib/config/plugin.js
++++ b/node_modules/@oclif/core/lib/config/plugin.js
+@@ -288,7 +288,15 @@ class Plugin {
+         return manifest;
+     }
+     addErrorScope(err, scope) {
+-        err.name = err.name ?? (0, node_util_1.inspect)(err).trim();
++        // Create safe error handling for Node.js 20+
++        try {
++            // Try to set name property, but catch errors if it's read-only
++            err.name = err.name ?? (0, node_util_1.inspect)(err).trim();
++        } catch (e) {
++            // Don't try to modify the read-only property
++            // Just use the existing name or the inspect result
++            console.debug('Error name is read-only, skipping name assignment');
++        }
+         err.detail = (0, util_1.compact)([
+             err.detail,
+             `module: ${this._base}`,

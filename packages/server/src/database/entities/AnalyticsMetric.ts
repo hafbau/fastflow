@@ -46,7 +46,7 @@ export class AnalyticsMetric {
      * Metric type
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: MetricType,
         nullable: false
     })
@@ -77,7 +77,7 @@ export class AnalyticsMetric {
      * Timestamp
      */
     @Column({
-        type: 'timestamp',
+        type: 'datetime',
         nullable: false
     })
     @Index()
@@ -87,7 +87,7 @@ export class AnalyticsMetric {
      * Time granularity
      */
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: TimeGranularity,
         nullable: false,
         default: TimeGranularity.HOURLY
@@ -154,7 +154,7 @@ export class AnalyticsMetric {
      * Additional dimensions
      */
     @Column({
-        type: 'jsonb',
+        type: 'simple-json',
         nullable: true
     })
     dimensions?: Record<string, any>

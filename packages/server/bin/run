@@ -3,6 +3,9 @@
 // Apply monkey patches for compatibility
 require('./oclif-patch')
 
+// Apply TypeORM patches (must come before any imports)
+require('../src/typeorm-patch')
+
 // Now load oclif core
 const oclif = require('@oclif/core')
 

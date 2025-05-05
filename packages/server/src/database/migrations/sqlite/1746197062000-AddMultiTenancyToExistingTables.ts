@@ -54,10 +54,10 @@ export class AddMultiTenancyToExistingTables1746197062000 implements MigrationIn
 
         // Add organizationId and workspaceId to ApiKey table
         await queryRunner.query(`
-            ALTER TABLE "api_key" ADD COLUMN "organizationId" varchar
+            ALTER TABLE "apikey" ADD COLUMN "organizationId" varchar
         `)
         await queryRunner.query(`
-            ALTER TABLE "api_key" ADD COLUMN "workspaceId" varchar
+            ALTER TABLE "apikey" ADD COLUMN "workspaceId" varchar
         `)
 
         // Add organizationId and workspaceId to CustomTemplate table
@@ -85,8 +85,8 @@ export class AddMultiTenancyToExistingTables1746197062000 implements MigrationIn
         await queryRunner.query(`CREATE INDEX "IDX_variable_workspace" ON "variable" ("workspaceId")`)
         await queryRunner.query(`CREATE INDEX "IDX_document_store_organization" ON "document_store" ("organizationId")`)
         await queryRunner.query(`CREATE INDEX "IDX_document_store_workspace" ON "document_store" ("workspaceId")`)
-        await queryRunner.query(`CREATE INDEX "IDX_api_key_organization" ON "api_key" ("organizationId")`)
-        await queryRunner.query(`CREATE INDEX "IDX_api_key_workspace" ON "api_key" ("workspaceId")`)
+        await queryRunner.query(`CREATE INDEX "IDX_api_key_organization" ON "apikey" ("organizationId")`)
+        await queryRunner.query(`CREATE INDEX "IDX_api_key_workspace" ON "apikey" ("workspaceId")`)
         await queryRunner.query(`CREATE INDEX "IDX_custom_template_organization" ON "custom_template" ("organizationId")`)
         await queryRunner.query(`CREATE INDEX "IDX_custom_template_workspace" ON "custom_template" ("workspaceId")`)
     }

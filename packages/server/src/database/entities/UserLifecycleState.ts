@@ -30,13 +30,13 @@ export class UserLifecycleState {
     user: UserProfile
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: UserLifecycleStateType,
         default: UserLifecycleStateType.INVITED
     })
     state: UserLifecycleStateType
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata: Record<string, any>
 
     @Column({ name: 'changed_by', nullable: true })

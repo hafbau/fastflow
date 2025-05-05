@@ -48,13 +48,13 @@ export class AccessReviewAction {
     reviewItem: AccessReviewItem
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewActionType
     })
     type: AccessReviewActionType
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: AccessReviewActionStatus,
         default: AccessReviewActionStatus.PENDING
     })
@@ -66,10 +66,10 @@ export class AccessReviewAction {
     @Column({ type: 'text', nullable: true })
     notes?: string
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata?: Record<string, any>
 
-    @Column({ type: 'timestamp', nullable: true })
+    @Column({ type: 'datetime', nullable: true })
     completedAt?: Date
 
     @Column({ type: 'text', nullable: true })

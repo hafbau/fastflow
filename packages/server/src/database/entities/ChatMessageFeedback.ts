@@ -25,7 +25,7 @@ export class ChatMessageFeedback implements IChatMessageFeedback {
     @Column({ nullable: true, type: 'text' })
     content?: string
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'datetime' })
     @CreateDateColumn()
     createdDate: Date
 }

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
-import { attributeService } from '../services/roles-permissions/AttributeService'
+import attributeService from '../services/roles-permissions/AttributeService'
 import logger from '../utils/logger'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 

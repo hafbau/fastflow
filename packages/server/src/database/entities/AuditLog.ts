@@ -5,25 +5,25 @@ export class AuditLog {
     @PrimaryGeneratedColumn('uuid')
     id: string
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     userId: string | null
 
-    @Column()
+    @Column({ type: 'varchar' })
     action: string
 
-    @Column()
+    @Column({ type: 'varchar' })
     resourceType: string
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     resourceId: string | null
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata: Record<string, any> | null
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, type: 'varchar' })
     ipAddress: string | null
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
     timestamp: Date
 
     @CreateDateColumn()

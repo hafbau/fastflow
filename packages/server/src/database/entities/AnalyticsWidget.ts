@@ -44,7 +44,7 @@ export class AnalyticsWidget {
     description?: string
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: WidgetType
     })
     widgetType: WidgetType
@@ -57,7 +57,7 @@ export class AnalyticsWidget {
     dashboard: AnalyticsDashboard
 
     @Column({
-        type: 'enum',
+        type: 'varchar',
         enum: DataSourceType
     })
     dataSourceType: DataSourceType
@@ -66,20 +66,20 @@ export class AnalyticsWidget {
      * Query configuration for the widget
      * Contains the query parameters to fetch data for the widget
      */
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     query: Record<string, any>
 
     /**
      * Visualization configuration for the widget
      * Contains settings for how the data should be visualized
      */
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     visualization: Record<string, any>
 
     /**
      * Position and size in the dashboard layout
      */
-    @Column({ type: 'jsonb' })
+    @Column({ type: 'simple-json' })
     layout: {
         x: number;
         y: number;
@@ -97,13 +97,13 @@ export class AnalyticsWidget {
     @Column({ type: 'boolean', default: true })
     isActive: boolean
 
-    @Column({ type: 'jsonb', nullable: true })
+    @Column({ type: 'simple-json', nullable: true })
     metadata?: Record<string, any>
 
-    @CreateDateColumn()
+    @CreateDateColumn({ type: 'datetime' })
     createdAt: Date
 
-    @UpdateDateColumn()
+    @UpdateDateColumn({ type: 'datetime' })
     updatedAt: Date
 }
 

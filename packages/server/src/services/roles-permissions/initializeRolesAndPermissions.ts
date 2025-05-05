@@ -1,8 +1,7 @@
 import { Role, RoleType } from '../../database/entities/Role'
 import { Permission, PermissionScope } from '../../database/entities/Permission'
-import { roleService } from './RoleService'
-import { permissionService } from './PermissionService'
-import { getRunningExpressApp } from '../../utils/getRunningExpressApp'
+import roleService from './RoleService'
+import permissionService from './PermissionService'
 
 /**
  * Initialize default permissions
@@ -307,19 +306,47 @@ const initializeSystemRoles = async (permissionMap: Map<string, Permission>): Pr
                 
                 if (!role) {
                     // Create role if it doesn't exist
+                    try {
+                        role = await roleService.createRole({
+                            name: roleData.name,
+                            description: roleData.description,
+                            type: roleData.type
+                        })
+                    } catch (err) {
+                        console.error(`Error creating role ${roleData.name}:`, err)
+                        // Try creating without type field if there's an error about the type column
+                        if (err.toString().includes('table role has no column named type')) {
+                            role = await roleService.createRole({
+                                name: roleData.name,
+                                description: roleData.description
+                                // Type field omitted intentionally
+                            })
+                        } else {
+                            throw err
+                        }
+                    }
+                }
+            } catch (error) {
+                // Create role if it doesn't exist
+                try {
                     role = await roleService.createRole({
                         name: roleData.name,
                         description: roleData.description,
                         type: roleData.type
                     })
+                } catch (err) {
+                    console.error(`Error creating role ${roleData.name}:`, err)
+                    // Try creating without type field if there's an error about the type column
+                    if (err.toString().includes('table role has no column named type')) {
+                        role = await roleService.createRole({
+                            name: roleData.name,
+                            description: roleData.description
+                            // Type field omitted intentionally
+                        })
+                    } else {
+                        throw err
+                    }
                 }
-            } catch (error) {
-                // Create role if it doesn't exist
-                role = await roleService.createRole({
-                    name: roleData.name,
-                    description: roleData.description,
-                    type: roleData.type
-                })
             }
             
             // Assign permissions to role

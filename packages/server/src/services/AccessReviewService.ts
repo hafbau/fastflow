@@ -1,4 +1,4 @@
-import { getRepository } from 'typeorm'
+import { Repository, FindOptionsWhere, LessThanOrEqual } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 import logger from '../utils/logger'
@@ -14,31 +14,59 @@ import { Organization } from '../database/entities/Organization'
 import { Workspace } from '../database/entities/Workspace'
 import rolesPermissionsService from './RolesPermissionsService'
 import auditLogsService from './audit-logs'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * Service for managing access reviews
  */
-export class AccessReviewService {
-    private accessReviewRepository: any
-    private accessReviewItemRepository: any
-    private accessReviewActionRepository: any
-    private accessReviewScheduleRepository: any
-    private userProfileRepository: any
-    private userRoleRepository: any
-    private resourcePermissionRepository: any
-    private organizationRepository: any
-    private workspaceRepository: any
+class AccessReviewService {
+    // Repository instances
+    private accessReviewRepository: Repository<AccessReview> | null = null
+    private accessReviewItemRepository: Repository<AccessReviewItem> | null = null
+    private accessReviewActionRepository: Repository<AccessReviewAction> | null = null
+    private accessReviewScheduleRepository: Repository<AccessReviewSchedule> | null = null
+    private userProfileRepository: Repository<UserProfile> | null = null
+    private userRoleRepository: Repository<UserRole> | null = null
+    private resourcePermissionRepository: Repository<ResourcePermission> | null = null
+    private organizationRepository: Repository<Organization> | null = null
+    private workspaceRepository: Repository<Workspace> | null = null
+    
+    // Initialization flag
+    private isInitialized: boolean = false
 
     constructor() {
-        this.accessReviewRepository = getRepository(AccessReview)
-        this.accessReviewItemRepository = getRepository(AccessReviewItem)
-        this.accessReviewActionRepository = getRepository(AccessReviewAction)
-        this.accessReviewScheduleRepository = getRepository(AccessReviewSchedule)
-        this.userProfileRepository = getRepository(UserProfile)
-        this.userRoleRepository = getRepository(UserRole)
-        this.resourcePermissionRepository = getRepository(ResourcePermission)
-        this.organizationRepository = getRepository(Organization)
-        this.workspaceRepository = getRepository(Workspace)
+        // Repositories will be initialized lazily when needed
+    }
+    
+    /**
+     * Initialize repositories lazily to avoid connection issues
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (this.isInitialized) {
+            return
+        }
+        
+        try {
+            // Get initialized data source
+            const dataSource = await getInitializedDataSource()
+            
+            // Get repositories
+            this.accessReviewRepository = dataSource.getRepository(AccessReview)
+            this.accessReviewItemRepository = dataSource.getRepository(AccessReviewItem)
+            this.accessReviewActionRepository = dataSource.getRepository(AccessReviewAction)
+            this.accessReviewScheduleRepository = dataSource.getRepository(AccessReviewSchedule)
+            this.userProfileRepository = dataSource.getRepository(UserProfile)
+            this.userRoleRepository = dataSource.getRepository(UserRole)
+            this.resourcePermissionRepository = dataSource.getRepository(ResourcePermission)
+            this.organizationRepository = dataSource.getRepository(Organization)
+            this.workspaceRepository = dataSource.getRepository(Workspace)
+            
+            // Mark as initialized
+            this.isInitialized = true
+        } catch (error) {
+            logger.error('Failed to initialize AccessReviewService repositories', error)
+            throw error
+        }
     }
 
     /**
@@ -48,6 +76,8 @@ export class AccessReviewService {
      */
     async createAccessReview(reviewData: Partial<AccessReview>): Promise<AccessReview> {
         try {
+            await this.ensureInitialized()
+            
             // Validate required fields
             if (!reviewData.name) {
                 throw new InternalFastflowError(
@@ -65,7 +95,9 @@ export class AccessReviewService {
 
             // Validate organization or workspace exists if provided
             if (reviewData.organizationId) {
-                const organization = await this.organizationRepository.findOne(reviewData.organizationId)
+                const organization = await this.organizationRepository!.findOne({
+                    where: { id: reviewData.organizationId }
+                })
                 if (!organization) {
                     throw new InternalFastflowError(
                         StatusCodes.BAD_REQUEST,
@@ -75,7 +107,9 @@ export class AccessReviewService {
             }
 
             if (reviewData.workspaceId) {
-                const workspace = await this.workspaceRepository.findOne(reviewData.workspaceId)
+                const workspace = await this.workspaceRepository!.findOne({
+                    where: { id: reviewData.workspaceId }
+                })
                 if (!workspace) {
                     throw new InternalFastflowError(
                         StatusCodes.BAD_REQUEST,
@@ -85,14 +119,14 @@ export class AccessReviewService {
             }
 
             // Create the access review
-            const accessReview = this.accessReviewRepository.create({
+            const accessReview = this.accessReviewRepository!.create({
                 ...reviewData,
                 status: reviewData.status || AccessReviewStatus.PENDING,
                 type: reviewData.type || AccessReviewType.AD_HOC,
                 scope: reviewData.scope || AccessReviewScope.ORGANIZATION
             })
 
-            const savedReview = await this.accessReviewRepository.save(accessReview)
+            const savedReview = await this.accessReviewRepository!.save(accessReview)
 
             // Log the creation
             await auditLogsService.logUserAction(
@@ -117,6 +151,8 @@ export class AccessReviewService {
      */
     async getAllAccessReviews(filters: any = {}): Promise<AccessReview[]> {
         try {
+            await this.ensureInitialized()
+            
             const query: any = {}
 
             if (filters.status) {
@@ -139,7 +175,7 @@ export class AccessReviewService {
                 query.assignedTo = filters.assignedTo
             }
 
-            const accessReviews = await this.accessReviewRepository.find({
+            const accessReviews = await this.accessReviewRepository!.find({
                 where: query,
                 order: {
                     createdAt: 'DESC'
@@ -163,7 +199,10 @@ export class AccessReviewService {
      */
     async getAccessReviewById(id: string): Promise<AccessReview> {
         try {
-            const accessReview = await this.accessReviewRepository.findOne(id, {
+            await this.ensureInitialized()
+            
+            const accessReview = await this.accessReviewRepository!.findOne({
+                where: { id },
                 relations: ['items', 'items.actions']
             })
 
@@ -196,6 +235,8 @@ export class AccessReviewService {
      */
     async updateAccessReview(id: string, updateData: Partial<AccessReview>, userId: string): Promise<AccessReview> {
         try {
+            await this.ensureInitialized()
+            
             const accessReview = await this.getAccessReviewById(id)
 
             // Update fields
@@ -206,7 +247,7 @@ export class AccessReviewService {
                 accessReview.completedDate = new Date()
             }
 
-            const updatedReview = await this.accessReviewRepository.save(accessReview)
+            const updatedReview = await this.accessReviewRepository!.save(accessReview)
 
             // Log the update
             await auditLogsService.logUserAction(
@@ -238,6 +279,8 @@ export class AccessReviewService {
      */
     async deleteAccessReview(id: string, userId: string): Promise<boolean> {
         try {
+            await this.ensureInitialized()
+            
             const accessReview = await this.getAccessReviewById(id)
 
             // Log the deletion
@@ -249,7 +292,7 @@ export class AccessReviewService {
                 { reviewName: accessReview.name }
             )
 
-            await this.accessReviewRepository.remove(accessReview)
+            await this.accessReviewRepository!.remove(accessReview)
             return true
         } catch (error: any) {
             logger.error(`[AccessReviewService] Delete access review error: ${error.message}`)
@@ -282,6 +325,8 @@ export class AccessReviewService {
         userId: string
     ): Promise<number> {
         try {
+            await this.ensureInitialized()
+            
             const accessReview = await this.getAccessReviewById(reviewId)
             let itemsGenerated = 0
 
@@ -347,6 +392,8 @@ export class AccessReviewService {
      * @returns The number of items generated
      */
     private async generateUserRoleReviewItems(accessReview: AccessReview): Promise<number> {
+        await this.ensureInitialized()
+        
         let query: any = {}
 
         // Filter by organization or workspace if specified
@@ -357,7 +404,7 @@ export class AccessReviewService {
         }
 
         // Get all user roles based on the scope
-        const userRoles = await this.userRoleRepository.find({
+        const userRoles = await this.userRoleRepository!.find({
             where: query,
             relations: ['role']
         })
@@ -366,24 +413,31 @@ export class AccessReviewService {
         const reviewItems: AccessReviewItem[] = []
 
         for (const userRole of userRoles) {
-            const reviewItem = this.accessReviewItemRepository.create({
+            // Create metadata without organizationId if it doesn't exist in UserRole
+            const metadata: any = {
+                roleName: userRole.role?.name,
+                workspaceId: userRole.workspaceId
+            }
+            
+            // Add organization ID if it exists
+            if (accessReview.organizationId) {
+                metadata.organizationId = accessReview.organizationId
+            }
+            
+            const reviewItem = this.accessReviewItemRepository!.create({
                 reviewId: accessReview.id,
                 type: AccessReviewItemType.USER_ROLE,
                 status: AccessReviewItemStatus.PENDING,
                 userId: userRole.userId,
                 roleId: userRole.roleId,
-                metadata: {
-                    roleName: userRole.role?.name,
-                    organizationId: userRole.organizationId,
-                    workspaceId: userRole.workspaceId
-                }
+                metadata
             })
 
             reviewItems.push(reviewItem)
         }
 
         if (reviewItems.length > 0) {
-            await this.accessReviewItemRepository.save(reviewItems)
+            await this.accessReviewItemRepository!.save(reviewItems)
         }
 
         return reviewItems.length
@@ -395,14 +449,16 @@ export class AccessReviewService {
      * @returns The number of items generated
      */
     private async generateResourcePermissionReviewItems(accessReview: AccessReview): Promise<number> {
+        await this.ensureInitialized()
+        
         // Get all resource permissions
-        const resourcePermissions = await this.resourcePermissionRepository.find()
+        const resourcePermissions = await this.resourcePermissionRepository!.find()
 
         // Create review items for each resource permission
         const reviewItems: AccessReviewItem[] = []
 
         for (const permission of resourcePermissions) {
-            const reviewItem = this.accessReviewItemRepository.create({
+            const reviewItem = this.accessReviewItemRepository!.create({
                 reviewId: accessReview.id,
                 type: AccessReviewItemType.RESOURCE_PERMISSION,
                 status: AccessReviewItemStatus.PENDING,
@@ -416,7 +472,7 @@ export class AccessReviewService {
         }
 
         if (reviewItems.length > 0) {
-            await this.accessReviewItemRepository.save(reviewItems)
+            await this.accessReviewItemRepository!.save(reviewItems)
         }
 
         return reviewItems.length
@@ -429,22 +485,30 @@ export class AccessReviewService {
      * @returns The number of items generated
      */
     private async generateDormantAccountReviewItems(accessReview: AccessReview, thresholdDays: number): Promise<number> {
+        await this.ensureInitialized()
+        
         const thresholdDate = new Date()
         thresholdDate.setDate(thresholdDate.getDate() - thresholdDays)
 
         // Find users who haven't logged in since the threshold date
-        const dormantUsers = await this.userProfileRepository.find({
-            where: [
-                { lastLogin: null },
-                { lastLogin: { $lt: thresholdDate } }
-            ]
+        // In TypeORM 0.3, we can use the IsNull operator to find records with null values
+        const noLoginUsers = await this.userProfileRepository!.find({
+            where: { lastLogin: null as any }
         })
+        
+        // Then get users who haven't logged in recently
+        const inactiveUsers = await this.userProfileRepository!.find({
+            where: { lastLogin: LessThanOrEqual(thresholdDate) }
+        })
+        
+        // Combine the results
+        const dormantUsers = [...noLoginUsers, ...inactiveUsers]
 
         // Create review items for each dormant user
         const reviewItems: AccessReviewItem[] = []
 
         for (const user of dormantUsers) {
-            const reviewItem = this.accessReviewItemRepository.create({
+            const reviewItem = this.accessReviewItemRepository!.create({
                 reviewId: accessReview.id,
                 type: AccessReviewItemType.DORMANT_ACCOUNT,
                 status: AccessReviewItemStatus.PENDING,
@@ -461,7 +525,7 @@ export class AccessReviewService {
         }
 
         if (reviewItems.length > 0) {
-            await this.accessReviewItemRepository.save(reviewItems)
+            await this.accessReviewItemRepository!.save(reviewItems)
         }
 
         return reviewItems.length
@@ -473,12 +537,14 @@ export class AccessReviewService {
      * @returns The number of items generated
      */
     private async generateExcessivePermissionReviewItems(accessReview: AccessReview): Promise<number> {
+        await this.ensureInitialized()
+        
         // This is a placeholder for a more sophisticated excessive permission detection algorithm
         // In a real implementation, this would analyze user permissions and identify users with
         // potentially excessive permissions based on various heuristics
 
         // For now, we'll just identify users with multiple roles as potentially having excessive permissions
-        const userRoleCounts = await this.userRoleRepository
+        const userRoleCounts = await this.userRoleRepository!
             .createQueryBuilder('userRole')
             .select('userRole.userId')
             .addSelect('COUNT(userRole.id)', 'roleCount')
@@ -494,14 +560,14 @@ export class AccessReviewService {
             const roleCount = parseInt(userRoleCount.roleCount)
 
             // Get the user's roles
-            const userRoles = await this.userRoleRepository.find({
+            const userRoles = await this.userRoleRepository!.find({
                 where: { userId },
                 relations: ['role']
             })
 
             const roleNames = userRoles.map((ur: UserRole) => ur.role?.name).filter(Boolean)
 
-            const reviewItem = this.accessReviewItemRepository.create({
+            const reviewItem = this.accessReviewItemRepository!.create({
                 reviewId: accessReview.id,
                 type: AccessReviewItemType.EXCESSIVE_PERMISSION,
                 status: AccessReviewItemStatus.PENDING,
@@ -518,7 +584,7 @@ export class AccessReviewService {
         }
 
         if (reviewItems.length > 0) {
-            await this.accessReviewItemRepository.save(reviewItems)
+            await this.accessReviewItemRepository!.save(reviewItems)
         }
 
         return reviewItems.length
@@ -531,6 +597,8 @@ export class AccessReviewService {
      */
     async getReviewItems(reviewId: string, filters: any = {}): Promise<AccessReviewItem[]> {
         try {
+            await this.ensureInitialized()
+            
             const query: any = { reviewId }
 
             if (filters.status) {
@@ -549,7 +617,7 @@ export class AccessReviewService {
                 query.isRisky = filters.isRisky
             }
 
-            const reviewItems = await this.accessReviewItemRepository.find({
+            const reviewItems = await this.accessReviewItemRepository!.find({
                 where: query,
                 relations: ['actions'],
                 order: {
@@ -574,7 +642,10 @@ export class AccessReviewService {
      */
     async getReviewItemById(id: string): Promise<AccessReviewItem> {
         try {
-            const reviewItem = await this.accessReviewItemRepository.findOne(id, {
+            await this.ensureInitialized()
+            
+            const reviewItem = await this.accessReviewItemRepository!.findOne({
+                where: { id },
                 relations: ['actions']
             })
 
@@ -607,6 +678,8 @@ export class AccessReviewService {
      */
     async updateReviewItem(id: string, updateData: Partial<AccessReviewItem>, userId: string): Promise<AccessReviewItem> {
         try {
+            await this.ensureInitialized()
+            
             const reviewItem = await this.getReviewItemById(id)
 
             // Update fields
@@ -618,7 +691,7 @@ export class AccessReviewService {
                 reviewItem.reviewedAt = new Date()
             }
 
-            const updatedItem = await this.accessReviewItemRepository.save(reviewItem)
+            const updatedItem = await this.accessReviewItemRepository!.save(reviewItem)
 
             // Log the update
             await auditLogsService.logUserAction(
@@ -678,13 +751,15 @@ export class AccessReviewService {
             // Verify the review item exists
             const reviewItem = await this.getReviewItemById(actionData.reviewItemId)
 
+            await this.ensureInitialized()
+            
             // Create the action
-            const action = this.accessReviewActionRepository.create({
+            const action = this.accessReviewActionRepository!.create({
                 ...actionData,
                 status: actionData.status || AccessReviewActionStatus.PENDING
             })
 
-            const savedAction = await this.accessReviewActionRepository.save(action)
+            const savedAction = await this.accessReviewActionRepository!.save(action)
 
             // Update the review item status based on the action type
             let newStatus: AccessReviewItemStatus | undefined
@@ -746,7 +821,10 @@ export class AccessReviewService {
      */
     async executeReviewAction(actionId: string): Promise<AccessReviewAction> {
         try {
-            const action = await this.accessReviewActionRepository.findOne(actionId, {
+            await this.ensureInitialized()
+
+            const action = await this.accessReviewActionRepository!.findOne({
+                where: { id: actionId },
                 relations: ['reviewItem']
             })
 
@@ -792,7 +870,7 @@ export class AccessReviewService {
                 logger.error(`[AccessReviewService] Execute action error: ${error.message}`)
             }
 
-            return await this.accessReviewActionRepository.save(action)
+            return await this.accessReviewActionRepository!.save(action)
         } catch (error: any) {
             logger.error(`[AccessReviewService] Execute review action error: ${error.message}`)
             if (error instanceof InternalFastflowError) {
@@ -810,6 +888,8 @@ export class AccessReviewService {
      * @param action The review action
      */
     private async executeRevokeAccessAction(action: AccessReviewAction): Promise<void> {
+        await this.ensureInitialized()
+
         const reviewItem = action.reviewItem
 
         if (!reviewItem) {
@@ -818,13 +898,13 @@ export class AccessReviewService {
 
         if (reviewItem.type === AccessReviewItemType.USER_ROLE && reviewItem.roleId) {
             // Revoke role from user
-            await this.userRoleRepository.delete({
+            await this.userRoleRepository!.delete({
                 userId: reviewItem.userId,
                 roleId: reviewItem.roleId
             })
         } else if (reviewItem.type === AccessReviewItemType.RESOURCE_PERMISSION && reviewItem.resourceId) {
             // Revoke resource permission
-            await this.resourcePermissionRepository.delete({
+            await this.resourcePermissionRepository!.delete({
                 userId: reviewItem.userId,
                 resourceId: reviewItem.resourceId,
                 resourceType: reviewItem.resourceType,
@@ -848,6 +928,8 @@ export class AccessReviewService {
      * @param action The review action
      */
     private async executeDeactivateUserAction(action: AccessReviewAction): Promise<void> {
+        await this.ensureInitialized()
+        
         const reviewItem = action.reviewItem
 
         if (!reviewItem) {
@@ -855,13 +937,15 @@ export class AccessReviewService {
         }
 
         // Update user status to inactive
-        const userProfile = await this.userProfileRepository.findOne(reviewItem.userId)
+        const userProfile = await this.userProfileRepository!.findOne({
+            where: { id: reviewItem.userId }
+        })
         if (!userProfile) {
             throw new Error('User profile not found')
         }
 
         userProfile.status = 'INACTIVE'
-        await this.userProfileRepository.save(userProfile)
+        await this.userProfileRepository!.save(userProfile)
     }
 /**
      * Create a scheduled access review
@@ -894,7 +978,9 @@ export class AccessReviewService {
 
             // Validate organization or workspace exists if provided
             if (scheduleData.organizationId) {
-                const organization = await this.organizationRepository.findOne(scheduleData.organizationId)
+                const organization = await this.organizationRepository!.findOne({
+                    where: { id: scheduleData.organizationId }
+                })
                 if (!organization) {
                     throw new InternalFastflowError(
                         StatusCodes.BAD_REQUEST,
@@ -904,7 +990,9 @@ export class AccessReviewService {
             }
 
             if (scheduleData.workspaceId) {
-                const workspace = await this.workspaceRepository.findOne(scheduleData.workspaceId)
+                const workspace = await this.workspaceRepository!.findOne({
+                    where: { id: scheduleData.workspaceId }
+                })
                 if (!workspace) {
                     throw new InternalFastflowError(
                         StatusCodes.BAD_REQUEST,
@@ -913,13 +1001,15 @@ export class AccessReviewService {
                 }
             }
 
+            await this.ensureInitialized()
+            
             // Calculate next run date based on frequency
             const nextRunAt = this.calculateNextRunDate(
                 scheduleData.frequency || AccessReviewFrequency.QUARTERLY
             )
 
             // Create the schedule
-            const schedule = this.accessReviewScheduleRepository.create({
+            const schedule = this.accessReviewScheduleRepository!.create({
                 ...scheduleData,
                 status: scheduleData.status || AccessReviewScheduleStatus.ACTIVE,
                 frequency: scheduleData.frequency || AccessReviewFrequency.QUARTERLY,
@@ -927,7 +1017,7 @@ export class AccessReviewService {
                 nextRunAt
             })
 
-            const savedSchedule = await this.accessReviewScheduleRepository.save(schedule)
+            const savedSchedule = await this.accessReviewScheduleRepository!.save(schedule)
 
             // Log the creation
             await auditLogsService.logUserAction(
@@ -958,6 +1048,8 @@ export class AccessReviewService {
      */
     async getAllAccessReviewSchedules(filters: any = {}): Promise<AccessReviewSchedule[]> {
         try {
+            await this.ensureInitialized()
+            
             const query: any = {}
 
             if (filters.status) {
@@ -980,7 +1072,7 @@ export class AccessReviewService {
                 query.assignedTo = filters.assignedTo
             }
 
-            const schedules = await this.accessReviewScheduleRepository.find({
+            const schedules = await this.accessReviewScheduleRepository!.find({
                 where: query,
                 order: {
                     createdAt: 'DESC'
@@ -1004,7 +1096,11 @@ export class AccessReviewService {
      */
     async getAccessReviewScheduleById(id: string): Promise<AccessReviewSchedule> {
         try {
-            const schedule = await this.accessReviewScheduleRepository.findOne(id)
+            await this.ensureInitialized()
+
+            const schedule = await this.accessReviewScheduleRepository!.findOne({
+                where: { id }
+            })
 
             if (!schedule) {
                 throw new InternalFastflowError(
@@ -1045,7 +1141,8 @@ export class AccessReviewService {
                 schedule.nextRunAt = this.calculateNextRunDate(updateData.frequency)
             }
 
-            const updatedSchedule = await this.accessReviewScheduleRepository.save(schedule)
+            await this.ensureInitialized()
+            const updatedSchedule = await this.accessReviewScheduleRepository!.save(schedule)
 
             // Log the update
             await auditLogsService.logUserAction(
@@ -1077,6 +1174,8 @@ export class AccessReviewService {
      */
     async deleteAccessReviewSchedule(id: string, userId: string): Promise<boolean> {
         try {
+            await this.ensureInitialized()
+            
             const schedule = await this.getAccessReviewScheduleById(id)
 
             // Log the deletion
@@ -1088,7 +1187,7 @@ export class AccessReviewService {
                 { scheduleName: schedule.name }
             )
 
-            await this.accessReviewScheduleRepository.remove(schedule)
+            await this.accessReviewScheduleRepository!.remove(schedule)
             return true
         } catch (error: any) {
             logger.error(`[AccessReviewService] Delete access review schedule error: ${error.message}`)
@@ -1108,13 +1207,15 @@ export class AccessReviewService {
      */
     async runScheduledAccessReviews(): Promise<number> {
         try {
+            await this.ensureInitialized()
+            
             const now = new Date()
 
             // Find schedules that are due to run
-            const dueSchedules = await this.accessReviewScheduleRepository.find({
+            const dueSchedules = await this.accessReviewScheduleRepository!.find({
                 where: {
                     status: AccessReviewScheduleStatus.ACTIVE,
-                    nextRunAt: { $lte: now }
+                    nextRunAt: LessThanOrEqual(now)
                 }
             })
 
@@ -1151,7 +1252,7 @@ export class AccessReviewService {
                 // Update the schedule's last run and next run dates
                 schedule.lastRunAt = now
                 schedule.nextRunAt = this.calculateNextRunDate(schedule.frequency, now)
-                await this.accessReviewScheduleRepository.save(schedule)
+                await this.accessReviewScheduleRepository!.save(schedule)
 
                 reviewsCreated++
             }
@@ -1212,6 +1313,9 @@ export class AccessReviewService {
     }
 }
 
-// Create and export the service instance
+// Create a singleton instance
 const accessReviewService = new AccessReviewService()
 export default accessReviewService
+
+// Export the class for use with the service factory
+export { AccessReviewService }
