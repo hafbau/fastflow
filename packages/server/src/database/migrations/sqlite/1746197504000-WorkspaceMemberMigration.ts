@@ -34,7 +34,7 @@ export class WorkspaceMemberMigration1746197504000 implements MigrationInterface
                 new TableColumn({
                     name: 'updatedAt',
                     type: 'datetime',
-                    default: 'CURRENT_TIMESTAMP'
+                    default: "datetime('now')"
                 })
             )
         }

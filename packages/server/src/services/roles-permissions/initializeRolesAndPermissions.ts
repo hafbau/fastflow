@@ -312,10 +312,10 @@ const initializeSystemRoles = async (permissionMap: Map<string, Permission>): Pr
                             description: roleData.description,
                             type: roleData.type
                         })
-                    } catch (err) {
+                    } catch (err: unknown) {
                         console.error(`Error creating role ${roleData.name}:`, err)
                         // Try creating without type field if there's an error about the type column
-                        if (err.toString().includes('table role has no column named type')) {
+                        if (err instanceof Error && err.toString().includes('table role has no column named type')) {
                             role = await roleService.createRole({
                                 name: roleData.name,
                                 description: roleData.description
@@ -334,10 +334,10 @@ const initializeSystemRoles = async (permissionMap: Map<string, Permission>): Pr
                         description: roleData.description,
                         type: roleData.type
                     })
-                } catch (err) {
+                } catch (err: unknown) {
                     console.error(`Error creating role ${roleData.name}:`, err)
                     // Try creating without type field if there's an error about the type column
-                    if (err.toString().includes('table role has no column named type')) {
+                    if (err instanceof Error && err.toString().includes('table role has no column named type')) {
                         role = await roleService.createRole({
                             name: roleData.name,
                             description: roleData.description

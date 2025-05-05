@@ -174,12 +174,23 @@ class RoleService {
                 return cachedRole
             }
             
-            const dbResponse = await this.roleRepository!.findOne({
-                where: {
-                    id: roleId
-                },
-                relations: ['organization']
-            })
+            // Try to query with organization relation, but fall back to a simpler query if it fails
+            let dbResponse: Role | null = null
+            try {
+                dbResponse = await this.roleRepository!.findOne({
+                    where: {
+                        id: roleId
+                    },
+                    relations: ['organization']
+                })
+            } catch (error) {
+                // If there's an error with the relation, try a simpler query
+                dbResponse = await this.roleRepository!.findOne({
+                    where: {
+                        id: roleId
+                    }
+                })
+            }
             
             if (!dbResponse) {
                 throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Role ${roleId} not found`)

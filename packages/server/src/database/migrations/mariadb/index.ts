@@ -20,6 +20,8 @@ import { AddLeadToChatMessage1711538023578 } from './1711538023578-AddLeadToChat
 import { AddVectorStoreConfigToDocStore1715861032479 } from './1715861032479-AddVectorStoreConfigToDocStore'
 import { AddDocumentStore1711637331047 } from './1711637331047-AddDocumentStore'
 import { AddAgentReasoningToChatMessage1714679514451 } from './1714679514451-AddAgentReasoningToChatMessage'
+import { CreateUserLifecycleTables1714348587000 } from './1714348587000-CreateUserLifecycleTables'
+import { CreateCustomRoleTables1714348588000 } from './1714348588000-CreateCustomRoleTables'
 import { AddTypeToChatFlow1716300000000 } from './1716300000000-AddTypeToChatFlow'
 import { AddApiKey1720230151480 } from './1720230151480-AddApiKey'
 import { AddActionToChatMessage1721078251523 } from './1721078251523-AddActionToChatMessage'
@@ -30,6 +32,12 @@ import { AddFollowUpPrompts1726666318346 } from './1726666318346-AddFollowUpProm
 import { AddTypeToAssistant1733011290987 } from './1733011290987-AddTypeToAssistant'
 import { CreateMultiTenancyTables1746196962000 } from './1746196962000-CreateMultiTenancyTables'
 import { AddMultiTenancyToExistingTables1746197062000 } from './1746197062000-AddMultiTenancyToExistingTables'
+import { AddMissingTypeColumnToRoleTable1746197501000 } from './1746197501000-AddMissingTypeColumnToRoleTable'
+import { OrganizationSlugMigration1746197502000 } from './1746197502000-OrganizationSlugMigration'
+import { UserProfileMigration1746197503000 } from './1746197503000-UserProfileMigration'
+import { WorkspaceMemberMigration1746197504000 } from './1746197504000-WorkspaceMemberMigration'
+import { AddScopeToPermissionTable1746197600000 } from './1746197600000-AddScopeToPermissionTable'
+import { AddNameToPermissionTable1746197700000 } from './1746197700000-AddNameToPermissionTable'
 
 export const mariadbMigrations = [
     Init1693840429259,
@@ -53,6 +61,8 @@ export const mariadbMigrations = [
     AddLead1710832127079,
     AddLeadToChatMessage1711538023578,
     AddAgentReasoningToChatMessage1714679514451,
+    CreateUserLifecycleTables1714348587000,
+    CreateCustomRoleTables1714348588000,
     AddTypeToChatFlow1716300000000,
     AddVectorStoreConfigToDocStore1715861032479,
     AddApiKey1720230151480,
@@ -63,5 +73,11 @@ export const mariadbMigrations = [
     AddFollowUpPrompts1726666318346,
     AddTypeToAssistant1733011290987,
     CreateMultiTenancyTables1746196962000,
-    AddMultiTenancyToExistingTables1746197062000
+    AddMultiTenancyToExistingTables1746197062000,
+    AddMissingTypeColumnToRoleTable1746197501000,
+    OrganizationSlugMigration1746197502000,
+    UserProfileMigration1746197503000,
+    WorkspaceMemberMigration1746197504000,
+    AddScopeToPermissionTable1746197600000,
+    AddNameToPermissionTable1746197700000
 ]

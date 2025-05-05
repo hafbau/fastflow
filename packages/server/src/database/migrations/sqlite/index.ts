@@ -29,6 +29,14 @@ import { AddFollowUpPrompts1726666294213 } from './1726666294213-AddFollowUpProm
 import { AddTypeToAssistant1733011290987 } from './1733011290987-AddTypeToAssistant'
 import { CreateMultiTenancyTables1746196962000 } from './1746196962000-CreateMultiTenancyTables'
 import { AddMultiTenancyToExistingTables1746197062000 } from './1746197062000-AddMultiTenancyToExistingTables'
+import { AddMissingTypeColumnToRoleTable1746197501000 } from './1746197501000-AddMissingTypeColumnToRoleTable'
+import { OrganizationSlugMigration1746197502000 } from './1746197502000-OrganizationSlugMigration'
+import { UserProfileMigration1746197503000 } from './1746197503000-UserProfileMigration'
+import { WorkspaceMemberMigration1746197504000 } from './1746197504000-WorkspaceMemberMigration'
+import { AddScopeToPermissionTable1746197600000 } from './1746197600000-AddScopeToPermissionTable'
+import { AddNameToPermissionTable1746197700000 } from './1746197700000-AddNameToPermissionTable'
+import { CreateUserLifecycleTables1714348587000 } from './1714348587000-CreateUserLifecycleTables'
+import { CreateCustomRoleTables1714348588000 } from './1714348588000-CreateCustomRoleTables'
 
 export const sqliteMigrations = [
     Init1693835579790,
@@ -52,6 +60,8 @@ export const sqliteMigrations = [
     AddLead1710832117612,
     AddLeadToChatMessage1711537986113,
     AddAgentReasoningToChatMessage1714679514451,
+    CreateUserLifecycleTables1714348587000,
+    CreateCustomRoleTables1714348588000,
     AddTypeToChatFlow1716300000000,
     AddVectorStoreConfigToDocStore1715861032479,
     AddApiKey1720230151480,
@@ -61,5 +71,11 @@ export const sqliteMigrations = [
     AddFollowUpPrompts1726666294213,
     AddTypeToAssistant1733011290987,
     CreateMultiTenancyTables1746196962000,
-    AddMultiTenancyToExistingTables1746197062000
+    AddMultiTenancyToExistingTables1746197062000,
+    AddMissingTypeColumnToRoleTable1746197501000,
+    OrganizationSlugMigration1746197502000,
+    UserProfileMigration1746197503000,
+    WorkspaceMemberMigration1746197504000,
+    AddScopeToPermissionTable1746197600000,
+    AddNameToPermissionTable1746197700000
 ]

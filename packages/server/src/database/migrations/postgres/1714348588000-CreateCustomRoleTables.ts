@@ -1,10 +1,21 @@
 import { MigrationInterface, QueryRunner, Table, TableForeignKey } from 'typeorm'
 
 /**
- * Migration to create custom role tables
+ * Migration to create custom role tables for PostgreSQL
  */
 export class CreateCustomRoleTables1714348588000 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
+        // Create enum type if not exists
+        await queryRunner.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'custom_role_type_enum') THEN
+                    CREATE TYPE "custom_role_type_enum" AS ENUM ('system', 'custom');
+                END IF;
+            END
+            $$;
+        `)
+        
         // Create custom_role table
         await queryRunner.createTable(
             new Table({
@@ -29,8 +40,7 @@ export class CreateCustomRoleTables1714348588000 implements MigrationInterface {
                     },
                     {
                         name: 'type',
-                        type: 'enum',
-                        enum: ['system', 'custom'],
+                        type: 'custom_role_type_enum',
                         default: "'custom'"
                     },
                     {
@@ -112,5 +122,7 @@ export class CreateCustomRoleTables1714348588000 implements MigrationInterface {
 
         // Drop the table
         await queryRunner.dropTable('custom_role')
+        
+        // We're not dropping the enum type as it might be used elsewhere
     }
 }

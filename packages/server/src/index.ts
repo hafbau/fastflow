@@ -74,8 +74,12 @@ export class App {
     async initDatabase() {
         // Initialize database
         try {
-            await this.AppDataSource.initialize()
             logger.info('📦 [server]: Data Source is initializing...')
+            
+            // Check if the data source is already initialized to avoid double initialization
+            if (!this.AppDataSource.isInitialized) {
+                await this.AppDataSource.initialize()
+            }
 
             // Run Migrations Scripts
             await this.AppDataSource.runMigrations({ transaction: 'each' })

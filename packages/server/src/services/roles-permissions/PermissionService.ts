@@ -200,13 +200,29 @@ class PermissionService {
                 permission.name = `${permission.resourceType}:${permission.action}`
             }
             
-            const newPermission = this.permissionRepository!.create(permission)
-            const dbResponse = await this.permissionRepository!.save(newPermission)
-            
-            // Invalidate cache
-            this.invalidatePermissionCache()
-            
-            return dbResponse
+            try {
+                const newPermission = this.permissionRepository!.create(permission)
+                const dbResponse = await this.permissionRepository!.save(newPermission)
+                
+                // Invalidate cache
+                this.invalidatePermissionCache()
+                
+                return dbResponse
+            } catch (error) {
+                // If the error is about scope column, try creating without scope
+                if (error instanceof Error && error.toString().includes('no column named scope')) {
+                    const { scope, ...permissionWithoutScope } = permission as any
+                    const newPermission = this.permissionRepository!.create(permissionWithoutScope)
+                    const result = await this.permissionRepository!.save(newPermission)
+                    
+                    // Invalidate cache
+                    this.invalidatePermissionCache()
+                    
+                    // Handle the result which could be an array or a single entity
+                    return Array.isArray(result) ? result[0] : result
+                }
+                throw error
+            }
         } catch (error) {
             throw new InternalFastflowError(
                 StatusCodes.INTERNAL_SERVER_ERROR,

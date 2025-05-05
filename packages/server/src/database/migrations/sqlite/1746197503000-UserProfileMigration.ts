@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm'
+import { MigrationInterface, QueryRunner } from 'typeorm'
 
 /**
  * Migration to create the user_profile table for SQLite
@@ -11,97 +11,35 @@ export class UserProfileMigration1746197503000 implements MigrationInterface {
             return
         }
 
-        await queryRunner.createTable(
-            new Table({
-                name: 'user_profile',
-                columns: [
-                    {
-                        name: 'id',
-                        type: 'varchar',
-                        isPrimary: true,
-                        comment: 'Supabase Auth user ID'
-                    },
-                    {
-                        name: 'firstName',
-                        type: 'varchar',
-                        length: '255',
-                        isNullable: true
-                    },
-                    {
-                        name: 'lastName',
-                        type: 'varchar',
-                        length: '255',
-                        isNullable: true
-                    },
-                    {
-                        name: 'displayName',
-                        type: 'varchar',
-                        length: '255',
-                        isNullable: true
-                    },
-                    {
-                        name: 'avatarUrl',
-                        type: 'varchar',
-                        length: '255',
-                        isNullable: true
-                    },
-                    {
-                        name: 'phoneNumber',
-                        type: 'varchar',
-                        length: '20',
-                        isNullable: true
-                    },
-                    {
-                        name: 'status',
-                        type: 'varchar',
-                        length: '50',
-                        default: "'ACTIVE'"
-                    },
-                    {
-                        name: 'preferences',
-                        type: 'simple-json',
-                        isNullable: true
-                    },
-                    {
-                        name: 'metadata',
-                        type: 'simple-json',
-                        isNullable: true
-                    },
-                    {
-                        name: 'lastLogin',
-                        type: 'datetime',
-                        isNullable: true
-                    },
-                    {
-                        name: 'createdAt',
-                        type: 'datetime',
-                        default: "CURRENT_TIMESTAMP"
-                    },
-                    {
-                        name: 'updatedAt',
-                        type: 'datetime',
-                        default: "CURRENT_TIMESTAMP"
-                    }
-                ]
-            }),
-            true
-        )
+        // Create table using direct SQL for SQLite compatibility with no hyphens
+        await queryRunner.query(`
+            CREATE TABLE user_profile (
+                id varchar PRIMARY KEY NOT NULL,
+                first_name varchar(255),
+                last_name varchar(255),
+                display_name varchar(255),
+                avatar_url varchar(255),
+                phone_number varchar(20),
+                status varchar(50) NOT NULL DEFAULT 'ACTIVE',
+                preferences text,
+                metadata text,
+                last_login datetime,
+                created_at datetime NOT NULL DEFAULT (datetime('now')),
+                updated_at datetime NOT NULL DEFAULT (datetime('now'))
+            )
+        `)
 
         // Create index on status for faster filtering
-        await queryRunner.createIndex(
-            'user_profile',
-            new TableIndex({
-                name: 'IDX_USER_PROFILE_STATUS',
-                columnNames: ['status']
-            })
-        )
+        await queryRunner.query(`
+            CREATE INDEX IDX_USER_PROFILE_STATUS ON user_profile (status)
+        `)
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
         // Check if table exists before dropping
         const tableExists = await queryRunner.hasTable('user_profile')
         if (tableExists) {
-            await queryRunner.dropTable('user_profile')
+            await queryRunner.query('DROP TABLE user_profile')
         }
     }
 }

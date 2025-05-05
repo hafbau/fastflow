@@ -86,15 +86,32 @@ const authenticateRequest = async (req: Request, res: Response, next: NextFuncti
             authMethods.push('apiKey')
         }
         
-        // Add Basic Auth if enabled
-        if (authConfig.basicAuth.enabled) {
+        // Add Basic Auth if enabled AND Supabase Auth is not primary
+        // Additionally, verify username and password are not empty
+        if (authConfig.basicAuth.enabled && 
+            authConfig.basicAuth.username && 
+            authConfig.basicAuth.password && 
+            !authConfig.supabase.primary) {
             authMethods.push('basicAuth')
         }
         
-        // If Supabase is set as primary, move it to the front
-        if (authConfig.supabase.primary && authMethods.includes('supabase') && authMethods[0] !== 'supabase') {
-            authMethods.splice(authMethods.indexOf('supabase'), 1)
-            authMethods.unshift('supabase')
+        // Supabase Auth is ALWAYS prioritized if it's enabled and set as primary in the config
+        if (authConfig.supabase.enabled && authConfig.supabase.primary) {
+            // If Supabase is already in the methods, move it to the front
+            if (authMethods.includes('supabase') && authMethods[0] !== 'supabase') {
+                authMethods.splice(authMethods.indexOf('supabase'), 1)
+                authMethods.unshift('supabase')
+            } 
+            // If Supabase is not in the methods yet, add it at the front
+            else if (!authMethods.includes('supabase')) {
+                authMethods.unshift('supabase')
+            }
+            
+            // When Supabase is primary, NEVER use basic auth
+            const index = authMethods.indexOf('basicAuth');
+            if (index > -1) {
+                authMethods.splice(index, 1);
+            }
         }
         
         // Try each authentication method in order
@@ -151,8 +168,8 @@ const authenticateRequest = async (req: Request, res: Response, next: NextFuncti
                     break
                     
                 case 'basicAuth':
-                    // Try basic auth
-                    if (authConfig.basicAuth.username && authConfig.basicAuth.password) {
+                    // Only use basic auth if Supabase Auth is NOT primary and username/password are provided
+                    if (!authConfig.supabase.primary && authConfig.basicAuth.username && authConfig.basicAuth.password) {
                         const username = authConfig.basicAuth.username
                         const password = authConfig.basicAuth.password
                         const basicAuthMiddleware = basicAuth({
@@ -160,6 +177,7 @@ const authenticateRequest = async (req: Request, res: Response, next: NextFuncti
                         })
                         return basicAuthMiddleware(req, res, next)
                     }
+                    // If we're here but shouldn't use basic auth, just continue to next method
                     break
             }
         }
