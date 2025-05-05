@@ -11,6 +11,7 @@ import themes from '@/themes'
 
 // project imports
 import NavigationScroll from '@/layout/NavigationScroll'
+import AppRouter from './routes/AppRouter'
 
 // ==============================|| APP ||============================== //
 
@@ -21,9 +22,10 @@ const App = () => {
         <StyledEngineProvider injectFirst>
             <ThemeProvider theme={themes(customization)}>
                 <CssBaseline />
-                <NavigationScroll>
+                <AppRouter />
+                {/* <NavigationScroll>
                     <Routes />
-                </NavigationScroll>
+                </NavigationScroll> */}
             </ThemeProvider>
         </StyledEngineProvider>
     )
