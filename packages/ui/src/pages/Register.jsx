@@ -15,9 +15,13 @@ import {
   Alert,
   CircularProgress,
 } from '@mui/material';
-import { useAuth } from '../contexts/AuthContext';
+// apiClient is imported in api/auth.js if needed there, or directly if other calls are made here.
+// For now, we only need registerUser from our new auth api.
+import { registerUser } from '../api/user'; // Import new registerUser
+import { useAuth } from '../contexts/AuthContext'; // Still need useAuth for authUser later if handling post-verification profile/org creation here
 import UserDetailsForm from '../components/UserManagement/Registration/UserDetailsForm';
-import OrganizationDetailsForm from '../components/UserManagement/Registration/OrganizationDetailsForm';
+// OrganizationDetailsForm will be used in a separate post-login flow
+// import OrganizationDetailsForm from '../components/UserManagement/Registration/OrganizationDetailsForm'; 
 import VerificationStep from '../components/UserManagement/Registration/VerificationStep';
 
 /**
@@ -28,7 +32,7 @@ const Register = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { register } = useAuth();
+  const { user: authUser } = useAuth(); // We might need authUser for other things, or for post-login checks
   const navigate = useNavigate();
   
   // Form state
@@ -46,10 +50,9 @@ const Register = () => {
     size: '',
   });
   
-  // Steps for the registration process
+  // Steps for the registration process - simplified to 2 steps for initial registration
   const steps = [
     'Account Information',
-    'Organization Setup',
     'Verification',
   ];
   
@@ -102,73 +105,59 @@ const Register = () => {
     return true;
   };
   
-  const handleUserDetailsSubmit = () => {
+  const handleUserDetailsSubmit = async () => { // This is now the main submission handler for Step 0
     if (validateUserDetails()) {
-      setError(null);
-      handleNext();
-    }
-  };
-  
-  const handleOrganizationDetailsSubmit = () => {
-    if (validateOrganizationDetails()) {
-      setError(null);
-      handleNext();
-    }
-  };
-  
-  const handleRegistrationSubmit = async () => {
-    try {
       setIsLoading(true);
       setError(null);
-      
-      // Call registration service
-      await register({
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName,
-        organizationName: formData.organizationName,
-        organizationDescription: formData.organizationDescription,
-        industry: formData.industry,
-        size: formData.size,
-      });
-      
-      // Registration successful, move to verification step
-      handleNext();
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError(err.message || 'Failed to register. Please try again.');
-    } finally {
-      setIsLoading(false);
+      try {
+        // Call backend /register endpoint
+        await registerUser({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+        });
+        
+        // If backend call is successful (Supabase user created, profile created, email sent by backend)
+        // Store email for VerificationStep display, as authUser might not be set yet.
+        localStorage.setItem('pendingVerificationEmail', formData.email);
+        handleNext(); // Proceed to VerificationStep
+      } catch (err) {
+        console.error('Registration API error:', err);
+        setError(err.message || 'Registration failed. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
   
+  // Organization details will be collected after login if not present.
+  // So, handleOrganizationDetailsSubmit and handleFullRegistration are removed from this initial flow.
+
+  const handleVerificationComplete = () => {
+    // After user confirms they've clicked the email link and checkEmailVerified is successful in VerificationStep
+    localStorage.removeItem('pendingVerificationEmail'); // Clean up
+    navigate('/login'); 
+  };
+
   // Get current step content
   const getStepContent = (step) => {
     switch (step) {
-      case 0:
+      case 0: // Account Information
         return (
           <UserDetailsForm
             formData={formData}
             handleInputChange={handleInputChange}
-            handleSubmit={handleUserDetailsSubmit}
+            handleSubmit={handleUserDetailsSubmit} // This now calls backend /register
+            isLoading={isLoading} // Pass isLoading for the button
           />
         );
-      case 1:
-        return (
-          <OrganizationDetailsForm
-            formData={formData}
-            handleInputChange={handleInputChange}
-            handleBack={handleBack}
-            handleSubmit={handleOrganizationDetailsSubmit}
-          />
-        );
-      case 2:
+      case 1: // Verification
         return (
           <VerificationStep
-            email={formData.email}
-            handleSubmit={handleRegistrationSubmit}
-            handleBack={handleBack}
-            isLoading={isLoading}
+            email={formData.email} // Email from Step 0 form data
+            onComplete={handleVerificationComplete} // Navigates to login
+            handleBack={handleBack} // Go back to UserDetailsForm
+            // isLoading is managed within VerificationStep for its own buttons
           />
         );
       default:

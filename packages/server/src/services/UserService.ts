@@ -60,8 +60,9 @@ export interface UserUpdateOptions {
     firstName?: string
     lastName?: string
     displayName?: string
-    avatarUrl?: string
-    phoneNumber?: string
+    // TODO: these two are part of metadata for now, entity doesn't have them
+    // avatarUrl?: string
+    // phoneNumber?: string
     status?: UserStatus
     preferences?: Record<string, any>
     metadata?: Record<string, any>
@@ -156,7 +157,8 @@ export class UserService {
                     data: {
                         ...metadata,
                         status: UserStatus.PENDING
-                    }
+                    },
+                    emailRedirectTo: `${process.env.APP_URL || 'http://localhost:8080'}`
                 }
             })
 
@@ -167,7 +169,7 @@ export class UserService {
             if (!data.user) {
                 throw new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create user')
             }
-
+            
             // Create user profile in database
             await this.createOrUpdateUserProfile(data.user.id, {
                 firstName: metadata.firstName,
@@ -334,8 +336,6 @@ export class UserService {
                 firstName: options.firstName ?? currentUser.firstName,
                 lastName: options.lastName ?? currentUser.lastName,
                 displayName: options.displayName ?? currentUser.displayName,
-                avatarUrl: options.avatarUrl ?? currentUser.avatarUrl,
-                phoneNumber: options.phoneNumber ?? currentUser.phoneNumber,
                 status: options.status ?? currentUser.status,
                 preferences: options.preferences ?? currentUser.preferences,
                 ...options.metadata
@@ -636,8 +636,6 @@ export class UserService {
                 userProfile.firstName = options.firstName !== undefined ? options.firstName : userProfile.firstName
                 userProfile.lastName = options.lastName !== undefined ? options.lastName : userProfile.lastName
                 userProfile.displayName = options.displayName !== undefined ? options.displayName : userProfile.displayName
-                userProfile.avatarUrl = options.avatarUrl !== undefined ? options.avatarUrl : userProfile.avatarUrl
-                userProfile.phoneNumber = options.phoneNumber !== undefined ? options.phoneNumber : userProfile.phoneNumber
                 userProfile.status = options.status !== undefined ? options.status : userProfile.status
                 userProfile.preferences = options.preferences !== undefined ? options.preferences : userProfile.preferences
                 userProfile.metadata = options.metadata !== undefined ? { ...userProfile.metadata, ...options.metadata } : userProfile.metadata
@@ -651,8 +649,6 @@ export class UserService {
                     firstName: options.firstName,
                     lastName: options.lastName,
                     displayName: options.displayName || `${options.firstName || ''} ${options.lastName || ''}`.trim() || undefined,
-                    avatarUrl: options.avatarUrl,
-                    phoneNumber: options.phoneNumber,
                     status: options.status || UserStatus.ACTIVE,
                     preferences: options.preferences || {},
                     metadata: options.metadata || {},

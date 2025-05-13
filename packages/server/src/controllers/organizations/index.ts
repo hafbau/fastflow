@@ -6,6 +6,7 @@ import { Organization } from '../../database/entities/Organization'
 import { OrganizationMember } from '../../database/entities/OrganizationMember'
 import { InternalFastflowError } from '../../errors/InternalFastflowError'
 import logger from '../../utils/logger'
+import organizationSettingsController from '../../controllers/organization-settings'
 
 // Use the globally extended Request type that includes the UserProfile
 import { UserProfile } from '../../database/entities/UserProfile'
@@ -220,21 +221,16 @@ const removeOrganizationMember = async (req: Request, res: Response) => {
 
 /**
  * Update organization settings
+ * 
+ * This method is deprecated - use the organization-settings controller directly instead
+ * This implementation now redirects to the proper service for compatibility
  */
 const updateOrganizationSettings = async (req: Request, res: Response) => {
     try {
         const { id } = req.params
-        const { settings } = req.body
         
-        // Get the current organization
-        const organization = await organizationsService.getOrganizationById(id)
-        
-        // This method is deprecated - use the organization-settings service instead
-        // This is kept for backward compatibility
-        const updateData: Partial<Organization> = {}
-        
-        const updatedOrganization = await organizationsService.updateOrganization(id, updateData)
-        return res.status(StatusCodes.OK).json(updatedOrganization)
+        // Redirect to the proper organization settings service
+        return organizationSettingsController.updateOrganizationSettings(req, res)
     } catch (error) {
         logger.error(`[OrganizationsController] updateOrganizationSettings error: ${error}`)
         if (error instanceof InternalFastflowError) {

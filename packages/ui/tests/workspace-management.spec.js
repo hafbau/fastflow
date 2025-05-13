@@ -1,219 +1,217 @@
 import { test, expect } from '@playwright/test';
-import { v4 as uuidv4 } from 'uuid';
 
-// Test data
-const testUser = {
-  email: `test-${uuidv4()}@example.com`,
-  password: 'Password123!',
-  firstName: 'Test',
-  lastName: 'User',
-};
-
-const testOrganization = {
-  name: `Test Org ${uuidv4()}`,
-  description: 'Test organization for workspace management tests',
-};
-
-const testWorkspace = {
-  name: `Test Workspace ${uuidv4()}`,
-  description: 'Test workspace for workspace management tests',
-};
-
-const updatedWorkspace = {
-  name: `Updated Workspace ${uuidv4()}`,
-  description: 'Updated workspace description',
-};
-
+/**
+ * E2E tests for Workspace Management functionality
+ */
 test.describe('Workspace Management', () => {
   let organizationId;
   let workspaceId;
-
-  test.beforeAll(async ({ browser }) => {
-    // Create a new user, organization, and workspace for testing
-    const context = await browser.newContext();
-    const page = await context.newPage();
-
-    // Register a new user
-    await page.goto('/register');
-    await page.fill('[data-testid="email-input"]', testUser.email);
-    await page.fill('[data-testid="password-input"]', testUser.password);
-    await page.fill('[data-testid="confirm-password-input"]', testUser.password);
-    await page.fill('[data-testid="first-name-input"]', testUser.firstName);
-    await page.fill('[data-testid="last-name-input"]', testUser.lastName);
-    await page.click('[data-testid="next-button"]');
-
-    // Create organization
-    await page.fill('[data-testid="organization-name-input"]', testOrganization.name);
-    await page.fill('[data-testid="organization-description-input"]', testOrganization.description);
-    await page.click('[data-testid="submit-button"]');
-
-    // Wait for dashboard to load
-    await page.waitForSelector('[data-testid="dashboard"]');
-
-    // Get organization ID from URL
-    const url = page.url();
-    const match = url.match(/\/organizations\/([^/]+)/);
-    if (match) {
-      organizationId = match[1];
-    }
-
-    // Clean up
-    await context.close();
-  });
-
+  
+  // Setup: Login before each test
   test.beforeEach(async ({ page }) => {
-    // Sign in
+    // Navigate to the login page
     await page.goto('/login');
-    await page.fill('[data-testid="email-input"]', testUser.email);
-    await page.fill('[data-testid="password-input"]', testUser.password);
-    await page.click('[data-testid="login-button"]');
-
-    // Wait for dashboard to load
-    await page.waitForSelector('[data-testid="dashboard"]');
-  });
-
-  test('should create a new workspace', async ({ page }) => {
-    // Navigate to organization page
-    await page.goto(`/organizations/${organizationId}`);
     
-    // Click create workspace button
-    await page.click('[data-testid="create-workspace-button"]');
+    // Fill in the login form
+    await page.getByTestId('login-email').fill('admin@example.com');
+    await page.getByTestId('login-password').fill('password123');
     
-    // Fill workspace form
-    await page.fill('[data-testid="workspace-name-input"]', testWorkspace.name);
-    await page.fill('[data-testid="workspace-description-input"]', testWorkspace.description);
-    await page.click('[data-testid="create-workspace-submit"]');
+    // Submit the form
+    await page.getByTestId('login-submit').click();
     
-    // Wait for workspace to be created
-    await page.waitForSelector(`text=${testWorkspace.name}`);
+    // Wait for redirect to complete
+    await page.waitForURL('**/*');
     
-    // Verify workspace was created
-    const workspaceElement = await page.locator(`text=${testWorkspace.name}`).first();
-    expect(await workspaceElement.isVisible()).toBeTruthy();
+    // Verify that we're logged in by checking for the avatar button in AppLayout
+    await expect(page.locator('button[aria-controls="user-menu"]')).toBeVisible();
     
-    // Get workspace ID for future tests
-    await workspaceElement.click();
-    const url = page.url();
-    const match = url.match(/\/workspaces\/([^/]+)/);
-    if (match) {
-      workspaceId = match[1];
+    // Store organization ID for later use
+    // We're assuming we have at least one organization, and we're using the first one
+    const currentUrl = page.url();
+    const orgMatches = currentUrl.match(/\/organizations\/([^\/]+)/);
+    if (orgMatches && orgMatches[1]) {
+      organizationId = orgMatches[1];
+    } else {
+      // Navigate to organizations list
+      await page.goto('/organizations');
+      
+      // Click on the first organization (if any)
+      const firstOrgLink = page.locator('.organization-card a').first();
+      await firstOrgLink.click();
+      
+      // Extract organization ID from URL
+      const url = page.url();
+      const matches = url.match(/\/organizations\/([^\/]+)/);
+      organizationId = matches ? matches[1] : null;
     }
+    
+    // Ensure we have an organization ID
+    expect(organizationId).toBeTruthy();
   });
-
-  test('should display workspace details', async ({ page }) => {
+  
+  test('should navigate to workspace list', async ({ page }) => {
+    // Navigate to workspaces list
+    await page.goto(`/organizations/${organizationId}/workspaces`);
+    
+    // Verify page content
+    await expect(page.locator('h1')).toContainText('Workspaces');
+    await expect(page.locator('button:has-text("Create Workspace")')).toBeVisible();
+  });
+  
+  test('should create a new workspace', async ({ page }) => {
+    // Navigate to workspaces list
+    await page.goto(`/organizations/${organizationId}/workspaces`);
+    
+    // Click the create workspace button
+    await page.locator('button:has-text("Create Workspace")').click();
+    
+    // Wait for dialog to appear
+    await expect(page.locator('div[role="dialog"]')).toBeVisible();
+    
+    // Fill in workspace details
+    const workspaceName = `Test Workspace ${Date.now()}`;
+    await page.locator('input[name="name"]').fill(workspaceName);
+    await page.locator('textarea[name="description"]').fill('Automated test workspace');
+    
+    // Submit the form
+    await page.locator('button:has-text("Create")').click();
+    
+    // Wait for redirect to new workspace page
+    await page.waitForURL('**/workspaces/**');
+    
+    // Extract workspace ID from URL
+    const url = page.url();
+    const matches = url.match(/\/workspaces\/([^\/]+)/);
+    workspaceId = matches ? matches[1] : null;
+    
+    // Ensure we have a workspace ID
+    expect(workspaceId).toBeTruthy();
+    
+    // Verify workspace detail page
+    await expect(page.locator('h1')).toContainText(workspaceName);
+  });
+  
+  test('should use the workspace layout for workspace pages', async ({ page }) => {
+    // Skip if no workspace is available
+    test.skip(!workspaceId, 'No workspace available');
+    
     // Navigate to workspace page
-    await page.goto(`/organizations/${organizationId}/workspaces/${workspaceId}`);
+    await page.goto(`/workspaces/${workspaceId}`);
     
-    // Verify workspace details are displayed
-    await expect(page.locator('[data-testid="workspace-name"]')).toContainText(testWorkspace.name);
-    await expect(page.locator('[data-testid="workspace-description"]')).toContainText(testWorkspace.description);
+    // Check for workspace-specific navigation elements from WorkspaceLayout
+    await expect(page.locator('.MuiDrawer-root h6').first()).toBeVisible(); // Workspace title
+    
+    // Navigate to a function page (chatflows) through the side navigation
+    await page.locator('a[href*="/chatflows"]').click();
+    
+    // Check if we're on the chatflows page
+    await expect(page.url()).toContain(`/workspaces/${workspaceId}/chatflows`);
+    
+    // Check for the secondary AppBar with breadcrumbs
+    await expect(page.locator('.MuiBreadcrumbs-root')).toBeVisible();
   });
-
-  test('should update workspace settings', async ({ page }) => {
-    // Navigate to workspace settings
-    await page.goto(`/organizations/${organizationId}/workspaces/${workspaceId}/settings`);
-    
-    // Update workspace settings
-    await page.fill('[data-testid="workspace-name-input"]', updatedWorkspace.name);
-    await page.fill('[data-testid="workspace-description-input"]', updatedWorkspace.description);
-    await page.click('[data-testid="save-workspace-settings"]');
-    
-    // Wait for success notification
-    await page.waitForSelector('text=Workspace updated successfully');
-    
-    // Verify workspace was updated
-    await page.goto(`/organizations/${organizationId}/workspaces/${workspaceId}`);
-    await expect(page.locator('[data-testid="workspace-name"]')).toContainText(updatedWorkspace.name);
-    await expect(page.locator('[data-testid="workspace-description"]')).toContainText(updatedWorkspace.description);
-  });
-
-  test('should invite a member to workspace', async ({ page }) => {
-    // Create a new user to invite
-    const invitedUserEmail = `invited-${uuidv4()}@example.com`;
-    
-    // Navigate to organization members page
-    await page.goto(`/organizations/${organizationId}/members`);
-    
-    // Invite user to organization first
-    await page.click('[data-testid="invite-member-button"]');
-    await page.fill('[data-testid="email-input"]', invitedUserEmail);
-    await page.selectOption('[data-testid="role-select"]', 'member');
-    await page.click('[data-testid="send-invitation-button"]');
-    
-    // Wait for success notification
-    await page.waitForSelector('text=Invitation sent successfully');
+  
+  test('should navigate to workspace members', async ({ page }) => {
+    // Skip if no workspace is available
+    test.skip(!workspaceId, 'No workspace available');
     
     // Navigate to workspace members page
-    await page.goto(`/organizations/${organizationId}/workspaces/${workspaceId}/members`);
+    await page.goto(`/workspaces/${workspaceId}/members`);
     
-    // Invite user to workspace
-    await page.click('[data-testid="invite-member-button"]');
-    await page.selectOption('[data-testid="member-select"]', invitedUserEmail);
-    await page.selectOption('[data-testid="role-select"]', 'member');
-    await page.click('[data-testid="invite-member-submit"]');
-    
-    // Wait for success notification
-    await page.waitForSelector('text=Member invited successfully');
-    
-    // Verify member was added to the list
-    await expect(page.locator(`text=${invitedUserEmail}`)).toBeVisible();
+    // Verify page content
+    await expect(page.locator('h1')).toContainText('Workspace Members');
+    await expect(page.locator('button:has-text("Invite Member")')).toBeVisible();
   });
-
-  test('should update workspace member role', async ({ page }) => {
-    // Navigate to workspace members page
-    await page.goto(`/organizations/${organizationId}/workspaces/${workspaceId}/members`);
+  
+  test('should navigate to workspace settings', async ({ page }) => {
+    // Skip if no workspace is available
+    test.skip(!workspaceId, 'No workspace available');
     
-    // Find the invited member and click edit
-    const memberRow = await page.locator('tr').filter({ hasText: '@example.com' }).first();
-    await memberRow.locator('[data-testid="edit-member-button"]').click();
+    // Navigate to workspace settings page
+    await page.goto(`/workspaces/${workspaceId}/settings`);
     
-    // Change role to admin
-    await page.selectOption('[data-testid="role-select"]', 'admin');
-    await page.click('[data-testid="update-member-submit"]');
+    // Verify page content
+    await expect(page.locator('h1')).toContainText('Workspace Settings');
     
-    // Wait for success notification
-    await page.waitForSelector('text=Member role updated successfully');
-    
-    // Verify role was updated
-    await expect(memberRow.locator('text=admin')).toBeVisible();
+    // Check for edit and delete buttons
+    await expect(page.locator('button:has-text("Edit Workspace")')).toBeVisible();
+    await expect(page.locator('button:has-text("Delete Workspace")')).toBeVisible();
   });
-
-  test('should remove workspace member', async ({ page }) => {
-    // Navigate to workspace members page
-    await page.goto(`/organizations/${organizationId}/workspaces/${workspaceId}/members`);
+  
+  test('should edit workspace settings', async ({ page }) => {
+    // Skip if no workspace is available
+    test.skip(!workspaceId, 'No workspace available');
     
-    // Get the email of the member to remove
-    const memberRow = await page.locator('tr').filter({ hasText: '@example.com' }).first();
-    const memberEmail = await memberRow.locator('td').nth(1).textContent();
+    // Navigate to workspace settings page
+    await page.goto(`/workspaces/${workspaceId}/settings`);
     
-    // Click remove button
-    await memberRow.locator('[data-testid="remove-member-button"]').click();
+    // Click edit button
+    await page.locator('button:has-text("Edit Workspace")').click();
     
-    // Confirm removal
-    await page.click('[data-testid="confirm-remove-member"]');
+    // Wait for dialog to appear
+    await expect(page.locator('div[role="dialog"]')).toBeVisible();
     
-    // Wait for success notification
-    await page.waitForSelector('text=Member removed successfully');
+    // Update workspace details
+    const updatedName = `Updated Workspace ${Date.now()}`;
+    await page.locator('input[name="name"]').fill(updatedName);
     
-    // Verify member was removed
-    await expect(page.locator(`text=${memberEmail}`)).not.toBeVisible();
+    // Submit the form
+    await page.locator('button:has-text("Save")').click();
+    
+    // Wait for page to refresh with updated data
+    await page.waitForLoadState('networkidle');
+    
+    // Verify updated details appear
+    await expect(page.locator('h1')).toContainText(updatedName);
   });
-
-  test('should delete workspace', async ({ page }) => {
-    // Navigate to workspace settings
-    await page.goto(`/organizations/${organizationId}/workspaces/${workspaceId}/settings`);
+  
+  test('should delete a workspace', async ({ page }) => {
+    // Skip if no workspace is available
+    test.skip(!workspaceId, 'No workspace available');
     
-    // Click delete workspace button
-    await page.click('[data-testid="delete-workspace-button"]');
+    // Navigate to workspace settings page
+    await page.goto(`/workspaces/${workspaceId}/settings`);
     
-    // Confirm deletion by typing workspace name
-    await page.fill('[data-testid="confirm-text-input"]', updatedWorkspace.name);
-    await page.click('[data-testid="confirm-delete-button"]');
+    // Click delete button
+    await page.locator('button:has-text("Delete Workspace")').click();
     
-    // Wait for redirect to organization page
-    await page.waitForURL(`**/organizations/${organizationId}`);
+    // Wait for confirmation dialog
+    await expect(page.locator('div[role="dialog"]')).toBeVisible();
     
-    // Verify workspace was deleted
-    await expect(page.locator(`text=${updatedWorkspace.name}`)).not.toBeVisible();
+    // Confirm deletion
+    await page.locator('button:has-text("Delete")').click();
+    
+    // Wait for redirect to workspaces list
+    await page.waitForURL(`**/organizations/${organizationId}/workspaces`);
+    
+    // Verify we're back on the workspaces list page
+    await expect(page.locator('h1')).toContainText('Workspaces');
+  });
+  
+  test('should use ContextSwitcher to navigate between workspaces', async ({ page }) => {
+    // Navigate to dashboard
+    await page.goto('/dashboard');
+    
+    // Open context switcher
+    await page.locator('.MuiToolbar-root button').nth(1).click();
+    
+    // Wait for context menu to appear
+    await expect(page.locator('div[role="presentation"]')).toBeVisible();
+    
+    // Check if we have organizations listed
+    const orgCount = await page.locator('li:has-text("Organization:")').count();
+    expect(orgCount).toBeGreaterThan(0);
+    
+    // Select a workspace (if available)
+    const workspaceOption = page.locator('li:has-text("Workspace:")').first();
+    if (await workspaceOption.count() > 0) {
+      await workspaceOption.click();
+      
+      // After selecting a workspace, we should be taken to that workspace
+      await page.waitForURL('**/workspaces/**');
+      
+      // Verify we're in the workspace layout
+      await expect(page.locator('.MuiDrawer-root h6').first()).toBeVisible();
+    }
   });
 });

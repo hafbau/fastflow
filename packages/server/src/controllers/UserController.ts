@@ -2,18 +2,36 @@ import { Request, Response } from 'express'
 import { StatusCodes } from 'http-status-codes'
 import UserService, { UserStatus } from '../services/UserService'
 import logger from '../utils/logger'
+import UserOrganizationService from '../services/UserOrganizationService'
+import { RoleService } from '../services/roles-permissions/RoleService'
+import OrganizationService from '../services/organizations'
+import WorkspaceService from '../services/workspaces'
+import WorkspaceMemberService from '../services/workspace-members'
+import { SYSTEM_ROLES_NAME } from '../services/roles-permissions/initializeRolesAndPermissions'
 
 /**
  * Controller for user management
  */
 export class UserController {
     private userService: UserService
+    private userOrgService: UserOrganizationService
+    private userRoleService: RoleService
+    private organizationService: typeof OrganizationService
+    private workspaceService: typeof WorkspaceService
+    private workspaceMemberService: typeof WorkspaceMemberService
 
     /**
      * Constructor
      */
     constructor() {
+        // TODO: Use dependency injection for these services
         this.userService = new UserService()
+        this.userOrgService = new UserOrganizationService()
+        this.userRoleService = new RoleService()
+        // TODO: Use classical pattern for these services
+        this.organizationService = OrganizationService
+        this.workspaceService = WorkspaceService
+        this.workspaceMemberService = WorkspaceMemberService
     }
 
     /**
@@ -23,7 +41,9 @@ export class UserController {
      */
     async register(req: Request, res: Response): Promise<void> {
         try {
-            const { email, password, firstName, lastName, displayName, avatarUrl, phoneNumber, preferences } = req.body
+            console.log('Registering user', req.body)
+            const [fname, lname] = req.body?.fullName.split(' ') ?? []
+            const { email, password, firstName = fname, lastName = lname, fullName: displayName } = req.body
 
             if (!email || !password) {
                 res.status(StatusCodes.BAD_REQUEST).json({
@@ -32,20 +52,47 @@ export class UserController {
                 })
                 return
             }
-
+            logger.info(`[UserController] Registering user: ${email}`)
             const user = await this.userService.register(email, password, {
                 firstName,
                 lastName,
                 displayName,
-                avatarUrl,
-                phoneNumber,
-                preferences
             })
-
+            logger.info(`[UserController] User registered: ${user.id}`)
+            // Create default organization and workspace for the user
+            const organization = await this.organizationService.createOrganization({
+                name: 'Default Organization',
+                slug: `org-${user.id.slice(0, 8)}`,
+                createdBy: user.id,
+            })
+            logger.info(`[UserController] Organization created: ${organization.id}`)
+            const workspace = await this.workspaceService.createWorkspace({
+                name: 'Default Workspace',
+                organizationId: organization.id,
+                slug: `ws-${user.id.slice(0, 8)}`,
+                createdBy: user.id,
+            });
+            logger.info(`[UserController] Workspace created: ${workspace.id}`)
+            // Assign default roles to the user
+            await this.userRoleService.assignAdminRoleToUser(user.id)
+            logger.info(`[UserController] Admin role assigned to user: ${user.id}`)
+            // TODO: Not sure if this is needed
+            await this.userRoleService.assignAdminRoleToUser(user.id, workspace.id)
+            logger.info(`[UserController] Admin role assigned to user in workspace: ${user.id}, workspace: ${workspace.id}`)
+            
+            // TODO: This feels like should be in the organization & workspace services but beware of circular dependencies
+            await this.userOrgService.addUserToOrganization(user.id, organization.id, SYSTEM_ROLES_NAME.ADMIN)
+            logger.info(`[UserController] User added to organization: ${user.id}, organization: ${organization.id}`)
+            await this.workspaceMemberService.addWorkspaceMember({
+                userId: user.id,
+                workspaceId: workspace.id,
+                role: SYSTEM_ROLES_NAME.ADMIN
+            })
+            logger.info(`[UserController] User added to workspace: ${user.id}, workspace: ${workspace.id}`)
             res.status(StatusCodes.CREATED).json({
                 success: true,
                 data: user
-            })
+            });
         } catch (error: any) {
             logger.error(`[UserController] Register error: ${error.message}`)
             res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
@@ -129,6 +176,38 @@ export class UserController {
     }
 
     /**
+     * Get current user organizations
+     * @param {Request} req - Express request
+     * @param {Response} res - Express response
+     */
+    async getCurrentUserOrganizations(req: Request, res: Response): Promise<void> {
+        try {
+            const userId = (req as any).user?.id
+
+            if (!userId) {
+                res.status(StatusCodes.UNAUTHORIZED).json({
+                    success: false,
+                    error: 'Authentication required'
+                })
+                return
+            }
+
+            const orgs = await this.userOrgService.getUserOrganizations(userId)
+
+            res.status(StatusCodes.OK).json({
+                success: true,
+                data: orgs
+            })
+        } catch (error: any) {
+            logger.error(`[UserController] Get current user organizations error: ${error.message}`)
+            res.status(error.statusCode || StatusCodes.INTERNAL_SERVER_ERROR).json({
+                success: false,
+                error: error.message
+            })
+        }
+    }
+
+    /**
      * Get user by ID
      * @param {Request} req - Express request
      * @param {Response} res - Express response
@@ -183,8 +262,7 @@ export class UserController {
                 firstName,
                 lastName,
                 displayName,
-                avatarUrl,
-                phoneNumber,
+                metadata: {avatarUrl, phoneNumber},
                 preferences
             })
 
@@ -224,10 +302,8 @@ export class UserController {
                 firstName,
                 lastName,
                 displayName,
-                avatarUrl,
-                phoneNumber,
+                metadata: { avatarUrl, phoneNumber, ...metadata },
                 preferences,
-                metadata
             })
 
             res.status(StatusCodes.OK).json({

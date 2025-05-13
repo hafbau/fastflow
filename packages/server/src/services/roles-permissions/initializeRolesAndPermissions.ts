@@ -3,6 +3,12 @@ import { Permission, PermissionScope } from '../../database/entities/Permission'
 import roleService from './RoleService'
 import permissionService from './PermissionService'
 
+export const SYSTEM_ROLES_NAME = {
+    ADMIN: 'Admin',
+    MEMBER: 'Member',
+    VIEWER: 'Viewer'
+};
+
 /**
  * Initialize default permissions
  */
@@ -140,7 +146,7 @@ const initializeSystemRoles = async (permissionMap: Map<string, Permission>): Pr
     // Define system roles
     const systemRoles = [
         {
-            name: 'Admin',
+            name: SYSTEM_ROLES_NAME.ADMIN,
             description: 'Administrator with full access',
             type: RoleType.SYSTEM,
             permissions: [
@@ -218,7 +224,7 @@ const initializeSystemRoles = async (permissionMap: Map<string, Permission>): Pr
             ]
         },
         {
-            name: 'Member',
+            name: SYSTEM_ROLES_NAME.MEMBER,
             description: 'Regular member with standard access',
             type: RoleType.SYSTEM,
             permissions: [
@@ -260,7 +266,7 @@ const initializeSystemRoles = async (permissionMap: Map<string, Permission>): Pr
             ]
         },
         {
-            name: 'Viewer',
+            name: SYSTEM_ROLES_NAME.VIEWER,
             description: 'Viewer with read-only access',
             type: RoleType.SYSTEM,
             permissions: [

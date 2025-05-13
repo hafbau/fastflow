@@ -53,9 +53,9 @@ class ApiKeyService {
                 return this.apiKeyRepository!.find()
             }
             
-            // Fall back to file-based storage (legacy mode)
-            const { getAPIKeys } = require('../utils/apiKey')
-            return await getAPIKeys()
+            // Log warning for deprecated storage type
+            logger.warn(`[ApiKeyService] File-based API key storage is deprecated. Please configure 'database' as apiKeys.storageType in app config.`)
+            return []
         } catch (error) {
             logger.error(`[ApiKeyService] Error getting API keys: ${error}`)
             return []
@@ -75,10 +75,9 @@ class ApiKeyService {
                 return this.apiKeyRepository!.findOne({ where: { id } })
             }
             
-            // Fall back to file-based storage (legacy mode)
-            const { getAPIKeys } = require('../utils/apiKey')
-            const keys = await getAPIKeys()
-            return keys.find((key: any) => key.id === id) || null
+            // Log warning for deprecated storage type
+            logger.warn(`[ApiKeyService] File-based API key storage is deprecated. Please configure 'database' as apiKeys.storageType in app config.`)
+            return null
         } catch (error) {
             logger.error(`[ApiKeyService] Error getting API key by ID: ${error}`)
             return null
@@ -98,10 +97,9 @@ class ApiKeyService {
                 return this.apiKeyRepository!.findOne({ where: { apiKey } })
             }
             
-            // Fall back to file-based storage (legacy mode)
-            const { getAPIKeys } = require('../utils/apiKey')
-            const keys = await getAPIKeys()
-            return keys.find((key: any) => key.apiKey === apiKey) || null
+            // Log warning for deprecated storage type
+            logger.warn(`[ApiKeyService] File-based API key storage is deprecated. Please configure 'database' as apiKeys.storageType in app config.`)
+            return null
         } catch (error) {
             logger.error(`[ApiKeyService] Error getting API key by key: ${error}`)
             return null
@@ -143,12 +141,9 @@ class ApiKeyService {
                 return await this.apiKeyRepository!.save(newApiKey)
             }
             
-            // Fall back to file-based storage (legacy mode)
-            const { addAPIKey } = require('../utils/apiKey')
-            await addAPIKey(keyName)
-            
-            // Get the newly created key
-            return this.getApiKeyByKey(apiKey)
+            // Log warning for deprecated storage type
+            logger.warn(`[ApiKeyService] File-based API key storage is deprecated. Please configure 'database' as apiKeys.storageType in app config.`)
+            return null
         } catch (error) {
             logger.error(`[ApiKeyService] Error creating API key: ${error}`)
             return null
@@ -189,13 +184,9 @@ class ApiKeyService {
                 return await this.apiKeyRepository!.save(apiKey)
             }
             
-            // Fall back to file-based storage (legacy mode)
-            const { updateAPIKey } = require('../utils/apiKey')
-            if (keyName) {
-                await updateAPIKey(id, keyName)
-            }
-            
-            return this.getApiKeyById(id)
+            // Log warning for deprecated storage type
+            logger.warn(`[ApiKeyService] File-based API key storage is deprecated. Please configure 'database' as apiKeys.storageType in app config.`)
+            return null
         } catch (error) {
             logger.error(`[ApiKeyService] Error updating API key: ${error}`)
             return null
@@ -216,10 +207,9 @@ class ApiKeyService {
                 return result.affected ? result.affected > 0 : false
             }
             
-            // Fall back to file-based storage (legacy mode)
-            const { deleteAPIKey } = require('../utils/apiKey')
-            await deleteAPIKey(id)
-            return true
+            // Log warning for deprecated storage type
+            logger.warn(`[ApiKeyService] File-based API key storage is deprecated. Please configure 'database' as apiKeys.storageType in app config.`)
+            return false
         } catch (error) {
             logger.error(`[ApiKeyService] Error deleting API key: ${error}`)
             return false

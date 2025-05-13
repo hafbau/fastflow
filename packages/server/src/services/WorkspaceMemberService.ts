@@ -206,7 +206,6 @@ export class WorkspaceMemberService {
             const memberships = await this.workspaceMemberRepository!.find({
                 where: {
                     userId,
-                    isActive: true
                 } as any,
                 relations: ['workspace']
             })
@@ -233,7 +232,6 @@ export class WorkspaceMemberService {
             const memberships = await this.workspaceMemberRepository!.find({
                 where: {
                     workspaceId,
-                    isActive: true
                 } as any,
                 relations: ['user']
             })
@@ -261,7 +259,6 @@ export class WorkspaceMemberService {
                 where: {
                     userId,
                     workspaceId,
-                    isActive: true
                 } as any
             })
 
@@ -287,7 +284,6 @@ export class WorkspaceMemberService {
                 where: {
                     userId,
                     workspaceId,
-                    isActive: true
                 } as any
             })
 

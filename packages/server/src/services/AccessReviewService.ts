@@ -12,7 +12,6 @@ import { UserRole } from '../database/entities/UserRole'
 import { ResourcePermission } from '../database/entities/ResourcePermission'
 import { Organization } from '../database/entities/Organization'
 import { Workspace } from '../database/entities/Workspace'
-import rolesPermissionsService from './RolesPermissionsService'
 import auditLogsService from './audit-logs'
 import { getInitializedDataSource } from '../DataSource'
 

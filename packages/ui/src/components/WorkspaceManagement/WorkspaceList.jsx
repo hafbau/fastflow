@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -20,7 +21,8 @@ import WorkspaceCreateDialog from './WorkspaceCreateDialog';
  * Workspace list component
  * Displays a list of workspaces for an organization
  */
-const WorkspaceList = ({ organizationId, organizationName }) => {
+const WorkspaceList = ({ organizationName }) => {
+  const { organizationId } = useParams();
   const { getUserWorkspaces } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   
@@ -153,7 +155,6 @@ const WorkspaceList = ({ organizationId, organizationName }) => {
 };
 
 WorkspaceList.propTypes = {
-  organizationId: PropTypes.string.isRequired,
   organizationName: PropTypes.string,
 };
 

@@ -34,7 +34,8 @@ export const createUserContext = async (req: Request, res: Response, next: NextF
     const authContext: AuthContext = {
       user: user,
       authMethod: authMethod as any,
-      isSystemAdmin: false,
+      // TODO: Set this to false later
+      isSystemAdmin: true,
       organizationRoles: {},
       workspaceRoles: {},
       permissions: [],

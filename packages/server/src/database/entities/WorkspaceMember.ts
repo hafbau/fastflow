@@ -3,20 +3,18 @@ import {
     Column,
     PrimaryGeneratedColumn,
     CreateDateColumn,
-    UpdateDateColumn,
     ManyToOne,
     JoinColumn,
     Unique
 } from 'typeorm'
 import { Workspace } from './Workspace'
-import { Organization } from './Organization'
 import { UserProfile } from './UserProfile'
 
 /**
  * WorkspaceMember entity
  * Represents a member of a workspace
  */
-@Entity()
+@Entity('workspace_member')
 @Unique(['workspaceId', 'userId'])
 export class WorkspaceMember {
     @PrimaryGeneratedColumn('uuid')
@@ -25,36 +23,29 @@ export class WorkspaceMember {
     @Column({ type: 'uuid' })
     workspaceId: string
 
-    @ManyToOne(() => Workspace, workspace => workspace.members, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'workspaceId' })
-    workspace: Workspace
-
-    @Column({ type: 'uuid' })
-    organizationId: string
-
-    @ManyToOne(() => Organization, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'organizationId' })
-    organization: Organization
-
     @Column({ type: 'uuid' })
     userId: string
-    
-    @ManyToOne(() => UserProfile)
-    @JoinColumn({ name: 'userId' })
-    user: UserProfile
 
     @Column({ length: 50, default: 'member' })
     role: string
 
-    @Column({ default: true })
-    isActive: boolean
+    @CreateDateColumn({ name: 'joined_at' })
+    joinedAt: Date
 
-    @Column({ type: 'json', nullable: true })
-    permissions: any
+    // Relationships
+    @ManyToOne(() => Workspace, workspace => workspace.members, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'workspaceId' })
+    workspace: Workspace
 
-    @CreateDateColumn()
-    createdAt: Date
+    @ManyToOne(() => UserProfile, { eager: false })
+    @JoinColumn({ name: 'userId' })
+    user: UserProfile
 
-    @UpdateDateColumn()
-    updatedAt: Date
+    /**
+     * Virtual property that reflects the user's active status
+     * @returns {boolean} True if the user status is 'ACTIVE'
+     */
+    get isActive(): boolean {
+        return this.user?.status === 'ACTIVE';
+    }
 }

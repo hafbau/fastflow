@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   Box,
+  Button,
   Grid,
   TextField,
   Typography,
@@ -11,7 +12,7 @@ import PropTypes from 'prop-types';
  * Organization details form for registration
  * Collects organization name, slug, and description
  */
-const OrganizationDetailsForm = ({ formData, handleChange }) => {
+const OrganizationDetailsForm = ({ formData, handleInputChange, handleBack, handleSubmit }) => {
   // Generate slug from organization name
   useEffect(() => {
     if (formData.organizationName && !formData.organizationSlug) {
@@ -20,10 +21,17 @@ const OrganizationDetailsForm = ({ formData, handleChange }) => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
       
-      // Simulate the change event
-      handleChange('organizationSlug')({ target: { value: slug } });
+      // Create a synthetic event
+      const syntheticEvent = {
+        target: {
+          name: 'organizationSlug',
+          value: slug
+        }
+      };
+      
+      handleInputChange(syntheticEvent);
     }
-  }, [formData.organizationName, formData.organizationSlug, handleChange]);
+  }, [formData.organizationName, formData.organizationSlug, handleInputChange]);
 
   return (
     <Box>
@@ -42,8 +50,8 @@ const OrganizationDetailsForm = ({ formData, handleChange }) => {
             id="organizationName"
             name="organizationName"
             label="Organization Name"
-            value={formData.organizationName}
-            onChange={handleChange('organizationName')}
+            value={formData.organizationName || ''}
+            onChange={handleInputChange}
             helperText="The name of your company or team"
           />
         </Grid>
@@ -55,8 +63,8 @@ const OrganizationDetailsForm = ({ formData, handleChange }) => {
             id="organizationSlug"
             name="organizationSlug"
             label="Organization URL"
-            value={formData.organizationSlug}
-            onChange={handleChange('organizationSlug')}
+            value={formData.organizationSlug || ''}
+            onChange={handleInputChange}
             helperText="Used in your organization's URL (only lowercase letters, numbers, and hyphens)"
             InputProps={{
               startAdornment: <Box component="span" sx={{ color: 'text.secondary' }}>flowstack.io/</Box>,
@@ -70,25 +78,43 @@ const OrganizationDetailsForm = ({ formData, handleChange }) => {
             id="organizationDescription"
             name="organizationDescription"
             label="Organization Description"
-            value={formData.organizationDescription}
-            onChange={handleChange('organizationDescription')}
+            value={formData.organizationDescription || ''}
+            onChange={handleInputChange}
             multiline
             rows={3}
             helperText="A brief description of your organization (optional)"
           />
         </Grid>
       </Grid>
+      
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'space-between' }}>
+        <Button
+          variant="outlined"
+          onClick={handleBack}
+        >
+          Back
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+        >
+          Continue
+        </Button>
+      </Box>
     </Box>
   );
 };
 
 OrganizationDetailsForm.propTypes = {
   formData: PropTypes.shape({
-    organizationName: PropTypes.string.isRequired,
-    organizationSlug: PropTypes.string.isRequired,
-    organizationDescription: PropTypes.string.isRequired,
-  }).isRequired,
-  handleChange: PropTypes.func.isRequired,
+    organizationName: PropTypes.string,
+    organizationSlug: PropTypes.string,
+    organizationDescription: PropTypes.string,
+  }),
+  handleInputChange: PropTypes.func.isRequired,
+  handleBack: PropTypes.func.isRequired,
+  handleSubmit: PropTypes.func.isRequired,
 };
 
 export default OrganizationDetailsForm;

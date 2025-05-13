@@ -100,7 +100,8 @@ export class RateLimitService {
                 windowMs: options.windowMs,
                 max: options.max,
                 message: options.message,
-                standardHeaders: options.standardHeaders,
+                // standardHeaders: options.standardHeaders || 'draft-6',
+                standardHeaders: 'draft-6',
                 legacyHeaders: options.legacyHeaders,
                 store,
                 // Skip rate limiting for trusted services
@@ -121,16 +122,16 @@ export class RateLimitService {
                     res.status(429).send(options.message)
                 },
                 // Track successful requests for analytics
-                onLimitReached: (req, res, options) => {
-                    logger.warn(`Rate limit reached for ${req.ip} on ${req.originalUrl}`)
-                },
+                // onLimitReached: (req, res, options) => {
+                //     logger.warn(`Rate limit reached for ${req.ip} on ${req.originalUrl}`)
+                // },
                 // Add custom headers for more detailed rate limit info
                 keyGenerator: (req) => {
                     // Use user ID if available, otherwise use IP
                     return (req as any).user?.id || req.ip
                 },
                 // Add custom headers for more detailed rate limit info
-                draft_polli_ratelimit_headers: true
+                // draft_polli_ratelimit_headers: true
             })
 
             // Store the limiter for future use

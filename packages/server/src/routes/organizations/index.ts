@@ -1,6 +1,5 @@
 import express, { Request } from 'express'
 import organizationsController from '../../controllers/organizations'
-import organizationInvitationsController from '../../controllers/organization-invitations'
 import organizationSettingsController from '../../controllers/organization-settings'
 import { authorize } from '../../middleware/auth/index'
 
@@ -48,34 +47,6 @@ router.put('/:id/members/:userId',
 router.delete('/:id/members/:userId',
   authorize({ resourceType: 'organization', action: 'update', resourceId: (req: Request) => req.params.id }),
   organizationsController.removeOrganizationMember
-)
-
-// Organization invitations routes
-router.get('/:id/invitations',
-  authorize({ resourceType: 'organization', action: 'read', resourceId: (req: Request) => req.params.id }),
-  organizationInvitationsController.getOrganizationInvitations
-)
-router.post('/:id/invitations',
-  authorize({ resourceType: 'organization', action: 'update', resourceId: (req: Request) => req.params.id }),
-  organizationInvitationsController.createInvitation
-)
-router.get('/invitations/:invitationId',
-  authorize({ resourceType: 'invitation', action: 'read', resourceId: (req: Request) => req.params.invitationId }),
-  organizationInvitationsController.getInvitationById
-)
-router.get('/invitations/token/:token',
-  organizationInvitationsController.getInvitationByToken
-)
-router.post('/invitations/token/:token/accept',
-  organizationInvitationsController.acceptInvitation
-)
-router.post('/invitations/:invitationId/resend',
-  authorize({ resourceType: 'invitation', action: 'update', resourceId: (req: Request) => req.params.invitationId }),
-  organizationInvitationsController.resendInvitation
-)
-router.delete('/invitations/:invitationId',
-  authorize({ resourceType: 'invitation', action: 'delete', resourceId: (req: Request) => req.params.invitationId }),
-  organizationInvitationsController.cancelInvitation
 )
 
 // Organization settings routes

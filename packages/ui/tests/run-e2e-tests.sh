@@ -38,25 +38,39 @@ check_server() {
 # Function to run tests
 run_tests() {
   local mode=$1
+  local test_type=${2:-"all"}
   
   echo -e "\n${BLUE}Running tests in ${mode} mode...${NC}"
   
   # Set environment variables for testing 
   export TEST_MODE=true
   
+  # Set test files based on test_type
+  local test_files=""
+  if [ "$test_type" == "workspace" ]; then
+    echo -e "${YELLOW}Running workspace management tests only.${NC}"
+    test_files="tests/workspace-management.spec.js"
+  elif [ "$test_type" == "user-org" ]; then
+    echo -e "${YELLOW}Running user & organization management tests only.${NC}"
+    test_files="tests/e2e/user-org-management.spec.js tests/user-management.spec.js tests/organization-management.spec.js"
+  else
+    echo -e "${YELLOW}Running all tests.${NC}"
+    test_files="tests" # All tests in the tests directory
+  fi
+  
   # Choose browser based on mode
   if [ "$mode" == "headless" ]; then
     echo -e "${YELLOW}Running tests in headless mode on Chrome.${NC}"
-    npx playwright test --project=chromium
+    npx playwright test ${test_files} --project=chromium
   elif [ "$mode" == "headed" ]; then
     echo -e "${YELLOW}Running tests in headed mode (with browser UI).${NC}"
-    npx playwright test --headed --project=chromium
+    npx playwright test ${test_files} --headed --project=chromium
   elif [ "$mode" == "debug" ]; then
     echo -e "${YELLOW}Running tests in debug mode.${NC}"
-    npx playwright test --debug --project=chromium
+    npx playwright test ${test_files} --debug --project=chromium
   elif [ "$mode" == "all" ]; then
     echo -e "${YELLOW}Running tests on all browser configurations.${NC}"
-    npx playwright test
+    npx playwright test ${test_files}
   else
     echo -e "${RED}Invalid mode: ${mode}${NC}"
     exit 1
@@ -85,6 +99,7 @@ check_server
 # Parse command-line arguments
 MODE="headless"
 SHOW_REPORT=false
+TEST_TYPE="all"
 
 for arg in "$@"; do
   case $arg in
@@ -104,6 +119,14 @@ for arg in "$@"; do
       SHOW_REPORT=true
       shift
       ;;
+    --workspace)
+      TEST_TYPE="workspace"
+      shift
+      ;;
+    --user-org)
+      TEST_TYPE="user-org"
+      shift
+      ;;
   esac
 done
 
@@ -115,7 +138,7 @@ if [ "$SERVER_RUNNING" = false ]; then
 fi
 
 # Run the tests
-run_tests "$MODE"
+run_tests "$MODE" "$TEST_TYPE"
 TEST_RESULT=$?
 
 # Open report if requested or if tests failed
@@ -135,10 +158,12 @@ else
 fi
 
 echo -e "\n${YELLOW}Usage:${NC}"
-echo -e "  ${YELLOW}./tests/run-e2e-tests.sh${NC} - Run tests in headless mode"
+echo -e "  ${YELLOW}./tests/run-e2e-tests.sh${NC} - Run all tests in headless mode"
 echo -e "  ${YELLOW}./tests/run-e2e-tests.sh --headed${NC} - Run tests with browser UI"
 echo -e "  ${YELLOW}./tests/run-e2e-tests.sh --debug${NC} - Run tests in debug mode"
 echo -e "  ${YELLOW}./tests/run-e2e-tests.sh --all${NC} - Run tests on all browsers"
 echo -e "  ${YELLOW}./tests/run-e2e-tests.sh --report${NC} - Open report after running"
+echo -e "  ${YELLOW}./tests/run-e2e-tests.sh --workspace${NC} - Run only workspace management tests"
+echo -e "  ${YELLOW}./tests/run-e2e-tests.sh --user-org${NC} - Run only user and organization tests"
 
 exit $TEST_RESULT

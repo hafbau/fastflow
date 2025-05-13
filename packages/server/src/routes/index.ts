@@ -19,6 +19,7 @@ import getUploadFileRouter from './get-upload-file'
 import getUploadPathRouter from './get-upload-path'
 import internalChatmessagesRouter from './internal-chat-messages'
 import internalPredictionRouter from './internal-predictions'
+import invitationsRouter from './invitations'
 import leadsRouter from './leads'
 import loadPromptRouter from './load-prompts'
 import marketplacesRouter from './marketplaces'
@@ -31,7 +32,6 @@ import openaiAssistantsRouter from './openai-assistants'
 import openaiAssistantsFileRouter from './openai-assistants-files'
 import openaiAssistantsVectorStoreRouter from './openai-assistants-vector-store'
 import openaiRealtimeRouter from './openai-realtime'
-import organizationInvitationsRouter from './organization-invitations'
 import organizationsRouter from './organizations'
 import organizationChatflowsRouter from './organization-chatflows'
 import workspaceChatflowsRouter from './workspace-chatflows'
@@ -48,7 +48,6 @@ import searchRouter from './search'
 import vectorRouter from './vectors'
 import verifyRouter from './verify'
 import versionRouter from './versions'
-import workspaceInvitationsRouter from './workspace-invitations'
 import workspacesRouter from './workspaces'
 import nvidiaNimRouter from './nvidia-nim'
 import userRouter from './userRoutes'
@@ -63,6 +62,7 @@ import analyticsRouter from './analytics.routes'
 
 const router = express.Router()
 
+router.use('/', invitationsRouter)
 router.use('/ping', pingRouter)
 router.use('/apikey', apikeyRouter)
 router.use('/assistants', assistantsRouter)
@@ -101,7 +101,6 @@ router.use('/prompts-list', promptListsRouter)
 router.use('/public-chatbotConfig', publicChatbotRouter)
 router.use('/public-chatflows', publicChatflowsRouter)
 router.use('/organizations', organizationsRouter)
-router.use('/organization-invitations', organizationInvitationsRouter)
 router.use('/organizations/:organizationId/chatflows', organizationChatflowsRouter)
 router.use('/search', searchRouter)
 router.use('/stats', statsRouter)
@@ -112,7 +111,6 @@ router.use('/vector', vectorRouter)
 router.use('/verify', verifyRouter)
 router.use('/version', versionRouter)
 router.use('/workspaces', workspacesRouter)
-router.use('/workspace-invitations', workspaceInvitationsRouter)
 router.use('/workspaces/:workspaceId/chatflows', workspaceChatflowsRouter)
 router.use('/upsert-history', upsertHistoryRouter)
 router.use('/nvidia-nim', nvidiaNimRouter)

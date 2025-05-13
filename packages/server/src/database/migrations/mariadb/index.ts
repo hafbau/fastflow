@@ -38,6 +38,9 @@ import { UserProfileMigration1746197503000 } from './1746197503000-UserProfileMi
 import { WorkspaceMemberMigration1746197504000 } from './1746197504000-WorkspaceMemberMigration'
 import { AddScopeToPermissionTable1746197600000 } from './1746197600000-AddScopeToPermissionTable'
 import { AddNameToPermissionTable1746197700000 } from './1746197700000-AddNameToPermissionTable'
+import { CreateAuditLogsTable1746921360887 } from './1746921360887-CreateAuditLogsTable'
+import { CreateAccessReviewTables1746922802000 } from './1746922802000-CreateAccessReviewTables'
+import { CreateInvitationTable1746950000000 } from './1746950000000-CreateInvitationTable'
 
 export const mariadbMigrations = [
     Init1693840429259,
@@ -79,5 +82,8 @@ export const mariadbMigrations = [
     UserProfileMigration1746197503000,
     WorkspaceMemberMigration1746197504000,
     AddScopeToPermissionTable1746197600000,
-    AddNameToPermissionTable1746197700000
+    AddNameToPermissionTable1746197700000,
+    CreateAuditLogsTable1746921360887,
+    CreateAccessReviewTables1746922802000,
+    CreateInvitationTable1746950000000
 ]

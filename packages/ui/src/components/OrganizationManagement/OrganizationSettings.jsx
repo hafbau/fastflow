@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Alert,
   Box,
@@ -22,18 +23,45 @@ import OrganizationDeleteDialog from './OrganizationDeleteDialog';
  * Organization settings component
  * Allows administrators to manage organization settings
  */
-const OrganizationSettings = ({ organization, onOrganizationUpdated }) => {
-  const { updateOrganization } = useAuth();
+const OrganizationSettings = ({ onOrganizationUpdated = () => {} }) => {
+  const { organizationId } = useParams();
+  const { updateOrganization, getOrganization } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
+  const [organization, setOrganization] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
-    name: organization?.name || '',
-    description: organization?.description || '',
+    name: '',
+    description: '',
   });
   const [errors, setErrors] = useState({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // Fetch organization data
+  useEffect(() => {
+    const fetchOrganization = async () => {
+      if (!organizationId) return;
+      
+      try {
+        setIsLoading(true);
+        const org = await getOrganization(organizationId);
+        setOrganization(org);
+        setFormData({
+          name: org.name || '',
+          description: org.description || '',
+        });
+      } catch (error) {
+        console.error('Error fetching organization:', error);
+        enqueueSnackbar('Failed to load organization', { variant: 'error' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchOrganization();
+  }, [organizationId, getOrganization, enqueueSnackbar]);
 
   const handleChange = (field) => (event) => {
     setFormData({
@@ -67,6 +95,8 @@ const OrganizationSettings = ({ organization, onOrganizationUpdated }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     
+    if (!organization) return;
+    
     // Validate form
     if (!validateForm()) {
       return;
@@ -77,6 +107,9 @@ const OrganizationSettings = ({ organization, onOrganizationUpdated }) => {
       
       // Update organization
       const updatedOrg = await updateOrganization(organization.id, formData);
+      
+      // Update local state
+      setOrganization(updatedOrg);
       
       // Call the onOrganizationUpdated callback with the updated organization
       onOrganizationUpdated(updatedOrg);
@@ -94,6 +127,29 @@ const OrganizationSettings = ({ organization, onOrganizationUpdated }) => {
     enqueueSnackbar('Organization deleted successfully', { variant: 'success' });
     navigate('/organizations');
   };
+
+  // Show loading state while fetching organization
+  if (isLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  // Show error state if organization is not found
+  if (!organization && !isLoading) {
+    return (
+      <Box>
+        <Typography variant="h5" gutterBottom>
+          Organization Settings
+        </Typography>
+        <Alert severity="error">
+          Organization not found or you don't have permission to access it.
+        </Alert>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -195,12 +251,7 @@ const OrganizationSettings = ({ organization, onOrganizationUpdated }) => {
 };
 
 OrganizationSettings.propTypes = {
-  organization: PropTypes.shape({
-    id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    description: PropTypes.string,
-  }).isRequired,
-  onOrganizationUpdated: PropTypes.func.isRequired,
+  onOrganizationUpdated: PropTypes.func,
 };
 
 export default OrganizationSettings;

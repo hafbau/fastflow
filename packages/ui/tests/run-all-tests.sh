@@ -38,7 +38,7 @@ run_command() {
 }
 
 # Make sure test scripts are executable
-chmod +x tests/run-management-tests.sh tests/run-e2e-tests.sh
+chmod +x tests/run-management-tests.sh tests/run-e2e-tests.sh tests/run-workspace-tests.sh
 
 # Create test results directory
 mkdir -p test-results
@@ -52,7 +52,10 @@ run_command "npm run test:ui" "Running UI unit tests"
 echo -e "\n${BLUE}===== Phase 3: Running Component Tests =====${NC}"
 run_command "./tests/run-management-tests.sh" "Running component and integration tests"
 
-echo -e "\n${BLUE}===== Phase 4: Running E2E Tests =====${NC}"
+echo -e "\n${BLUE}===== Phase 4: Running Workspace Management Tests =====${NC}"
+run_command "./tests/run-workspace-tests.sh" "Running workspace management tests"
+
+echo -e "\n${BLUE}===== Phase 5: Running E2E Tests =====${NC}"
 run_command "./tests/run-e2e-tests.sh" "Running end-to-end tests with Playwright"
 
 # Print final status
@@ -62,7 +65,7 @@ echo -e "${PURPLE}===============================================${NC}"
 
 if [ $OVERALL_STATUS -eq 0 ]; then
   echo -e "${GREEN}✓ All test phases passed successfully!${NC}"
-  echo -e "${GREEN}Tasks 3 (User Management) and 4 (Organization Management) verified.${NC}"
+  echo -e "${GREEN}Tasks 3 (User Management), 4 (Organization Management), and Workspace Management verified.${NC}"
 else
   echo -e "${RED}✗ Some tests failed. Please check the output above for details.${NC}"
   echo -e "${YELLOW}Review the test failures and address the issues before proceeding.${NC}"
@@ -70,8 +73,9 @@ fi
 
 # Implementation status based on our documentation
 echo -e "\n${BLUE}Implementation Status:${NC}"
-echo -e "  ${CYAN}• User Management:${NC} 80% complete"
-echo -e "  ${CYAN}• Organization Management:${NC} 75% complete"
+echo -e "  ${CYAN}• User Management:${NC} 90% complete"
+echo -e "  ${CYAN}• Organization Management:${NC} 85% complete"
+echo -e "  ${CYAN}• Workspace Management:${NC} 85% complete"
 
 echo -e "\n${YELLOW}Next Steps:${NC}"
 echo -e "1. Address any failed tests"

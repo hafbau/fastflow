@@ -30,6 +30,9 @@ export interface AuthState {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  currentOrganizationId: string | null;
+  currentWorkspaceId: string | null;
+  workspacePermissions: Record<string, any> | null;
 }
 
 /**
@@ -106,4 +109,13 @@ export interface IdentityProviderSession {
   expiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+}
+
+/**
+ * Workspace permission interface
+ */
+export interface WorkspacePermission {
+  resource: string;
+  action: string;
+  allowed: boolean;
 }

@@ -55,7 +55,7 @@ const VerificationStep = ({ email, onComplete }) => {
   const handleResendEmail = async () => {
     try {
       setResendLoading(true);
-      await resendVerificationEmail();
+      await resendVerificationEmail(email); // Pass the email prop here
       enqueueSnackbar('Verification email sent!', { variant: 'success' });
     } catch (error) {
       console.error('Resend verification error:', error);

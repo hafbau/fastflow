@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
+import DefaultRedirect from '../components/DefaultRedirect';
 
 /**
  * Login page component
@@ -27,12 +28,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get redirect path from location state or default to dashboard
-  const from = location.state?.from?.pathname || '/dashboard';
+  // Get redirect path from location state or default to context-aware route
+  const from = location.state?.from?.pathname || '/';
   
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -46,9 +47,9 @@ const Login = () => {
       setError(null);
       setIsLoading(true);
       
-      await login(email, password);
+      await signIn(email, password);
       
-      // Redirect to the original requested page or dashboard
+      // Redirect to the original requested page or context-aware default
       navigate(from, { replace: true });
     } catch (err) {
       console.error('Login error:', err);

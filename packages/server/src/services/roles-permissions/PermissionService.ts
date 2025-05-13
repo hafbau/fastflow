@@ -9,15 +9,13 @@ import { getErrorMessage } from '../../errors/utils'
 import { Repository } from 'typeorm'
 import { getInitializedDataSource } from '../../DataSource'
 import logger from '../../utils/logger'
+import permissionCacheService from '../roles-permissions/PermissionCacheService'
 
 /**
  * Permission Service
  * Handles permission management, checking, and caching
  */
 class PermissionService {
-    // In-memory cache for permissions
-    private permissionCache: Map<string, any>
-    
     // Repository instances
     private permissionRepository: Repository<Permission> | null = null
     private rolePermissionRepository: Repository<RolePermission> | null = null
@@ -28,7 +26,6 @@ class PermissionService {
     private isInitialized: boolean = false
 
     constructor() {
-        this.permissionCache = new Map<string, any>()
         // Repositories will be initialized lazily when needed
     }
     
@@ -66,10 +63,10 @@ class PermissionService {
             await this.ensureInitialized()
             
             const cacheKey = 'all_permissions'
-            const cachedPermissions = this.permissionCache.get(cacheKey) as Permission[] | undefined
+            const cachedResult = await permissionCacheService.getPermission('system', 'permissions', 'all', 'read')
             
-            if (cachedPermissions) {
-                return cachedPermissions
+            if (cachedResult !== null && typeof cachedResult === 'object') {
+                return cachedResult as unknown as Permission[]
             }
             
             const dbResponse = await this.permissionRepository!.find({
@@ -79,7 +76,9 @@ class PermissionService {
                 }
             })
             
-            this.permissionCache.set(cacheKey, dbResponse)
+            // Cache permissions as special case
+            await permissionCacheService.cachePermission('system', 'permissions', 'all', 'read', dbResponse as any, 600) // 10 min TTL
+            
             return dbResponse
         } catch (error) {
             throw new InternalFastflowError(
@@ -96,11 +95,10 @@ class PermissionService {
         try {
             await this.ensureInitialized()
             
-            const cacheKey = `permission_${permissionId}`
-            const cachedPermission = this.permissionCache.get(cacheKey) as Permission | undefined
+            const cachedResult = await permissionCacheService.getPermission('system', 'permission', permissionId, 'read')
             
-            if (cachedPermission) {
-                return cachedPermission
+            if (cachedResult !== null && typeof cachedResult === 'object') {
+                return cachedResult as unknown as Permission
             }
             
             const dbResponse = await this.permissionRepository!.findOneBy({
@@ -111,7 +109,9 @@ class PermissionService {
                 throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Permission ${permissionId} not found`)
             }
             
-            this.permissionCache.set(cacheKey, dbResponse)
+            // Cache result
+            await permissionCacheService.cachePermission('system', 'permission', permissionId, 'read', dbResponse as any, 600) // 10 min TTL
+            
             return dbResponse
         } catch (error) {
             if (error instanceof InternalFastflowError) throw error
@@ -129,11 +129,10 @@ class PermissionService {
         try {
             await this.ensureInitialized()
             
-            const cacheKey = `permission_name_${name}`
-            const cachedPermission = this.permissionCache.get(cacheKey) as Permission | undefined
+            const cachedResult = await permissionCacheService.getPermission('system', 'permission', `name:${name}`, 'read')
             
-            if (cachedPermission) {
-                return cachedPermission
+            if (cachedResult !== null && typeof cachedResult === 'object') {
+                return cachedResult as unknown as Permission
             }
             
             const dbResponse = await this.permissionRepository!.findOneBy({
@@ -144,7 +143,9 @@ class PermissionService {
                 throw new InternalFastflowError(StatusCodes.NOT_FOUND, `Permission ${name} not found`)
             }
             
-            this.permissionCache.set(cacheKey, dbResponse)
+            // Cache result
+            await permissionCacheService.cachePermission('system', 'permission', `name:${name}`, 'read', dbResponse as any, 600) // 10 min TTL
+            
             return dbResponse
         } catch (error) {
             if (error instanceof InternalFastflowError) throw error
@@ -162,11 +163,10 @@ class PermissionService {
         try {
             await this.ensureInitialized()
             
-            const cacheKey = `permissions_resource_${resourceType}`
-            const cachedPermissions = this.permissionCache.get(cacheKey) as Permission[] | undefined
+            const cachedResult = await permissionCacheService.getPermission('system', 'permissions', `type:${resourceType}`, 'read')
             
-            if (cachedPermissions) {
-                return cachedPermissions
+            if (cachedResult !== null && typeof cachedResult === 'object') {
+                return cachedResult as unknown as Permission[]
             }
             
             const dbResponse = await this.permissionRepository!.find({
@@ -178,7 +178,9 @@ class PermissionService {
                 }
             })
             
-            this.permissionCache.set(cacheKey, dbResponse)
+            // Cache result
+            await permissionCacheService.cachePermission('system', 'permissions', `type:${resourceType}`, 'read', dbResponse as any, 600) // 10 min TTL
+            
             return dbResponse
         } catch (error) {
             throw new InternalFastflowError(
@@ -205,7 +207,7 @@ class PermissionService {
                 const dbResponse = await this.permissionRepository!.save(newPermission)
                 
                 // Invalidate cache
-                this.invalidatePermissionCache()
+                await this.invalidatePermissionCache()
                 
                 return dbResponse
             } catch (error) {
@@ -216,7 +218,7 @@ class PermissionService {
                     const result = await this.permissionRepository!.save(newPermission)
                     
                     // Invalidate cache
-                    this.invalidatePermissionCache()
+                    await this.invalidatePermissionCache()
                     
                     // Handle the result which could be an array or a single entity
                     return Array.isArray(result) ? result[0] : result
@@ -251,7 +253,7 @@ class PermissionService {
             await this.permissionRepository!.save(updatedPermission)
             
             // Invalidate cache
-            this.invalidatePermissionCache()
+            await this.invalidatePermissionCache()
             
             return this.getPermissionById(permissionId)
         } catch (error) {
@@ -274,7 +276,7 @@ class PermissionService {
             await this.permissionRepository!.delete({ id: permissionId })
             
             // Invalidate cache
-            this.invalidatePermissionCache()
+            await this.invalidatePermissionCache()
         } catch (error) {
             if (error instanceof InternalFastflowError) throw error
             throw new InternalFastflowError(
@@ -296,10 +298,9 @@ class PermissionService {
         try {
             await this.ensureInitialized()
             
-            const cacheKey = `permission_check_${userId}_${resourceType}_${resourceId}_${action}`
-            const cachedResult = this.permissionCache.get(cacheKey) as boolean | undefined
-            
-            if (cachedResult !== undefined) {
+            // Check cache first
+            const cachedResult = await permissionCacheService.getPermission(userId, resourceType, resourceId, action)
+            if (cachedResult !== null) {
                 return cachedResult
             }
             
@@ -312,7 +313,8 @@ class PermissionService {
             })
             
             if (directPermission) {
-                this.permissionCache.set(cacheKey, true)
+                // Cache positive result with longer TTL (5 minutes)
+                await permissionCacheService.cachePermission(userId, resourceType, resourceId, action, true, 300)
                 return true
             }
             
@@ -337,13 +339,15 @@ class PermissionService {
                         rolePermission.permission.resourceType === resourceType &&
                         rolePermission.permission.action === action
                     ) {
-                        this.permissionCache.set(cacheKey, true)
+                        // Cache positive result with longer TTL (5 minutes)
+                        await permissionCacheService.cachePermission(userId, resourceType, resourceId, action, true, 300)
                         return true
                     }
                 }
             }
             
-            this.permissionCache.set(cacheKey, false)
+            // Cache negative result with shorter TTL (1 minute)
+            await permissionCacheService.cachePermission(userId, resourceType, resourceId, action, false, 60)
             return false
         } catch (error) {
             throw new InternalFastflowError(
@@ -360,11 +364,11 @@ class PermissionService {
         try {
             await this.ensureInitialized()
             
-            const cacheKey = `user_permissions_${userId}`
-            const cachedPermissions = this.permissionCache.get(cacheKey) as Permission[] | undefined
+            // Try to get from cache
+            const cachedResult = await permissionCacheService.getPermission(userId, 'permissions', 'all', 'list')
             
-            if (cachedPermissions) {
-                return cachedPermissions
+            if (cachedResult !== null && typeof cachedResult === 'object') {
+                return cachedResult as unknown as Permission[]
             }
             
             // Get user roles
@@ -394,7 +398,9 @@ class PermissionService {
                 }
             }
             
-            this.permissionCache.set(cacheKey, permissions)
+            // Cache the results for 5 minutes
+            await permissionCacheService.cachePermission(userId, 'permissions', 'all', 'list', permissions as any, 300)
+            
             return permissions
         } catch (error) {
             throw new InternalFastflowError(
@@ -409,11 +415,11 @@ class PermissionService {
      */
     async getUserResourceTypePermissions(userId: string, resourceType: string): Promise<string[]> {
         try {
-            const cacheKey = `user_resource_permissions_${userId}_${resourceType}`
-            const cachedPermissions = this.permissionCache.get(cacheKey) as string[] | undefined
+            // Try to get from cache
+            const cachedResult = await permissionCacheService.getPermission(userId, 'permissions', `type:${resourceType}`, 'list')
             
-            if (cachedPermissions) {
-                return cachedPermissions
+            if (cachedResult !== null && typeof cachedResult === 'object') {
+                return cachedResult as unknown as string[]
             }
             
             const userPermissions = await this.getUserPermissions(userId)
@@ -421,7 +427,9 @@ class PermissionService {
                 .filter(p => p.resourceType === resourceType)
                 .map(p => p.action)
             
-            this.permissionCache.set(cacheKey, resourcePermissions)
+            // Cache the results for 5 minutes
+            await permissionCacheService.cachePermission(userId, 'permissions', `type:${resourceType}`, 'list', resourcePermissions as any, 300)
+            
             return resourcePermissions
         } catch (error) {
             throw new InternalFastflowError(
@@ -434,23 +442,15 @@ class PermissionService {
     /**
      * Invalidate permission cache
      */
-    invalidatePermissionCache(): void {
-        this.permissionCache.clear()
+    async invalidatePermissionCache(): Promise<void> {
+        await permissionCacheService.clearAll()
     }
 
     /**
      * Invalidate specific user's permission cache
      */
-    invalidateUserPermissionCache(userId: string): void {
-        const userCacheKey = `user_permissions_${userId}`
-        this.permissionCache.delete(userCacheKey)
-        
-        // Also delete any resource-specific permissions for this user
-        for (const key of this.permissionCache.keys()) {
-            if (key.includes(`user_permissions_${userId}`) || key.includes(`permission_check_${userId}_`)) {
-                this.permissionCache.delete(key)
-            }
-        }
+    async invalidateUserPermissionCache(userId: string): Promise<void> {
+        await permissionCacheService.invalidateUserPermissions(userId)
     }
 }
 

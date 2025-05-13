@@ -16,103 +16,35 @@ export enum EmailTemplateType {
 }
 
 /**
- * Configure a single email template using the Supabase REST API
- * @param {SupabaseClient} supabaseAdmin - The Supabase admin client
- * @param {string} type - The template type
- * @param {string} template - The template HTML content
- * @returns {Promise<void>}
- */
-const configureTemplate = async (
-    supabaseAdmin: SupabaseClient,
-    type: string,
-    template: string
-): Promise<void> => {
-    try {
-        // Get the API URL and key from the config
-        const config = getSupabaseConfig()
-        const supabaseUrl = config.url
-        const supabaseKey = config.serviceRoleKey
-        
-        // Make a direct REST API call to update the template
-        const response = await fetch(`${supabaseUrl}/auth/v1/admin/templates/${type}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': supabaseKey,
-                'Authorization': `Bearer ${supabaseKey}`
-            },
-            body: JSON.stringify({ template })
-        })
-        
-        if (!response.ok) {
-            const error = await response.json()
-            throw new Error(`Failed to update template: ${JSON.stringify(error)}`)
-        }
-        
-        logger.info(`Successfully configured ${type} email template`)
-    } catch (error) {
-        logger.error(`Failed to configure ${type} email template`, error)
-        throw error
-    }
-}
-
-/**
  * Load an email template from the file system
  * @param {EmailTemplateType} templateType - The type of email template to load
  * @returns {string} The email template HTML content
  */
 export const loadEmailTemplate = (templateType: EmailTemplateType): string => {
     try {
+        // Convert template type to filename, handling special cases with different formats
+        let templateFilename: string = templateType.toString()
+        
+        // Handle special cases where enum value and filename don't match
+        if (templateType === EmailTemplateType.RESET_PASSWORD) {
+            templateFilename = 'reset-password'
+        } else if (templateType === EmailTemplateType.MAGIC_LINK) {
+            templateFilename = 'magic-link'
+        } else if (templateType === EmailTemplateType.MFA) {
+            templateFilename = 'mfa-verification'
+        }
+        
         const templatePath = path.join(
             __dirname,
             '..',
             'templates',
             'emails',
-            `${templateType === EmailTemplateType.RESET_PASSWORD ? 'reset-password' : templateType}.html`
+            `${templateFilename}.html`
         )
         return fs.readFileSync(templatePath, 'utf8')
-    } catch (error) {
+    } catch (error: any) {
         logger.error(`Failed to load email template: ${templateType}`, error)
         throw new Error(`Failed to load email template: ${templateType}`)
-    }
-}
-
-/**
- * Configure email templates for Supabase Auth
- * @param {SupabaseClient} supabaseAdmin - The Supabase admin client
- * @returns {Promise<void>}
- */
-export const configureEmailTemplates = async (supabaseAdmin: SupabaseClient): Promise<void> => {
-    try {
-        logger.info('Configuring Supabase email templates')
-
-        // For Supabase v2, we need to use a REST API call to update email templates
-        // as the JS client doesn't expose this functionality directly
-        
-        // Configure confirmation email template
-        const confirmationTemplate = loadEmailTemplate(EmailTemplateType.CONFIRMATION)
-        await configureTemplate(supabaseAdmin, 'confirmation', confirmationTemplate)
-
-        // Configure invitation email template
-        const invitationTemplate = loadEmailTemplate(EmailTemplateType.INVITATION)
-        await configureTemplate(supabaseAdmin, 'invitation', invitationTemplate)
-
-        // Configure magic link email template
-        const magicLinkTemplate = loadEmailTemplate(EmailTemplateType.MAGIC_LINK)
-        await configureTemplate(supabaseAdmin, 'magic_link', magicLinkTemplate)
-
-        // Configure reset password email template
-        const resetPasswordTemplate = loadEmailTemplate(EmailTemplateType.RESET_PASSWORD)
-        await configureTemplate(supabaseAdmin, 'recovery', resetPasswordTemplate)
-
-        // Configure MFA email template
-        const mfaTemplate = loadEmailTemplate(EmailTemplateType.MFA)
-        await configureTemplate(supabaseAdmin, 'mfa', mfaTemplate)
-
-        logger.info('Successfully configured Supabase email templates')
-    } catch (error) {
-        logger.error('Failed to configure Supabase email templates', error)
-        throw new Error('Failed to configure Supabase email templates')
     }
 }
 
@@ -129,7 +61,22 @@ export const initializeEmailTemplates = async (supabaseAdmin: SupabaseClient | n
     }
 
     try {
-        await configureEmailTemplates(supabaseAdmin)
+        // Instead of trying to configure email templates via API, we'll use a Send Email Hook
+        // This log is to indicate we're transitioning to the new approach
+        logger.info('Supabase email templates will be handled via Send Email Hook')
+        logger.info('Using dashboard-configured email templates as fallback')
+        
+        // Verify templates exist in our app (for safety)
+        for (const templateType of Object.values(EmailTemplateType)) {
+            try {
+                loadEmailTemplate(templateType as EmailTemplateType)
+                logger.debug(`Template ${templateType} exists as a fallback`)
+            } catch (error: any) {
+                logger.warn(`Fallback template ${templateType} not found: ${error.message}`)
+            }
+        }
+        
+        logger.info('Supabase email templates initialized')
     } catch (error) {
         logger.error('Failed to initialize email templates', error)
         // Don't throw error here to prevent application startup failure
@@ -146,6 +93,7 @@ interface InvitationEmailParams {
     organizationName: string
     role: string
     invitationUrl: string
+    inviterAvatar?: string
     workspaceName?: string
 }
 
@@ -155,11 +103,16 @@ interface InvitationEmailParams {
  * @returns {string} The HTML email template
  */
 export const getInvitationEmailTemplate = (params: InvitationEmailParams): string => {
-    const { inviteeEmail, inviterName, organizationName, role, invitationUrl, workspaceName } = params
+    const { inviteeEmail, inviterName, organizationName, role, invitationUrl, inviterAvatar, workspaceName } = params
     
     // Determine if this is a workspace or organization invitation
     const invitationType = workspaceName ? 'workspace' : 'organization'
     const entityName = workspaceName || organizationName
+    
+    // Avatar section
+    const avatarSection = inviterAvatar 
+        ? `<div class="avatar"><img src="${inviterAvatar}" alt="${inviterName}" style="width: 50px; height: 50px; border-radius: 50%; margin-right: 10px;"></div>`
+        : '';
     
     return `
     <!DOCTYPE html>
@@ -191,6 +144,14 @@ export const getInvitationEmailTemplate = (params: InvitationEmailParams): strin
                 padding: 30px;
                 margin-bottom: 30px;
             }
+            .inviter-section {
+                display: flex;
+                align-items: center;
+                margin-bottom: 20px;
+            }
+            .avatar {
+                margin-right: 15px;
+            }
             .button {
                 display: inline-block;
                 background-color: #4a6cf7;
@@ -218,7 +179,12 @@ export const getInvitationEmailTemplate = (params: InvitationEmailParams): strin
         <div class="content">
             <p>Hello ${inviteeEmail},</p>
             
-            <p>${inviterName} has invited you to join ${workspaceName ? `the "${workspaceName}" workspace in the "${organizationName}" organization` : `the "${organizationName}" organization`} as a <strong>${role}</strong>.</p>
+            <div class="inviter-section">
+                ${avatarSection}
+                <div>
+                    <p><strong>${inviterName}</strong> has invited you to join ${workspaceName ? `the "${workspaceName}" workspace in the "${organizationName}" organization` : `the "${organizationName}" organization`} as a <strong>${role}</strong>.</p>
+                </div>
+            </div>
             
             <p>Click the button below to accept this invitation and get started:</p>
             

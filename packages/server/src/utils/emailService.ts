@@ -10,6 +10,7 @@ interface InvitationEmailParams {
     invitationType: 'organization' | 'workspace'
     token: string
     role: string
+    inviterName?: string
     workspaceName?: string
 }
 
@@ -18,11 +19,11 @@ interface InvitationEmailParams {
  */
 export const sendInvitationEmail = async (params: InvitationEmailParams): Promise<void> => {
     try {
-        const { email, organizationName, invitationType, token, role, workspaceName } = params
+        const { email, organizationName, invitationType, token, role, inviterName, workspaceName } = params
         
         // Build the invitation URL
         const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
-        const invitationUrl = `${baseUrl}/${invitationType}-invitations/${token}`
+        const invitationUrl = `${baseUrl}/invitations/${token}`
         
         // Build the email subject
         let subject = ''
@@ -32,18 +33,21 @@ export const sendInvitationEmail = async (params: InvitationEmailParams): Promis
             subject = `Invitation to join ${workspaceName} workspace in ${organizationName}`
         }
         
+        // Name of the person who sent the invitation
+        const inviter = inviterName || 'An administrator'
+        
         // Build the email content
         let content = ''
         if (invitationType === 'organization') {
             content = `
-                <p>You have been invited to join the organization <strong>${organizationName}</strong> as a <strong>${role}</strong>.</p>
+                <p>${inviter} has invited you to join the organization <strong>${organizationName}</strong> as a <strong>${role}</strong>.</p>
                 <p>Click the link below to accept the invitation:</p>
                 <p><a href="${invitationUrl}">Accept Invitation</a></p>
                 <p>This invitation will expire in 7 days.</p>
             `
         } else {
             content = `
-                <p>You have been invited to join the workspace <strong>${workspaceName}</strong> in organization <strong>${organizationName}</strong> as a <strong>${role}</strong>.</p>
+                <p>${inviter} has invited you to join the workspace <strong>${workspaceName}</strong> in organization <strong>${organizationName}</strong> as a <strong>${role}</strong>.</p>
                 <p>Click the link below to accept the invitation:</p>
                 <p><a href="${invitationUrl}">Accept Invitation</a></p>
                 <p>This invitation will expire in 7 days.</p>

@@ -4,6 +4,7 @@ import {
   Grid,
   TextField,
   Typography,
+  Button,
 } from '@mui/material';
 import PropTypes from 'prop-types';
 
@@ -11,7 +12,7 @@ import PropTypes from 'prop-types';
  * User details form for registration
  * Collects user's email, password, and personal information
  */
-const UserDetailsForm = ({ formData, handleChange }) => {
+const UserDetailsForm = ({ formData, handleInputChange, handleSubmit }) => {
   return (
     <Box>
       <Typography variant="h6" gutterBottom>
@@ -30,8 +31,8 @@ const UserDetailsForm = ({ formData, handleChange }) => {
             name="email"
             label="Email Address"
             type="email"
-            value={formData.email}
-            onChange={handleChange('email')}
+            value={formData.email || ''}
+            onChange={handleInputChange}
             autoComplete="email"
           />
         </Grid>
@@ -44,8 +45,8 @@ const UserDetailsForm = ({ formData, handleChange }) => {
             name="password"
             label="Password"
             type="password"
-            value={formData.password}
-            onChange={handleChange('password')}
+            value={formData.password || ''}
+            onChange={handleInputChange}
             autoComplete="new-password"
             helperText="Password must be at least 8 characters"
           />
@@ -59,8 +60,8 @@ const UserDetailsForm = ({ formData, handleChange }) => {
             name="confirmPassword"
             label="Confirm Password"
             type="password"
-            value={formData.confirmPassword}
-            onChange={handleChange('confirmPassword')}
+            value={formData.confirmPassword || ''}
+            onChange={handleInputChange}
             autoComplete="new-password"
           />
         </Grid>
@@ -74,45 +75,42 @@ const UserDetailsForm = ({ formData, handleChange }) => {
       </Typography>
       
       <Grid container spacing={3}>
-        <Grid item xs={12} sm={6}>
+        <Grid item xs={12}>
           <TextField
             required
             fullWidth
-            id="firstName"
-            name="firstName"
-            label="First Name"
-            value={formData.firstName}
-            onChange={handleChange('firstName')}
-            autoComplete="given-name"
-          />
-        </Grid>
-        
-        <Grid item xs={12} sm={6}>
-          <TextField
-            required
-            fullWidth
-            id="lastName"
-            name="lastName"
-            label="Last Name"
-            value={formData.lastName}
-            onChange={handleChange('lastName')}
-            autoComplete="family-name"
+            id="fullName"
+            name="fullName"
+            label="Full Name"
+            value={formData.fullName || ''}
+            onChange={handleInputChange}
+            autoComplete="name"
           />
         </Grid>
       </Grid>
+      
+      <Box sx={{ mt: 4, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+        >
+          Continue
+        </Button>
+      </Box>
     </Box>
   );
 };
 
 UserDetailsForm.propTypes = {
   formData: PropTypes.shape({
-    email: PropTypes.string.isRequired,
-    password: PropTypes.string.isRequired,
-    confirmPassword: PropTypes.string.isRequired,
-    firstName: PropTypes.string.isRequired,
-    lastName: PropTypes.string.isRequired,
-  }).isRequired,
-  handleChange: PropTypes.func.isRequired,
+    email: PropTypes.string,
+    password: PropTypes.string,
+    confirmPassword: PropTypes.string,
+    fullName: PropTypes.string,
+  }),
+  handleInputChange: PropTypes.func.isRequired,
+  handleSubmit: PropTypes.func.isRequired,
 };
 
 export default UserDetailsForm;

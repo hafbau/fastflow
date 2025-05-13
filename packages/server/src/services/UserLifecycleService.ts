@@ -10,7 +10,6 @@ import { UserRole } from '../database/entities/UserRole'
 import { UserService, UserStatus } from './UserService'
 import { UserOrganizationService } from './UserOrganizationService'
 import { WorkspaceMemberService } from './WorkspaceMemberService'
-import rolesPermissionsService from './RolesPermissionsService'
 import auditLogsService from './audit-logs'
 import { getInitializedDataSource } from '../DataSource'
 

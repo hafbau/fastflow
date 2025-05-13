@@ -21,6 +21,7 @@ import {
   Tooltip,
   Badge,
   ListSubheader,
+  Chip
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -40,8 +41,15 @@ import {
 
 import { useAuth } from '../contexts/AuthContext';
 import usePermissions from '../hooks/usePermissions';
-import ContextSwitcher from '../components/ContextSwitcher';
 import PermissionGate from '../components/PermissionGate';
+
+// Import the new enhanced Organization/Workspace switcher
+import OrganizationWorkspaceSwitcher from '../components/WorkspaceManagement/OrganizationWorkspaceSwitcher';
+import OrganizationCreateDialog from '../components/OrganizationManagement/OrganizationCreateDialog';
+import WorkspaceCreateDialog from '../components/WorkspaceManagement/WorkspaceCreateDialog';
+
+// Import the improved workspace hooks from local hooks
+import { useWorkspace, useOrganization, useWorkspacePermission } from '../hooks';
 
 const drawerWidth = 260;
 
@@ -49,7 +57,10 @@ const drawerWidth = 260;
  * Main application layout with navigation sidebar and header
  */
 const AppLayout = () => {
-  const { user, currentOrganization, currentWorkspace, signOut } = useAuth();
+  const { user, signOut } = useAuth();
+  // Use the enhanced workspace-aware hooks
+  const { workspaceId, organizationId } = useWorkspace();
+  const { hasPermission } = useWorkspacePermission('organization', 'manage');
   const permissions = usePermissions();
   const location = useLocation();
   const theme = useTheme();
@@ -113,6 +124,36 @@ const AppLayout = () => {
     return item;
   };
   
+  // Helper function to fetch organization name
+  const fetchOrgName = (orgId) => 'Default Organization'; // Placeholder for organization name fetching
+  // const fetchOrgName = async (orgId) => {
+  //   if (!orgId) return "";
+  //   // Implement organization name fetching here
+  //   try {
+  //     const response = await fetch(`/api/organizations/${orgId}`);
+  //     const data = await response.json();
+  //     return data.name;
+  //   } catch (error) {
+  //     console.error('Error fetching organization name:', error);
+  //     return 'Unknown Organization';
+  //   }
+  // };
+
+  // Helper function to fetch workspace name
+  const fetchWorkspaceName = (wsId) => 'Default Workspace'; // Placeholder for workspace name fetching
+  // const fetchWorkspaceName = async (wsId) => {
+  //   if (!wsId) return "";
+  //   // Implement workspace name fetching here
+  //   try {
+  //     const response = await fetch(`/api/workspaces/${wsId}`);
+  //     const data = await response.json();
+  //     return data.name;
+  //   } catch (error) {
+  //     console.error('Error fetching workspace name:', error);
+  //     return 'Unknown Workspace';
+  //   }
+  // };
+  
   return (
     <Box sx={{ display: 'flex', height: '100vh' }}>
       {/* App Bar */}
@@ -131,6 +172,7 @@ const AppLayout = () => {
             edge="start"
             onClick={handleDrawerToggle}
             sx={{ mr: 2 }}
+            aria-label="Open/close navigation menu"
           >
             <MenuIcon />
           </IconButton>
@@ -141,17 +183,14 @@ const AppLayout = () => {
             </Typography>
           </Box>
           
-          {/* Context Switcher */}
-          <ContextSwitcher 
-            onCreateOrganization={() => setCreateOrgDialogOpen(true)}
-            onCreateWorkspace={() => setCreateWorkspaceDialogOpen(true)}
-          />
+          {/* Use the new OrganizationWorkspaceSwitcher component */}
+          <OrganizationWorkspaceSwitcher />
           
           <Box sx={{ flexGrow: 1 }} />
           
           {/* Notifications */}
           <Tooltip title="Notifications">
-            <IconButton color="inherit" sx={{ mr: 2 }}>
+            <IconButton color="inherit" sx={{ mr: 2 }} aria-label="Notifications">
               <Badge badgeContent={0} color="error">
                 <NotificationsIcon />
               </Badge>
@@ -166,6 +205,7 @@ const AppLayout = () => {
                 size="small"
                 aria-controls="user-menu"
                 aria-haspopup="true"
+                aria-label="User profile and settings"
               >
                 <Avatar 
                   src={user?.avatar_url}
@@ -252,23 +292,23 @@ const AppLayout = () => {
                 text="My Organizations" 
               />
               
-              {currentOrganization && (
+              {organizationId && (
                 <>
                   <NavItem 
-                    to={`/organizations/${currentOrganization.id}`} 
+                    to={`/organizations/${organizationId}`} 
                     icon={<BusinessCenterIcon />}
-                    text={currentOrganization.name} 
+                    text={fetchOrgName(organizationId)} 
                   />
                   
                   <NavItem 
-                    to={`/organizations/${currentOrganization.id}/members`} 
+                    to={`/organizations/${organizationId}/members`} 
                     icon={<PeopleIcon />}
                     text="Members" 
                     permission="canViewOrgMembers"
                   />
                   
                   <NavItem 
-                    to={`/organizations/${currentOrganization.id}/settings`} 
+                    to={`/organizations/${organizationId}/settings`} 
                     icon={<SettingsIcon />}
                     text="Settings" 
                     permission="canManageOrgSettings"
@@ -278,7 +318,7 @@ const AppLayout = () => {
             </List>
             
             {/* Workspaces Section */}
-            {currentOrganization && (
+            {organizationId && (
               <List
                 subheader={
                   <ListSubheader component="div" id="workspaces-subheader">
@@ -287,28 +327,28 @@ const AppLayout = () => {
                 }
               >
                 <NavItem 
-                  to={`/organizations/${currentOrganization.id}/workspaces`} 
+                  to={`/organizations/${organizationId}/workspaces`} 
                   icon={<FolderSharedIcon />}
                   text="All Workspaces" 
                 />
                 
-                {currentWorkspace && (
+                {workspaceId && (
                   <>
                     <NavItem 
-                      to={`/workspaces/${currentWorkspace.id}`} 
+                      to={`/workspaces/${workspaceId}`} 
                       icon={<FolderIcon />}
-                      text={currentWorkspace.name} 
+                      text={fetchWorkspaceName(workspaceId)} 
                     />
                     
                     <NavItem 
-                      to={`/workspaces/${currentWorkspace.id}/members`} 
+                      to={`/workspaces/${workspaceId}/members`} 
                       icon={<PeopleIcon />}
                       text="Members" 
                       permission="canViewWorkspaceMembers"
                     />
                     
                     <NavItem 
-                      to={`/workspaces/${currentWorkspace.id}/settings`} 
+                      to={`/workspaces/${workspaceId}/settings`} 
                       icon={<SettingsIcon />}
                       text="Settings" 
                       permission="canManageWorkspaceSettings"
@@ -362,21 +402,31 @@ const AppLayout = () => {
         <Outlet />
       </Box>
       
-      {/* Organization Create Dialog (placeholder - to be implemented) */}
-      {createOrgDialogOpen && (
-        // This would be your actual OrganizationCreateDialog component
-        <div style={{ display: 'none' }}>
-          Organization Create Dialog - to be implemented
-        </div>
-      )}
-      
-      {/* Workspace Create Dialog (placeholder - to be implemented) */}
-      {createWorkspaceDialogOpen && (
-        // This would be your actual WorkspaceCreateDialog component
-        <div style={{ display: 'none' }}>
-          Workspace Create Dialog - to be implemented
-        </div>
-      )}
+      {/* Organization Create Dialog */}
+      <OrganizationCreateDialog
+        open={createOrgDialogOpen}
+        onClose={() => setCreateOrgDialogOpen(false)}
+        onSuccess={(newOrg) => {
+          // Navigate to new organization
+          if (newOrg) {
+            // Update context to new organization
+            setCreateOrgDialogOpen(false);
+          }
+        }}
+      />
+
+      {/* Workspace Create Dialog */}
+      <WorkspaceCreateDialog
+        open={createWorkspaceDialogOpen}
+        onClose={() => setCreateWorkspaceDialogOpen(false)}
+        organizationId={organizationId}
+        onSuccess={(newWorkspace) => {
+          // Navigate to new workspace
+          if (newWorkspace) {
+            setCreateWorkspaceDialogOpen(false);
+          }
+        }}
+      />
     </Box>
   );
 };

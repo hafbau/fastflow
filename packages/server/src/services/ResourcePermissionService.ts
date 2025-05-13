@@ -14,6 +14,7 @@ import rolesPermissionsService from './RolesPermissionsService'
 import { createClient } from 'redis'
 import config from '../config'
 import { getInitializedDataSource } from '../DataSource'
+import permissionCacheService from './roles-permissions/PermissionCacheService'
 
 /**
  * Service for managing resource-level permissions
@@ -197,8 +198,8 @@ export class ResourcePermissionService {
                 permission
             })
             
-            // Clear cache
-            await this.clearCache(userId, resourceType, resourceId)
+            // Invalidate cache
+            await permissionCacheService.invalidateUserPermissions(userId)
             
             return (result.affected ?? 0) > 0
         } catch (error: any) {
@@ -223,12 +224,30 @@ export class ResourcePermissionService {
         try {
             await this.ensureInitialized()
             
+            // Find all users with permissions on this resource first
+            const permissions = await this.resourcePermissionRepository!.find({
+                where: {
+                    resourceType,
+                    resourceId
+                } as any
+            })
+            
+            // Get unique user IDs
+            const userIds = [...new Set(permissions.map(p => p.userId))]
+            
+            // Delete the permissions
             const result = await this.resourcePermissionRepository!.delete({
                 resourceType,
                 resourceId
             })
             
-            // We can't efficiently clear cache for all users, so we'll let it expire naturally
+            // Invalidate cache for all affected users
+            for (const userId of userIds) {
+                await permissionCacheService.invalidateUserPermissions(userId)
+            }
+            
+            // Also invalidate resource-specific cache
+            await permissionCacheService.invalidateResourcePermissions(resourceType, resourceId)
             
             return (result.affected ?? 0) > 0
         } catch (error: any) {
@@ -344,14 +363,9 @@ export class ResourcePermissionService {
             await this.ensureInitialized()
             
             // Check cache first
-            if (this.redisClient) {
-                const cacheKey = this.getCacheKey(userId, resourceType, resourceId)
-                const cachedPermissions = await this.redisClient.get(cacheKey)
-                
-                if (cachedPermissions) {
-                    const permissions = JSON.parse(cachedPermissions)
-                    return permissions.includes(permission)
-                }
+            const cachedResult = await permissionCacheService.getPermission(userId, resourceType, resourceId, permission)
+            if (cachedResult !== null) {
+                return cachedResult;
             }
             
             // First check if the user has a direct resource permission
@@ -365,11 +379,22 @@ export class ResourcePermissionService {
             })
             
             if (count > 0) {
-                return true
+                // Cache positive result for 5 minutes
+                await permissionCacheService.cachePermission(userId, resourceType, resourceId, permission, true, 300);
+                return true;
             }
             
             // If not, check if the user has the permission through their roles
-            return await rolesPermissionsService.hasPermission(userId, resourceType, permission)
+            const hasRolePermission = await rolesPermissionsService.hasPermission(userId, resourceType, permission);
+            
+            // Cache result with appropriate TTL (5 min for positive, 1 min for negative)
+            if (hasRolePermission) {
+                await permissionCacheService.cachePermission(userId, resourceType, resourceId, permission, true, 300);
+            } else {
+                await permissionCacheService.cachePermission(userId, resourceType, resourceId, permission, false, 60);
+            }
+            
+            return hasRolePermission;
         } catch (error: any) {
             logger.error(`[ResourcePermissionService] Check resource permission error: ${error.message}`)
             return false
@@ -446,6 +471,58 @@ export class ResourcePermissionService {
             throw new InternalFastflowError(
                 StatusCodes.INTERNAL_SERVER_ERROR,
                 `Failed to get users with permission: ${error.message}`
+            )
+        }
+    }
+
+    /**
+     * Add a permission for a user on a resource
+     * @param {string} userId - User ID
+     * @param {string} resourceType - Resource type
+     * @param {string} resourceId - Resource ID
+     * @param {string} permission - Permission (e.g., 'read', 'write', 'delete')
+     * @returns {Promise<ResourcePermission>} Created permission
+     */
+    async addPermission(
+        userId: string,
+        resourceType: string,
+        resourceId: string,
+        permission: string
+    ): Promise<ResourcePermission> {
+        try {
+            await this.ensureInitialized()
+            
+            // Check if permission already exists
+            const existing = await this.resourcePermissionRepository!.findOneBy({
+                userId,
+                resourceType,
+                resourceId,
+                permission
+            } as any)
+            
+            if (existing) {
+                return existing
+            }
+            
+            // Create the permission
+            const resourcePermission = this.resourcePermissionRepository!.create({
+                userId,
+                resourceType,
+                resourceId,
+                permission
+            })
+            
+            const result = await this.resourcePermissionRepository!.save(resourcePermission)
+            
+            // Invalidate cache
+            await permissionCacheService.invalidateUserPermissions(userId)
+            
+            return result
+        } catch (error: any) {
+            logger.error(`[ResourcePermissionService] Add permission error: ${error.message}`)
+            throw new InternalFastflowError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                `Failed to add permission: ${error.message}`
             )
         }
     }

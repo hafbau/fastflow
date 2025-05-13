@@ -2,73 +2,65 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Confirm Your Email</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Confirmation</title>
     <style>
         body {
             font-family: Arial, sans-serif;
             line-height: 1.6;
             color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
             max-width: 600px;
             margin: 0 auto;
             padding: 20px;
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
-        }
-        .logo {
-            max-width: 150px;
             margin-bottom: 20px;
-        }
-        .content {
-            background-color: #f9f9f9;
-            padding: 30px;
-            border-radius: 5px;
         }
         .button {
             display: inline-block;
-            background-color: #4f46e5;
+            padding: 10px 20px;
+            background-color: #4CAF50;
             color: white;
             text-decoration: none;
-            padding: 12px 24px;
             border-radius: 4px;
             margin: 20px 0;
-            font-weight: bold;
         }
         .footer {
             margin-top: 30px;
-            font-size: 12px;
-            color: #666;
             text-align: center;
+            font-size: 12px;
+            color: #888;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <img src="https://fastflow.ai/assets/FastFlowAI_primary.png" alt="Flowstack Logo" class="logo">
-        <h1>Confirm Your Email Address</h1>
-    </div>
-    
-    <div class="content">
-        <p>Hello,</p>
+    <div class="container">
+        <div class="header">
+            <h1>Please Confirm Your Account</h1>
+        </div>
         
-        <p>Thank you for registering with Flowstack. To complete your registration and verify your email address, please click the button below:</p>
+        <p>Hello {{name}},</p>
         
-        <p style="text-align: center;">
-            <a href="{{ .ConfirmationURL }}" class="button">Confirm Email</a>
-        </p>
+        <p>Thank you for registering with Flowstack. Please confirm your email address by clicking the button below.</p>
         
-        <p>If you did not create an account with Flowstack, you can safely ignore this email.</p>
+        <div style="text-align: center;">
+            <a href="{{confirmationUrl}}" class="button">Confirm Email Address</a>
+        </div>
         
-        <p>This confirmation link will expire in 24 hours.</p>
+        <p>If you did not create an account, please ignore this email.</p>
         
-        <p>Best regards,<br>The Flowstack Team</p>
-    </div>
-    
-    <div class="footer">
-        <p>© 2025 Flowstack. All rights reserved.</p>
-        <p>If you have any questions, please contact us at support@fastflow.ai</p>
+        <p>If the button doesn't work, you can also copy and paste the following link into your browser:</p>
+        <p>{{confirmationUrl}}</p>
+        
+        <div class="footer">
+            <p>&copy; {{year}} Flowstack. All rights reserved.</p>
+            <p>This is an automated message, please do not reply.</p>
+        </div>
     </div>
 </body>
 </html>

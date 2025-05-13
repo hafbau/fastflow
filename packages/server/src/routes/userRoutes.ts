@@ -46,6 +46,13 @@ router.put('/me',
     userController.updateCurrentUser.bind(userController)
 )
 
+// Get current user organizations
+router.get('/me/organizations',
+    verifyJWT,
+    logAuthEvent('user_profile_access'),
+    userController.getCurrentUserOrganizations.bind(userController)
+)
+
 /**
  * Admin routes (admin permissions required)
  */

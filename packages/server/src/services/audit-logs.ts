@@ -1,8 +1,9 @@
-import { getRepository } from 'typeorm'
+import { Repository } from 'typeorm'
 import { StatusCodes } from 'http-status-codes'
 import { AuditLog } from '../database/entities/AuditLog'
 import { InternalFastflowError } from '../errors/InternalFastflowError'
 import logger from '../utils/logger'
+import { getInitializedDataSource } from '../DataSource'
 
 /**
  * Interface for audit log creation parameters
@@ -35,6 +36,19 @@ interface AuditLogFilters {
  * Service for managing audit logs
  */
 class AuditLogsService {
+    private auditLogRepository: Repository<AuditLog> | null = null
+    
+    /**
+     * Ensure the repository is initialized
+     * @private
+     */
+    private async ensureInitialized(): Promise<void> {
+        if (!this.auditLogRepository) {
+            const dataSource = await getInitializedDataSource()
+            this.auditLogRepository = dataSource.getRepository(AuditLog)
+            logger.debug('[AuditLogsService] Repository initialized')
+        }
+    }
     /**
      * Create a new audit log
      * @param {AuditLogParams} params - Audit log parameters
@@ -42,10 +56,11 @@ class AuditLogsService {
      */
     async createAuditLog(params: AuditLogParams): Promise<AuditLog> {
         try {
-            const auditLogRepository = getRepository(AuditLog)
+            await this.ensureInitialized()
             
             // Create audit log
-            const auditLog = auditLogRepository.create({
+            const auditLog = this.auditLogRepository!.create({
+            
                 userId: params.userId,
                 action: params.action,
                 resourceType: params.resourceType,
@@ -56,7 +71,7 @@ class AuditLogsService {
             })
             
             // Save audit log
-            return await auditLogRepository.save(auditLog)
+            return await this.auditLogRepository!.save(auditLog)
         } catch (error) {
             logger.error(`[AuditLogsService] createAuditLog error: ${error}`)
             throw new InternalFastflowError(StatusCodes.INTERNAL_SERVER_ERROR, 'Failed to create audit log')
@@ -98,10 +113,10 @@ class AuditLogsService {
      */
     async getAuditLogById(id: string): Promise<AuditLog> {
         try {
-            const auditLogRepository = getRepository(AuditLog)
+            await this.ensureInitialized()
             
             // Find audit log
-            const auditLog = await auditLogRepository.findOne({ where: { id } })
+            const auditLog = await this.auditLogRepository!.findOne({ where: { id } })
             
             if (!auditLog) {
                 throw new InternalFastflowError(StatusCodes.NOT_FOUND, 'Audit log not found')
@@ -125,7 +140,7 @@ class AuditLogsService {
      */
     async getAuditLogs(filters: AuditLogFilters): Promise<{ logs: AuditLog[], total: number }> {
         try {
-            const auditLogRepository = getRepository(AuditLog)
+            await this.ensureInitialized()
             
             // Build query
             const query: any = {}
@@ -162,7 +177,7 @@ class AuditLogsService {
             }
             
             // Get logs with pagination
-            const logs = await auditLogRepository.find({
+            const logs = await this.auditLogRepository!.find({
                 where: whereClause,
                 order: { timestamp: 'DESC' },
                 skip: filters.offset || 0,
@@ -170,7 +185,7 @@ class AuditLogsService {
             })
             
             // Get total count
-            const total = await auditLogRepository.count({ where: whereClause })
+            const total = await this.auditLogRepository!.count({ where: whereClause })
             
             return { logs, total }
         } catch (error) {

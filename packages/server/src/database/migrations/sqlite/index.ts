@@ -37,6 +37,10 @@ import { AddScopeToPermissionTable1746197600000 } from './1746197600000-AddScope
 import { AddNameToPermissionTable1746197700000 } from './1746197700000-AddNameToPermissionTable'
 import { CreateUserLifecycleTables1714348587000 } from './1714348587000-CreateUserLifecycleTables'
 import { CreateCustomRoleTables1714348588000 } from './1714348588000-CreateCustomRoleTables'
+import { UserProfileCamelCaseMigration1746841100000 } from './1746841100000-UserProfileCamelCaseMigration'
+import { CreateAuditLogsTable1746921360887 } from './1746921360887-CreateAuditLogsTable'
+import { CreateAccessReviewTables1746922802000 } from './1746922802000-CreateAccessReviewTables'
+import { CreateInvitationTable1746950000000 } from './1746950000000-CreateInvitationTable'
 
 export const sqliteMigrations = [
     Init1693835579790,
@@ -75,7 +79,11 @@ export const sqliteMigrations = [
     AddMissingTypeColumnToRoleTable1746197501000,
     OrganizationSlugMigration1746197502000,
     UserProfileMigration1746197503000,
+    UserProfileCamelCaseMigration1746841100000,
     WorkspaceMemberMigration1746197504000,
     AddScopeToPermissionTable1746197600000,
-    AddNameToPermissionTable1746197700000
+    AddNameToPermissionTable1746197700000,
+    CreateAuditLogsTable1746921360887,
+    CreateAccessReviewTables1746922802000,
+    CreateInvitationTable1746950000000
 ]

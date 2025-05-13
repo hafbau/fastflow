@@ -25,6 +25,7 @@ const ProtectedRoute = () => {
         }}
       >
         <CircularProgress />
+        <p style={{ marginLeft: '10px' }}>Loading your profile ...</p>
       </Box>
     );
   }

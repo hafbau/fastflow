@@ -1,6 +1,5 @@
 import express, { Request } from 'express'
 import workspacesController from '../../controllers/workspaces'
-import workspaceInvitationsController from '../../controllers/workspace-invitations'
 import workspaceSettingsController from '../../controllers/workspace-settings'
 import { authorize } from '../../middleware/auth/index'
 
@@ -52,34 +51,6 @@ router.put('/:id/members/:userId',
 router.delete('/:id/members/:userId',
   authorize({ resourceType: 'workspace', action: 'update', resourceId: (req: Request) => req.params.id }),
   workspacesController.removeWorkspaceMember
-)
-
-// Workspace invitations routes
-router.get('/:id/invitations',
-  authorize({ resourceType: 'workspace', action: 'read', resourceId: (req: Request) => req.params.id }),
-  workspaceInvitationsController.getWorkspaceInvitations
-)
-router.post('/:id/invitations',
-  authorize({ resourceType: 'workspace', action: 'update', resourceId: (req: Request) => req.params.id }),
-  workspaceInvitationsController.createInvitation
-)
-router.get('/invitations/:invitationId',
-  authorize({ resourceType: 'invitation', action: 'read', resourceId: (req: Request) => req.params.invitationId }),
-  workspaceInvitationsController.getInvitationById
-)
-router.get('/invitations/token/:token',
-  workspaceInvitationsController.getInvitationByToken
-)
-router.post('/invitations/token/:token/accept',
-  workspaceInvitationsController.acceptInvitation
-)
-router.post('/invitations/:invitationId/resend',
-  authorize({ resourceType: 'invitation', action: 'update', resourceId: (req: Request) => req.params.invitationId }),
-  workspaceInvitationsController.resendInvitation
-)
-router.delete('/invitations/:invitationId',
-  authorize({ resourceType: 'invitation', action: 'delete', resourceId: (req: Request) => req.params.invitationId }),
-  workspaceInvitationsController.cancelInvitation
 )
 
 // Workspace settings routes

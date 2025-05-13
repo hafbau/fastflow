@@ -507,6 +507,34 @@ class RoleService {
     }
 
     /**
+     * Assign Admin role to user
+     */
+    async assignAdminRoleToUser(userId: string, workspaceId?: string): Promise<void> {
+        try {
+            await this.ensureInitialized()
+            
+            // Assign the admin role
+            const adminRole = await this.getSystemRoles()
+            const adminRoleId = adminRole.find(role => role.name === 'Admin')?.id
+            
+            if (!adminRoleId) {
+                throw new InternalFastflowError(
+                    StatusCodes.NOT_FOUND,
+                    'Admin role not found'
+                )
+            }
+            
+            await this.assignRoleToUser(userId, adminRoleId, workspaceId)
+        } catch (error) {
+            if (error instanceof InternalFastflowError) throw error
+            throw new InternalFastflowError(
+                StatusCodes.INTERNAL_SERVER_ERROR,
+                `Error: RoleService.assignAdminRoleToUser - ${getErrorMessage(error)}`
+            )
+        }
+    }
+
+    /**
      * Remove role from user
      */
     async removeRoleFromUser(userId: string, roleId: string, workspaceId?: string): Promise<void> {

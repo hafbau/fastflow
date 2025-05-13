@@ -12,13 +12,13 @@ import { UpsertHistory } from './UpsertHistory'
 import { ApiKey } from './ApiKey'
 import { CustomTemplate } from './CustomTemplate'
 import { Organization } from './Organization'
-import { OrganizationInvitation } from './OrganizationInvitation'
 import { OrganizationMember } from './OrganizationMember'
 import { OrganizationSettings } from './OrganizationSettings'
+import { UserOrganization } from './UserOrganization'
 import { Workspace } from './Workspace'
-import { WorkspaceInvitation } from './WorkspaceInvitation'
 import { WorkspaceMember } from './WorkspaceMember'
 import { WorkspaceSettings } from './WorkspaceSettings'
+import { Invitation } from './Invitation'
 import { Role } from './Role'
 import { CustomRole } from './CustomRole'
 import { Permission } from './Permission'
@@ -50,13 +50,13 @@ export const entities = {
     ApiKey,
     CustomTemplate,
     Organization,
-    OrganizationInvitation,
     OrganizationMember,
     OrganizationSettings,
+    UserOrganization,
     Workspace,
-    WorkspaceInvitation,
     WorkspaceMember,
     WorkspaceSettings,
+    Invitation,
     Role,
     CustomRole,
     Permission,

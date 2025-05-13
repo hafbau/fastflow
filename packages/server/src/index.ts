@@ -19,7 +19,7 @@ import { sanitizeMiddleware, getCorsOptions, getAllowedIframeOrigins } from './u
 import { dynamicRateLimiter } from './middlewares/rateLimit'
 import rateLimitService from './services/rateLimit'
 import { Telemetry } from './utils/telemetry'
-import flowiseApiV1Router from './routes'
+import flowstackApiV1Router from './routes'
 import errorHandlerMiddleware from './middlewares/errors'
 import { SSEStreamer } from './utils/SSEStreamer'
 import { validateAPIKey } from './utils/validateKey'
@@ -207,7 +207,7 @@ export class App {
             }
         }
 
-        this.app.use('/api/v1', flowiseApiV1Router)
+        this.app.use('/api/v1', flowstackApiV1Router)
 
         // ----------------------------------------
         // Configure number of proxies in Host Environment

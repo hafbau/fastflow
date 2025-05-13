@@ -3,18 +3,18 @@ import {
     Column,
     PrimaryGeneratedColumn,
     CreateDateColumn,
-    UpdateDateColumn,
     ManyToOne,
     JoinColumn,
     Unique
 } from 'typeorm'
 import { Organization } from './Organization'
+import { UserProfile } from './UserProfile'
 
 /**
  * OrganizationMember entity
  * Represents a member of an organization
  */
-@Entity()
+@Entity('organization_member')
 @Unique(['organizationId', 'userId'])
 export class OrganizationMember {
     @PrimaryGeneratedColumn('uuid')
@@ -23,25 +23,29 @@ export class OrganizationMember {
     @Column({ type: 'uuid' })
     organizationId: string
 
-    @ManyToOne(() => Organization, organization => organization.members, { onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'organizationId' })
-    organization: Organization
-
     @Column({ type: 'uuid' })
     userId: string
 
     @Column({ length: 50, default: 'member' })
     role: string
 
-    @Column({ default: true })
-    isActive: boolean
+    @CreateDateColumn({ name: 'joined_at' })
+    joinedAt: Date
 
-    @Column({ type: 'json', nullable: true })
-    permissions: any
+    // Relationships
+    @ManyToOne(() => Organization, organization => organization.members, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'organizationId' })
+    organization: Organization
 
-    @CreateDateColumn()
-    createdAt: Date
+    @ManyToOne(() => UserProfile, { eager: false })
+    @JoinColumn({ name: 'userId' })
+    user?: UserProfile
 
-    @UpdateDateColumn()
-    updatedAt: Date
+    /**
+     * Virtual property that reflects the user's active status
+     * @returns {boolean} True if the user status is 'ACTIVE'
+     */
+    get isActive(): boolean {
+        return this.user?.status === 'ACTIVE';
+    }
 }

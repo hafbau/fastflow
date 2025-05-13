@@ -10,7 +10,7 @@ import {
   PasswordResetRequest,
   PasswordUpdateRequest,
   ProfileUpdateRequest,
-  EmailUpdateRequest
+  EmailUpdateRequest,
 } from '../types/auth';
 
 // Define the auth context type
@@ -19,6 +19,9 @@ interface AuthContextType {
   session: Session | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  currentOrganizationId: string | null;
+  currentWorkspaceId: string | null;
+  workspacePermissions: Record<string, any> | null;
   signUp: (request: SignUpRequest) => Promise<AuthResult>;
   signInWithPassword: (request: SignInWithPasswordRequest) => Promise<AuthResult>;
   signInWithMagicLink: (request: SignInWithMagicLinkRequest) => Promise<AuthResult>;
@@ -28,6 +31,10 @@ interface AuthContextType {
   updatePassword: (request: PasswordUpdateRequest) => Promise<AuthResult>;
   updateProfile: (request: ProfileUpdateRequest) => Promise<AuthResult>;
   updateEmail: (request: EmailUpdateRequest) => Promise<AuthResult>;
+  switchOrganization: (organizationId: string) => Promise<void>;
+  switchWorkspace: (workspaceId: string) => Promise<void>;
+  refreshWorkspacePermissions: () => Promise<void>;
+  hasPermission: (resource: string, action: string) => boolean;
 }
 
 // Create the auth context
@@ -71,7 +78,11 @@ export const getAuthFunctions = () => {
     resetPassword,
     updatePassword,
     updateProfile,
-    updateEmail
+    updateEmail,
+    switchOrganization,
+    switchWorkspace,
+    refreshWorkspacePermissions,
+    hasPermission
   } = useAuthContext();
 
   return {
@@ -83,6 +94,10 @@ export const getAuthFunctions = () => {
     resetPassword,
     updatePassword,
     updateProfile,
-    updateEmail
+    updateEmail,
+    switchOrganization,
+    switchWorkspace,
+    refreshWorkspacePermissions,
+    hasPermission
   };
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -41,7 +42,8 @@ import OrganizationMemberRemoveDialog from './OrganizationMemberRemoveDialog';
  * Organization members component
  * Displays and manages members of an organization
  */
-const OrganizationMembers = ({ organizationId, userRole }) => {
+const OrganizationMembers = ({ userRole }) => {
+  const { organizationId } = useParams(); // Extract organizationId from URL params
   const { getOrganizationMembers } = useAuth();
   const { enqueueSnackbar } = useSnackbar();
   
@@ -346,8 +348,8 @@ const OrganizationMembers = ({ organizationId, userRole }) => {
 };
 
 OrganizationMembers.propTypes = {
-  organizationId: PropTypes.string.isRequired,
   userRole: PropTypes.string.isRequired,
+  organizationId: PropTypes.string, // Now optional since we can get it from URL params
 };
 
 export default OrganizationMembers;

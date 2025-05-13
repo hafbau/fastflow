@@ -126,3 +126,4 @@ node_modules/
 # Task files
 tasks.json
 tasks/ 
+**/.claude/settings.local.json

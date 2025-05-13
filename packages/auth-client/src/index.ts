@@ -2,7 +2,23 @@
  * Main entry point for the auth-client package
  */
 
-// Export auth types
+// Export context providers and hooks
+export { AuthProvider, useAuthContext, getAuthFunctions } from './contexts/AuthContext';
+export { 
+  useWorkspaceContext, 
+  useWorkspacePermission, 
+  useOrganization, 
+  useWorkspace 
+} from './hooks/useWorkspaceContext';
+
+// Export components
+export { WorkspaceSwitcher } from './components/WorkspaceSwitcher';
+export { 
+  WorkspaceAwareComponent,
+  CurrentWorkspaceInfo
+} from './components/WorkspaceAwareComponent';
+
+// Export types
 export * from './types/auth';
 
 // Export identity provider types with explicit naming to avoid conflicts
@@ -40,3 +56,6 @@ export {
   updateProfile,
   updateEmail
 } from './utils/auth';
+
+// Export services
+export { authService } from './services/AuthService';

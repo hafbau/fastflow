@@ -1,10 +1,15 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import PropTypes from 'prop-types';
 
-// Initialize Supabase client
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
+// Import backend API clients
+import userApi from '../api/user';
+import organizationApi from '../api/organization';
+import workspaceApi from '../api/workspace';
+
+// Initialize Supabase client (for auth only)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Create context
@@ -27,189 +32,155 @@ export const AuthProvider = ({ children }) => {
   const [currentOrganization, setCurrentOrganization] = useState(null);
   const [currentWorkspace, setCurrentWorkspace] = useState(null);
 
+  const setEssentials = useCallback(async (currentSession) => {
+    console.log('Setting essential user data...');
+    try {
+      // Get user profile from backend
+      console.log('Fetching user profile...');
+      const profile = await userApi.getCurrentUser();
+      console.log('User profile received:', profile.data);
+      
+      if (!profile.data) {
+        console.error('No profile data received from API');
+        return;
+      }
+      
+      setUser({
+        ...currentSession.user,
+        ...profile.data,
+      });
+
+      try {
+        console.log('Fetching user organizations...');
+        const { data: organizations } = (await userApi.getCurrentUserOrganizations()) || {};
+        console.log('User organizations received:', organizations.data);
+        
+        if (!organizations.data || organizations.data.length === 0) {
+          console.log('No organizations found for user');
+          return;
+        }
+
+        const currentOrg = organizations.data.find(org => 
+          org.id === profile.data.preferences?.defaultOrganizationId
+        ) || organizations.data[0];
+        
+        console.log('Selected organization:', currentOrg);
+
+        // Get user's default organization
+        if (currentOrg) {
+          setCurrentOrganization(currentOrg);
+          
+          try {
+            console.log('Fetching workspaces for organization:', currentOrg.id);
+            const workspaces = await workspaceApi.getWorkspacesByOrganizationId(currentOrg.id);
+            console.log('Workspaces received:', workspaces.data);
+            
+            if (!workspaces.data || workspaces.data.length === 0) {
+              console.log('No workspaces found for organization');
+              return;
+            }
+
+            const currentWs = workspaces.data.find(ws => 
+              ws.id === profile.data.preferences?.defaultWorkspaceId
+            ) || workspaces.data[0];
+            
+            console.log('Selected workspace:', currentWs);
+            setCurrentWorkspace(currentWs);
+          } catch (workspacesError) {
+            console.error('Error fetching workspaces:', workspacesError);
+          }
+        }
+      } catch (orgsError) {
+        console.error('Error fetching organizations:', orgsError);
+      }
+    } catch (profileError) {
+      console.error('Error fetching user profile:', profileError);
+    }
+    
+    console.log('Essential user data setup complete');
+  }, []);
+
+  // Get current session
+  const initializeAuth = async () => {
+    setLoading(true);
+
+    try {
+      // Get current session
+      console.log('Initializing auth state...');
+      
+      // Explicitly catch any potential errors from supabase.auth.getSession
+      let sessionResult;
+      try {
+        sessionResult = await supabase.auth.getSession();
+        console.log('Session result received:', !!sessionResult);
+      } catch (getSessionError) {
+        console.error('Error getting session from Supabase:', getSessionError);
+        throw getSessionError;
+      }
+      
+      const { data, error: sessionError } = sessionResult || {};
+      const currentSession = data?.session;
+      
+      console.log('Current session exists:', !!currentSession);
+      console.log('Session error:', sessionError);
+      
+      if (sessionError) {
+        throw sessionError;
+      }
+
+      if (currentSession) {
+        setSession(currentSession);
+        console.log('Session set, now setting essential data...');
+        await setEssentials(currentSession);
+        console.log('Essential data set');
+      } else {
+        console.log('No active session found');
+      }
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+    } finally {
+      console.log('Auth initialization complete');
+      setLoading(false);
+    }
+  };
   // Initialize auth state
   useEffect(() => {
-    // Get current session
-    const initializeAuth = async () => {
-      setLoading(true);
-      
-      try {
-        // Get current session
-        const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          throw sessionError;
-        }
-        
-        if (currentSession) {
-          setSession(currentSession);
-          
-          // Get user profile
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', currentSession.user.id)
-            .single();
-          
-          if (profileError) {
-            throw profileError;
-          }
-          
-          // Set user with profile data
-          setUser({
-            ...currentSession.user,
-            ...profile,
-          });
-          
-          // Get user's default organization
-          if (profile.default_organization_id) {
-            const { data: organization, error: orgError } = await supabase
-              .from('organizations')
-              .select('*')
-              .eq('id', profile.default_organization_id)
-              .single();
-            
-            if (!orgError) {
-              setCurrentOrganization(organization);
-              
-              // Get user's default workspace if available
-              if (profile.default_workspace_id) {
-                const { data: workspace, error: workspaceError } = await supabase
-                  .from('workspaces')
-                  .select('*')
-                  .eq('id', profile.default_workspace_id)
-                  .eq('organization_id', organization.id)
-                  .single();
-                
-                if (!workspaceError) {
-                  setCurrentWorkspace(workspace);
-                }
-              }
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
+
     // Initialize auth
     initializeAuth();
-    
+
     // Set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       setSession(newSession);
-      
+
       if (event === 'SIGNED_IN' && newSession) {
-        // Get user profile
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', newSession.user.id)
-          .single();
-        
-        if (!profileError) {
-          // Set user with profile data
-          setUser({
-            ...newSession.user,
-            ...profile,
-          });
-          
-          // Get user's default organization
-          if (profile.default_organization_id) {
-            const { data: organization, error: orgError } = await supabase
-              .from('organizations')
-              .select('*')
-              .eq('id', profile.default_organization_id)
-              .single();
-            
-            if (!orgError) {
-              setCurrentOrganization(organization);
-              
-              // Get user's default workspace if available
-              if (profile.default_workspace_id) {
-                const { data: workspace, error: workspaceError } = await supabase
-                  .from('workspaces')
-                  .select('*')
-                  .eq('id', profile.default_workspace_id)
-                  .eq('organization_id', organization.id)
-                  .single();
-                
-                if (!workspaceError) {
-                  setCurrentWorkspace(workspace);
-                }
-              }
-            }
-          }
-        }
+        // Get user profile from backend
+        await setEssentials(newSession);
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setCurrentOrganization(null);
         setCurrentWorkspace(null);
       }
     });
-    
+
     // Clean up subscription
     return () => {
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [setEssentials]);
 
-  // Sign up with email and password
-  const signUp = async (email, password, userData) => {
-    try {
-      // Sign up with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-      });
-      
-      if (authError) {
-        throw authError;
-      }
-      
-      // Create user profile
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              email: email,
-              first_name: userData.firstName,
-              last_name: userData.lastName,
-              full_name: `${userData.firstName} ${userData.lastName}`,
-              avatar_url: null,
-              status: 'active',
-            },
-          ]);
-        
-        if (profileError) {
-          throw profileError;
-        }
-      }
-      
-      return authData;
-    } catch (error) {
-      console.error('Sign up error:', error);
-      throw error;
-    }
-  };
-
-  // Sign in with email and password
+  // Sign in with email and password (auth only)
   const signIn = async (email, password) => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      
+
       if (error) {
         throw error;
       }
-      
+
       return data;
     } catch (error) {
       console.error('Sign in error:', error);
@@ -217,11 +188,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Sign out
+  // Sign out (auth only)
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
         throw error;
       }
@@ -231,13 +202,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Reset password
+  // Reset password (auth only)
   const resetPassword = async (email) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
-      
+
       if (error) {
         throw error;
       }
@@ -247,13 +218,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Update password
+  // Update password (auth only)
   const updatePassword = async (newPassword) => {
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
-      
+
       if (error) {
         throw error;
       }
@@ -269,77 +240,44 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Update profile in database
-      const { data, error } = await supabase
-        .from('profiles')
-        .update(profileData)
-        .eq('id', user.id)
-        .select()
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
+
+      // Update profile in backend
+      const updated = await userApi.updateCurrentUser(profileData);
+
       // Update local user state
       setUser({
         ...user,
-        ...data,
+        ...updated.data,
       });
-      
-      return data;
+
+      return updated.data;
     } catch (error) {
       console.error('Update profile error:', error);
       throw error;
     }
   };
 
-  // Upload avatar
+  // Upload avatar (requires backend endpoint for avatar upload)
   const uploadAvatar = async (file) => {
     try {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Generate unique file name
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-      
-      // Upload file to storage
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-      
-      if (uploadError) {
-        throw uploadError;
-      }
-      
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-      
-      // Update profile with avatar URL
-      const { data, error: updateError } = await supabase
-        .from('profiles')
-        .update({ avatar_url: publicUrl })
-        .eq('id', user.id)
-        .select()
-        .single();
-      
-      if (updateError) {
-        throw updateError;
-      }
-      
-      // Update local user state
+
+      // Placeholder: You must implement avatar upload in the backend and expose an endpoint.
+      // Here, we assume userApi.updateCurrentUser accepts FormData with avatar.
+      const formData = new FormData();
+      formData.append('avatar', file);
+      // TODO: Update the backend API to handle avatar upload
+      const updated = await userApi.updateCurrentUser(formData);
+
       setUser({
         ...user,
-        ...data,
+        ...updated.data,
       });
-      
-      return publicUrl;
+
+      // Assume backend returns avatar_url in updated.data
+      return updated.data?.metadata?.avatarUrl;
     } catch (error) {
       console.error('Upload avatar error:', error);
       throw error;
@@ -349,17 +287,8 @@ export const AuthProvider = ({ children }) => {
   // Get user profile
   const getUserProfile = async (userId) => {
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      return data;
+      const profile = await userApi.getUserById(userId);
+      return profile.data;
     } catch (error) {
       console.error('Get user profile error:', error);
       throw error;
@@ -372,47 +301,18 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is admin
-      const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin', {
-        user_id: user.id,
-      });
-      
-      if (adminError) {
-        throw adminError;
-      }
-      
-      if (!isAdmin) {
-        throw new Error('Unauthorized: Admin access required');
-      }
-      
-      // Build query
-      let query = supabase.from('profiles').select('*');
-      
-      // Apply filters
-      if (options.status) {
-        query = query.eq('status', options.status);
-      }
-      
-      if (options.search) {
-        query = query.or(`full_name.ilike.%${options.search}%,email.ilike.%${options.search}%`);
-      }
-      
-      // Apply pagination
+
+      // Use backend searchUsers API
+      const params = {};
+      if (options.status) params.status = options.status;
+      if (options.search) params.search = options.search;
       if (options.page && options.limit) {
-        const from = (options.page - 1) * options.limit;
-        const to = from + options.limit - 1;
-        query = query.range(from, to);
+        params.page = options.page;
+        params.limit = options.limit;
       }
-      
-      // Execute query
-      const { data, error, count } = await query.order('created_at', { ascending: false });
-      
-      if (error) {
-        throw error;
-      }
-      
-      return { data, count };
+      const res = await userApi.searchUsers(params);
+      // Assume backend returns { data, count }
+      return { data: res.data, count: res.count || (res.data ? res.data.length : 0) };
     } catch (error) {
       console.error('Get users error:', error);
       throw error;
@@ -425,47 +325,38 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Start a transaction
-      const { data, error } = await supabase.rpc('create_organization', {
-        org_name: organizationData.name,
-        org_description: organizationData.description || null,
-        user_id: user.id,
+
+      const org = await organizationApi.createOrganization({
+        name: organizationData.name,
+        slug: organizationData.slug,
+        description: organizationData.description || null,
       });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get the created organization
-      const { data: organization, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', data)
-        .single();
-      
-      if (orgError) {
-        throw orgError;
-      }
-      
+
       // Set as current organization if it's the user's first organization
       if (!currentOrganization) {
-        setCurrentOrganization(organization);
-        
+        setCurrentOrganization(org.data);
+
         // Update user's default organization
-        await supabase
-          .from('profiles')
-          .update({ default_organization_id: organization.id })
-          .eq('id', user.id);
-        
-        // Update local user state
+        await userApi.updateCurrentUser({
+          ...user,
+          preferences: {
+            ...user.preferences,
+            defaultOrganizationId: org.data.id,
+            defaultWorkspaceId: null,
+          },
+        });
+
         setUser({
           ...user,
-          default_organization_id: organization.id,
+          preferences: {
+            ...user.preferences,
+            defaultOrganizationId: org.data.id,
+            defaultWorkspaceId: null
+          },
         });
       }
-      
-      return organization;
+
+      return org.data;
     } catch (error) {
       console.error('Create organization error:', error);
       throw error;
@@ -478,33 +369,10 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      const { data, error } = await supabase
-        .from('organization_members')
-        .select(`
-          organization_id,
-          role,
-          organizations:organization_id (
-            id,
-            name,
-            description,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('user_id', user.id);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Transform data to a more usable format
-      const organizations = data.map(item => ({
-        ...item.organizations,
-        role: item.role,
-      }));
-      
-      return organizations;
+
+      // Get all organizations where user is a member
+      const { data: orgs } = (await userApi.getCurrentUserOrganizations()) || {};
+      return orgs.data;
     } catch (error) {
       console.error('Get user organizations error:', error);
       throw error;
@@ -517,34 +385,10 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this organization');
-      }
-      
-      // Get organization details
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', organizationId)
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      return {
-        ...data,
-        role: membership.role,
-      };
+
+      const org = await organizationApi.getOrganizationById(organizationId);
+      // Optionally, get membership/role if needed
+      return org.data;
     } catch (error) {
       console.error('Get organization error:', error);
       throw error;
@@ -557,43 +401,17 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to update this organization');
-      }
-      
-      // Update organization
-      const { data, error } = await supabase
-        .from('organizations')
-        .update(organizationData)
-        .eq('id', organizationId)
-        .select()
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Update current organization if it's the one being updated
+
+      const org = await organizationApi.updateOrganization(organizationId, organizationData);
+
       if (currentOrganization && currentOrganization.id === organizationId) {
         setCurrentOrganization({
           ...currentOrganization,
-          ...data,
+          ...org.data,
         });
       }
-      
-      return {
-        ...data,
-        role: membership.role,
-      };
+
+      return org.data;
     } catch (error) {
       console.error('Update organization error:', error);
       throw error;
@@ -606,92 +424,57 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to delete this organization');
-      }
-      
-      // Delete organization
-      const { error } = await supabase.rpc('delete_organization', {
-        org_id: organizationId,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // If deleted organization is the current one, reset current organization
+
+      await organizationApi.deleteOrganization(organizationId);
+
       if (currentOrganization && currentOrganization.id === organizationId) {
         setCurrentOrganization(null);
         setCurrentWorkspace(null);
-        
+
         // Get user's organizations to set a new default
-        const { data: organizations, error: orgsError } = await supabase
-          .from('organization_members')
-          .select(`
-            organization_id,
-            role,
-            organizations:organization_id (
-              id,
-              name,
-              description,
-              created_at,
-              updated_at
-            )
-          `)
-          .eq('user_id', user.id);
-        
-        if (!orgsError && organizations.length > 0) {
-          const newDefaultOrg = organizations[0].organizations;
-          
-          // Set new default organization
-          setCurrentOrganization({
-            ...newDefaultOrg,
-            role: organizations[0].role,
+        const orgs = await organizationApi.getAllOrganizations();
+        if (orgs.data && orgs.data.length > 0) {
+          const newDefaultOrg = orgs.data[0];
+          setCurrentOrganization(newDefaultOrg);
+
+          await userApi.updateCurrentUser({
+            ...user,
+            preferences: {
+              ...user.preferences,
+              defaultOrganizationId: newDefaultOrg.id,
+              defaultWorkspaceId: null
+            },
           });
-          
-          // Update user's default organization
-          await supabase
-            .from('profiles')
-            .update({ 
-              default_organization_id: newDefaultOrg.id,
-              default_workspace_id: null,
-            })
-            .eq('id', user.id);
-          
-          // Update local user state
+
           setUser({
             ...user,
-            default_organization_id: newDefaultOrg.id,
-            default_workspace_id: null,
+            preferences: {
+              ...user.preferences,
+              defaultOrganizationId: newDefaultOrg.id,
+              defaultWorkspaceId: null
+            },
           });
         } else {
-          // Update user's default organization to null
-          await supabase
-            .from('profiles')
-            .update({ 
-              default_organization_id: null,
-              default_workspace_id: null,
-            })
-            .eq('id', user.id);
-          
-          // Update local user state
+          await userApi.updateCurrentUser({
+            ...user,
+            preferences: {
+              ...user.preferences,
+              defaultOrganizationId: null,
+              defaultWorkspaceId: null
+            },
+          });
+
           setUser({
             ...user,
-            default_organization_id: null,
-            default_workspace_id: null,
+            preferences: {
+              ...user.preferences,
+              defaultOrganizationId: null,
+              defaultWorkspaceId: null
+            },
           });
         }
       }
-      
+
       return true;
     } catch (error) {
       console.error('Delete organization error:', error);
@@ -705,56 +488,9 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this organization');
-      }
-      
-      // Get organization members
-      const { data, error } = await supabase
-        .from('organization_members')
-        .select(`
-          user_id,
-          role,
-          created_at,
-          profiles:user_id (
-            id,
-            email,
-            first_name,
-            last_name,
-            full_name,
-            avatar_url,
-            status
-          )
-        `)
-        .eq('organization_id', organizationId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Transform data to a more usable format
-      const members = data.map(item => ({
-        id: item.user_id,
-        role: item.role,
-        joinedAt: item.created_at,
-        email: item.profiles.email,
-        firstName: item.profiles.first_name,
-        lastName: item.profiles.last_name,
-        fullName: item.profiles.full_name,
-        avatarUrl: item.profiles.avatar_url,
-        status: item.profiles.status,
-      }));
-      
-      return members;
+
+      const members = await organizationApi.getOrganizationMembers(organizationId);
+      return members.data;
     } catch (error) {
       console.error('Get organization members error:', error);
       throw error;
@@ -767,54 +503,14 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to invite members to this organization');
-      }
-      
-      // Invite member
-      const { data, error } = await supabase.rpc('invite_organization_member', {
-        org_id: organizationId,
+
+      const invitation = await organizationApi.addOrganizationMember(organizationId, {
         email: inviteData.email,
         role: inviteData.role || 'member',
-        inviter_id: user.id,
       });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get the invited user's profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', inviteData.email)
-        .single();
-      
-      if (profileError && profileError.code !== 'PGRST116') {
-        throw profileError;
-      }
-      
-      // Return member data
-      return {
-        id: data,
-        role: inviteData.role || 'member',
-        email: inviteData.email,
-        firstName: profile?.first_name || '',
-        lastName: profile?.last_name || '',
-        fullName: profile?.full_name || '',
-        avatarUrl: profile?.avatar_url || null,
-        status: 'pending',
-        joinedAt: null,
-      };
+
+      // Backend should return the invited member's data
+      return invitation.data;
     } catch (error) {
       console.error('Invite organization member error:', error);
       throw error;
@@ -827,59 +523,9 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to update members in this organization');
-      }
-      
-      // Update member
-      const { data, error } = await supabase
-        .from('organization_members')
-        .update({ role: updateData.role })
-        .eq('organization_id', organizationId)
-        .eq('user_id', userId)
-        .select(`
-          user_id,
-          role,
-          created_at,
-          profiles:user_id (
-            id,
-            email,
-            first_name,
-            last_name,
-            full_name,
-            avatar_url,
-            status
-          )
-        `)
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Transform data to a more usable format
-      const updatedMember = {
-        id: data.user_id,
-        role: data.role,
-        joinedAt: data.created_at,
-        email: data.profiles.email,
-        firstName: data.profiles.first_name,
-        lastName: data.profiles.last_name,
-        fullName: data.profiles.full_name,
-        avatarUrl: data.profiles.avatar_url,
-        status: data.profiles.status,
-      };
-      
-      return updatedMember;
+
+      const updated = await organizationApi.updateOrganizationMember(organizationId, userId, updateData);
+      return updated.data;
     } catch (error) {
       console.error('Update organization member error:', error);
       throw error;
@@ -892,34 +538,8 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to remove members from this organization');
-      }
-      
-      // Prevent removing yourself
-      if (userId === user.id) {
-        throw new Error('You cannot remove yourself from the organization');
-      }
-      
-      // Remove member
-      const { error } = await supabase.rpc('remove_organization_member', {
-        org_id: organizationId,
-        member_id: userId,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
+
+      await organizationApi.removeOrganizationMember(organizationId, userId);
       return true;
     } catch (error) {
       console.error('Remove organization member error:', error);
@@ -933,75 +553,33 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this organization');
-      }
-      
-      // Create workspace
-      const { data, error } = await supabase.rpc('create_workspace', {
-        org_id: organizationId,
-        workspace_name: workspaceData.name,
-        workspace_description: workspaceData.description || null,
-        creator_id: user.id,
+
+      const ws = await workspaceApi.createWorkspace({
+        ...workspaceData,
+        organizationId,
       });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get the created workspace
-      const { data: workspace, error: workspaceError } = await supabase
-        .from('workspaces')
-        .select('*')
-        .eq('id', data)
-        .single();
-      
-      if (workspaceError) {
-        throw workspaceError;
-      }
-      
-      // Get organization name
-      const { data: organization, error: orgError } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', organizationId)
-        .single();
-      
-      if (orgError) {
-        throw orgError;
-      }
-      
-      // Set as current workspace if it's the user's first workspace in this organization
+
       if (currentOrganization && currentOrganization.id === organizationId && !currentWorkspace) {
-        setCurrentWorkspace(workspace);
-        
-        // Update user's default workspace
-        await supabase
-          .from('profiles')
-          .update({ default_workspace_id: workspace.id })
-          .eq('id', user.id);
-        
-        // Update local user state
+        setCurrentWorkspace(ws.data);
+
+        await userApi.updateCurrentUser({
+          ...user,
+          preferences: {
+            ...user.preferences,
+            defaultWorkspaceId: ws.data.id,
+          },
+        });
+
         setUser({
           ...user,
-          default_workspace_id: workspace.id,
+          preferences: {
+            ...user.preferences,
+            defaultWorkspaceId: ws.data.id,
+          },
         });
       }
-      
-      return {
-        ...workspace,
-        organizationName: organization.name,
-        role: 'admin', // Creator is always admin
-      };
+
+      return ws.data;
     } catch (error) {
       console.error('Create workspace error:', error);
       throw error;
@@ -1014,60 +592,10 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this organization');
-      }
-      
-      // Get organization name
-      const { data: organization, error: orgError } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', organizationId)
-        .single();
-      
-      if (orgError) {
-        throw orgError;
-      }
-      
-      // Get user's workspaces in the organization
-      const { data, error } = await supabase
-        .from('workspace_members')
-        .select(`
-          workspace_id,
-          role,
-          workspaces:workspace_id (
-            id,
-            name,
-            description,
-            organization_id,
-            created_at,
-            updated_at
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('workspaces.organization_id', organizationId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Transform data to a more usable format
-      const workspaces = data.map(item => ({
-        ...item.workspaces,
-        organizationName: organization.name,
-        role: item.role,
-      }));
-      
-      return workspaces;
+
+      // Get all workspaces for the organization
+      const workspaces = await workspaceApi.getWorkspacesByOrganizationId(organizationId);
+      return workspaces.data;
     } catch (error) {
       console.error('Get user workspaces error:', error);
       throw error;
@@ -1080,47 +608,9 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this workspace');
-      }
-      
-      // Get workspace details
-      const { data, error } = await supabase
-        .from('workspaces')
-        .select('*')
-        .eq('id', workspaceId)
-        .eq('organization_id', organizationId)
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get organization name
-      const { data: organization, error: orgError } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', organizationId)
-        .single();
-      
-      if (orgError) {
-        throw orgError;
-      }
-      
-      return {
-        ...data,
-        organizationName: organization.name,
-        role: membership.role,
-      };
+
+      const ws = await workspaceApi.getWorkspaceById(workspaceId);
+      return ws.data;
     } catch (error) {
       console.error('Get workspace error:', error);
       throw error;
@@ -1133,56 +623,17 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to update this workspace');
-      }
-      
-      // Update workspace
-      const { data, error } = await supabase
-        .from('workspaces')
-        .update(workspaceData)
-        .eq('id', workspaceId)
-        .eq('organization_id', organizationId)
-        .select()
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Update current workspace if it's the one being updated
+
+      const ws = await workspaceApi.updateWorkspace(workspaceId, workspaceData);
+
       if (currentWorkspace && currentWorkspace.id === workspaceId) {
         setCurrentWorkspace({
           ...currentWorkspace,
-          ...data,
+          ...ws.data,
         });
       }
-      
-      // Get organization name
-      const { data: organization, error: orgError } = await supabase
-        .from('organizations')
-        .select('name')
-        .eq('id', organizationId)
-        .single();
-      
-      if (orgError) {
-        throw orgError;
-      }
-      
-      return {
-        ...data,
-        organizationName: organization.name,
-        role: membership.role,
-      };
+
+      return ws.data;
     } catch (error) {
       console.error('Update workspace error:', error);
       throw error;
@@ -1195,46 +646,20 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to delete this workspace');
-      }
-      
-      // Delete workspace
-      const { error } = await supabase.rpc('delete_workspace', {
-        workspace_id: workspaceId,
-        org_id: organizationId,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // If deleted workspace is the current one, reset current workspace
+
+      await workspaceApi.deleteWorkspace(workspaceId);
+
       if (currentWorkspace && currentWorkspace.id === workspaceId) {
         setCurrentWorkspace(null);
-        
-        // Update user's default workspace to null
-        await supabase
-          .from('profiles')
-          .update({ default_workspace_id: null })
-          .eq('id', user.id);
-        
-        // Update local user state
+
+        await userApi.updateCurrentUser({ default_workspace_id: null });
+
         setUser({
           ...user,
           default_workspace_id: null,
         });
       }
-      
+
       return true;
     } catch (error) {
       console.error('Delete workspace error:', error);
@@ -1248,56 +673,9 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this workspace');
-      }
-      
-      // Get workspace members
-      const { data, error } = await supabase
-        .from('workspace_members')
-        .select(`
-          user_id,
-          role,
-          created_at,
-          profiles:user_id (
-            id,
-            email,
-            first_name,
-            last_name,
-            full_name,
-            avatar_url,
-            status
-          )
-        `)
-        .eq('workspace_id', workspaceId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Transform data to a more usable format
-      const members = data.map(item => ({
-        id: item.user_id,
-        role: item.role,
-        joinedAt: item.created_at,
-        email: item.profiles.email,
-        firstName: item.profiles.first_name,
-        lastName: item.profiles.last_name,
-        fullName: item.profiles.full_name,
-        avatarUrl: item.profiles.avatar_url,
-        status: item.profiles.status,
-      }));
-      
-      return members;
+
+      const members = await workspaceApi.getWorkspaceMembers(workspaceId);
+      return members.data;
     } catch (error) {
       console.error('Get workspace members error:', error);
       throw error;
@@ -1310,69 +688,13 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to invite members to this workspace');
-      }
-      
-      // Check if the user is a member of the organization
-      const { data: orgMember, error: orgMemberError } = await supabase
-        .from('organization_members')
-        .select('user_id')
-        .eq('organization_id', organizationId)
-        .eq('user_id', inviteData.userId)
-        .single();
-      
-      if (orgMemberError) {
-        throw new Error('The user must be a member of the organization to be invited to a workspace');
-      }
-      
-      // Invite member
-      const { error } = await supabase
-        .from('workspace_members')
-        .insert([
-          {
-            workspace_id: workspaceId,
-            user_id: inviteData.userId,
-            role: inviteData.role || 'member',
-          },
-        ]);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get the invited user's profile
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', inviteData.userId)
-        .single();
-      
-      if (profileError) {
-        throw profileError;
-      }
-      
-      // Return member data
-      return {
-        id: inviteData.userId,
+
+      const invitation = await workspaceApi.addWorkspaceMember(workspaceId, {
+        userId: inviteData.userId,
         role: inviteData.role || 'member',
-        email: profile.email,
-        firstName: profile.first_name,
-        lastName: profile.last_name,
-        fullName: profile.full_name,
-        avatarUrl: profile.avatar_url,
-        status: profile.status,
-        joinedAt: new Date().toISOString(),
-      };
+      });
+
+      return invitation.data;
     } catch (error) {
       console.error('Invite workspace member error:', error);
       throw error;
@@ -1385,69 +707,9 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to update members in this workspace');
-      }
-      
-      // Update member
-      const { error } = await supabase
-        .from('workspace_members')
-        .update({ role: updateData.role })
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', userId);
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Get updated member data
-      const { data: memberData, error: memberDataError } = await supabase
-        .from('workspace_members')
-        .select(`
-          user_id,
-          role,
-          created_at,
-          profiles:user_id (
-            id,
-            email,
-            first_name,
-            last_name,
-            full_name,
-            avatar_url,
-            status
-          )
-        `)
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', userId)
-        .single();
-      
-      if (memberDataError) {
-        throw memberDataError;
-      }
-      
-      // Transform data to a more usable format
-      const updatedMember = {
-        id: memberData.user_id,
-        role: memberData.role,
-        joinedAt: memberData.created_at,
-        email: memberData.profiles.email,
-        firstName: memberData.profiles.first_name,
-        lastName: memberData.profiles.last_name,
-        fullName: memberData.profiles.full_name,
-        avatarUrl: memberData.profiles.avatar_url,
-        status: memberData.profiles.status,
-      };
-      
-      return updatedMember;
+
+      const updated = await workspaceApi.updateWorkspaceMember(workspaceId, userId, updateData);
+      return updated.data;
     } catch (error) {
       console.error('Update workspace member error:', error);
       throw error;
@@ -1460,35 +722,8 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is an admin of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError || membership.role !== 'admin') {
-        throw new Error('You do not have permission to remove members from this workspace');
-      }
-      
-      // Prevent removing yourself
-      if (userId === user.id) {
-        throw new Error('You cannot remove yourself from the workspace');
-      }
-      
-      // Remove member
-      const { error } = await supabase
-        .from('workspace_members')
-        .delete()
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', userId);
-      
-      if (error) {
-        throw error;
-      }
-      
+
+      await workspaceApi.removeWorkspaceMember(workspaceId, userId);
       return true;
     } catch (error) {
       console.error('Remove workspace member error:', error);
@@ -1502,59 +737,30 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the organization
-      const { data: membership, error: membershipError } = await supabase
-        .from('organization_members')
-        .select('role')
-        .eq('organization_id', organizationId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this organization');
-      }
-      
-      // Get organization details
-      const { data, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', organizationId)
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Set current organization
-      setCurrentOrganization({
-        ...data,
-        role: membership.role,
-      });
-      
-      // Reset current workspace
+
+      const org = await organizationApi.getOrganizationById(organizationId);
+      setCurrentOrganization(org.data);
       setCurrentWorkspace(null);
-      
-      // Update user's default organization
-      await supabase
-        .from('profiles')
-        .update({ 
-          default_organization_id: organizationId,
-          default_workspace_id: null,
-        })
-        .eq('id', user.id);
-      
-      // Update local user state
+
+      await userApi.updateCurrentUser({
+        ...user,
+        preferences: {
+          ...user.preferences,
+          defaultOrganizationId: organizationId,
+          defaultWorkspaceId: null,
+        },
+      });
+
       setUser({
         ...user,
-        default_organization_id: organizationId,
-        default_workspace_id: null,
+        preferences: {
+          ...user.preferences,
+          defaultOrganizationId: organizationId,
+          defaultWorkspaceId: null,
+        },
       });
-      
-      return {
-        ...data,
-        role: membership.role,
-      };
+
+      return org.data;
     } catch (error) {
       console.error('Set active organization error:', error);
       throw error;
@@ -1567,74 +773,64 @@ export const AuthProvider = ({ children }) => {
       if (!user) {
         throw new Error('User not authenticated');
       }
-      
-      // Check if user is a member of the workspace
-      const { data: membership, error: membershipError } = await supabase
-        .from('workspace_members')
-        .select('role')
-        .eq('workspace_id', workspaceId)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (membershipError) {
-        throw new Error('You are not a member of this workspace');
-      }
-      
-      // Get workspace details
-      const { data, error } = await supabase
-        .from('workspaces')
-        .select('*')
-        .eq('id', workspaceId)
-        .eq('organization_id', organizationId)
-        .single();
-      
+
+      const ws = await workspaceApi.getWorkspaceById(workspaceId);
+      const org = await organizationApi.getOrganizationById(organizationId);
+
+      setCurrentOrganization(org.data);
+      setCurrentWorkspace(ws.data);
+
+      await userApi.updateCurrentUser({
+        ...user,
+        preferences: {
+          ...user.preferences,
+          defaultOrganizationId: organizationId,
+          defaultWorkspaceId: workspaceId,
+        },
+      });
+
+      setUser({
+        ...user,
+        preferences: {
+          ...user.preferences,
+          defaultOrganizationId: organizationId,
+          defaultWorkspaceId: workspaceId,
+        },
+      });
+
+      return ws.data;
+    } catch (error) {
+      console.error('Set active workspace error:', error);
+      throw error;
+    }
+  };
+
+  // Check if email is verified (auth only)
+  const checkEmailVerified = async () => {
+    await supabase.auth.refreshSession();
+
+    const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
+
+    if (userError) {
+      console.error('Error fetching user for verification check:', userError);
+      return false;
+    }
+
+    return !!supabaseUser?.email_confirmed_at;
+  };
+
+  // Resend verification email (auth only)
+  const resendVerificationEmail = async (email) => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email
+      });
       if (error) {
         throw error;
       }
-      
-      // Get organization details
-      const { data: organization, error: orgError } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', organizationId)
-        .single();
-      
-      if (orgError) {
-        throw orgError;
-      }
-      
-      // Set current organization
-      setCurrentOrganization({
-        ...organization,
-        role: membership.role,
-      });
-      
-      // Set current workspace
-      setCurrentWorkspace(data);
-      
-      // Update user's default organization and workspace
-      await supabase
-        .from('profiles')
-        .update({ 
-          default_organization_id: organizationId,
-          default_workspace_id: workspaceId,
-        })
-        .eq('id', user.id);
-      
-      // Update local user state
-      setUser({
-        ...user,
-        default_organization_id: organizationId,
-        default_workspace_id: workspaceId,
-      });
-      
-      return {
-        ...data,
-        organizationName: organization.name,
-        role: membership.role,
-      };
     } catch (error) {
-      console.error('Set active workspace error:', error);
+      console.error('Resend verification email error in AuthContext:', error);
       throw error;
     }
   };
@@ -1646,7 +842,6 @@ export const AuthProvider = ({ children }) => {
     loading,
     currentOrganization,
     currentWorkspace,
-    signUp,
     signIn,
     signOut,
     resetPassword,
@@ -1675,6 +870,8 @@ export const AuthProvider = ({ children }) => {
     removeWorkspaceMember,
     setActiveOrganization,
     setActiveWorkspace,
+    checkEmailVerified,
+    resendVerificationEmail,
   };
 
   return (
