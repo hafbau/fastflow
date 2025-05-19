@@ -2,10 +2,10 @@
     "name": "fastflow-ui",
     "version": "2.2.7-patch.1",
     "license": "SEE LICENSE IN LICENSE.md",
-    "homepage": "https://fastflow.ai",
+    "homepage": "https://getflowstack.ai",
     "author": {
         "name": "HenryHeng",
-        "email": "henryheng@flowiseai.com"
+        "email": "henryheng@getflowstack.ai"
     },
     "dependencies": {
         "@codemirror/lang-javascript": "^6.2.1",

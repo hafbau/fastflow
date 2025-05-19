@@ -160,7 +160,7 @@ class ToolNode_SeqAgents implements INode {
         this.category = 'Sequential Agents'
         this.description = `Execute tool and return tool's output`
         this.baseClasses = [this.type]
-        this.documentation = 'https://docs.flowiseai.com/using-flowise/agentflows/sequential-agents#id-6.-tool-node'
+        this.documentation = 'https://docs.getflowstack.ai/using-flowise/agentflows/sequential-agents#id-6.-tool-node'
         this.inputs = [
             {
                 label: 'Tools',

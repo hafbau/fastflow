@@ -141,28 +141,28 @@ Flowise는 인스턴스 구성을 위한 다양한 환경 변수를 지원합니
 
 ## 📖 공식 문서
 
-[Fastflow 문서](https://docs.flowiseai.com/)
+[Fastflow 문서](https://docs.getflowstack.ai/)
 
 ## 🌐 자체 호스팅 하기
 
-기존 인프라 환경에서 Flowise를 자체 호스팅으로 배포하세요. 다양한 배포 [deployments](https://docs.flowiseai.com/configuration/deployment) 방법을 지원합니다.
+기존 인프라 환경에서 Flowise를 자체 호스팅으로 배포하세요. 다양한 배포 [deployments](https://docs.getflowstack.ai/configuration/deployment) 방법을 지원합니다.
 
--   [AWS](https://docs.flowiseai.com/deployment/aws)
--   [Azure](https://docs.flowiseai.com/deployment/azure)
--   [Digital Ocean](https://docs.flowiseai.com/deployment/digital-ocean)
--   [GCP](https://docs.flowiseai.com/deployment/gcp)
+-   [AWS](https://docs.getflowstack.ai/deployment/aws)
+-   [Azure](https://docs.getflowstack.ai/deployment/azure)
+-   [Digital Ocean](https://docs.getflowstack.ai/deployment/digital-ocean)
+-   [GCP](https://docs.getflowstack.ai/deployment/gcp)
 -   <details>
       <summary>그 외</summary>
 
-    -   [Railway](https://docs.flowiseai.com/deployment/railway)
+    -   [Railway](https://docs.getflowstack.ai/deployment/railway)
 
         [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/pn4G8S?referralCode=WVNPD9)
 
-    -   [Render](https://docs.flowiseai.com/deployment/render)
+    -   [Render](https://docs.getflowstack.ai/deployment/render)
 
-        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.flowiseai.com/deployment/render)
+        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.getflowstack.ai/deployment/render)
 
-    -   [HuggingFace Spaces](https://docs.flowiseai.com/deployment/hugging-face)
+    -   [HuggingFace Spaces](https://docs.getflowstack.ai/deployment/hugging-face)
 
         <a href="https://huggingface.co/spaces/FastflowAI/Fastflow"><img src="https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-sm.svg" alt="HuggingFace Spaces"></a>
 
@@ -182,7 +182,7 @@ Flowise는 인스턴스 구성을 위한 다양한 환경 변수를 지원합니
 
 ## ☁️ 클라우드 호스팅 서비스
 
-[Fastflow Cloud 시작하기](https://flowiseai.com/)
+[Fastflow Cloud 시작하기](https://getflowstack.ai/)
 
 ## 🙋 기술 지원
 

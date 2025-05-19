@@ -18,7 +18,7 @@ const swaggerUiOptions = {
             },
             contact: {
                 name: 'FastflowAI',
-                email: 'support@flowiseai.com'
+                email: 'support@getflowstack.ai'
             }
         },
         servers: [

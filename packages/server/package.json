@@ -47,10 +47,10 @@
         "postinstall": "patch-package"
     },
     "keywords": [],
-    "homepage": "https://fastflow.ai",
+    "homepage": "https://getflowstack.ai",
     "author": {
         "name": "Henry Heng",
-        "email": "henryheng@flowiseai.com"
+        "email": "henryheng@getflowstack.ai"
     },
     "engines": {
         "node": ">=18.15.0 <19.0.0 || ^20.0.0 <21.0.0"

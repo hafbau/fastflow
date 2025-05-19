@@ -141,28 +141,28 @@ Fastflow 支持不同的环境变量来配置您的实例。您可以在 `packag
 
 ## 📖 文档
 
-[Fastflow 文档](https://docs.flowiseai.com/)
+[Fastflow 文档](https://docs.getflowstack.ai/)
 
 ## 🌐 自托管
 
-在您现有的基础设施中部署自托管的 Fastflow，我们支持各种[部署](https://docs.flowiseai.com/configuration/deployment)
+在您现有的基础设施中部署自托管的 Fastflow，我们支持各种[部署](https://docs.getflowstack.ai/configuration/deployment)
 
--   [AWS](https://docs.flowiseai.com/deployment/aws)
--   [Azure](https://docs.flowiseai.com/deployment/azure)
--   [Digital Ocean](https://docs.flowiseai.com/deployment/digital-ocean)
--   [GCP](https://docs.flowiseai.com/deployment/gcp)
+-   [AWS](https://docs.getflowstack.ai/deployment/aws)
+-   [Azure](https://docs.getflowstack.ai/deployment/azure)
+-   [Digital Ocean](https://docs.getflowstack.ai/deployment/digital-ocean)
+-   [GCP](https://docs.getflowstack.ai/deployment/gcp)
 -   <details>
       <summary>其他</summary>
 
-    -   [Railway](https://docs.flowiseai.com/deployment/railway)
+    -   [Railway](https://docs.getflowstack.ai/deployment/railway)
 
         [![在 Railway 上部署](https://railway.app/button.svg)](https://railway.app/template/pn4G8S?referralCode=WVNPD9)
 
-    -   [Render](https://docs.flowiseai.com/deployment/render)
+    -   [Render](https://docs.getflowstack.ai/deployment/render)
 
-        [![部署到 Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.flowiseai.com/deployment/render)
+        [![部署到 Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.getflowstack.ai/deployment/render)
 
-    -   [HuggingFace Spaces](https://docs.flowiseai.com/deployment/hugging-face)
+    -   [HuggingFace Spaces](https://docs.getflowstack.ai/deployment/hugging-face)
 
         <a href="https://huggingface.co/spaces/FastflowAI/Fastflow"><img src="https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-sm.svg" alt="HuggingFace Spaces"></a>
 
@@ -182,7 +182,7 @@ Fastflow 支持不同的环境变量来配置您的实例。您可以在 `packag
 
 ## ☁️ 云托管
 
-[开始使用云托管](https://flowiseai.com/)
+[开始使用云托管](https://getflowstack.ai/)
 
 ## 🙋 支持
 

@@ -12,10 +12,10 @@
         "nuke": "rimraf dist node_modules .turbo"
     },
     "keywords": [],
-    "homepage": "https://fastflow.ai",
+    "homepage": "https://getflowstack.ai",
     "author": {
-        "name": "Henry Heng",
-        "email": "henryheng@flowiseai.com"
+        "name": "Hafiz Suara",
+        "email": "hafizsuara@getflowstack.ai"
     },
     "license": "SEE LICENSE IN LICENSE.md",
     "dependencies": {

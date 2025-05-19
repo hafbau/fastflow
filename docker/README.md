@@ -33,4 +33,4 @@ If you like to persist your data (flows, logs, apikeys, credentials), set these 
 -   SECRETKEY_PATH=/root/.fastflow
 -   BLOB_STORAGE_PATH=/root/.fastflow/storage
 
-Fastflow also support different environment variables to configure your instance. Read [more](https://docs.flowiseai.com/environment-variables)
+Fastflow also support different environment variables to configure your instance. Read [more](https://docs.getflowstack.ai/environment-variables)

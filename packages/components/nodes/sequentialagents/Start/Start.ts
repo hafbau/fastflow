@@ -25,7 +25,7 @@ class Start_SeqAgents implements INode {
         this.category = 'Sequential Agents'
         this.description = 'Starting point of the conversation'
         this.baseClasses = [this.type]
-        this.documentation = 'https://docs.flowiseai.com/using-flowise/agentflows/sequential-agents#id-1.-start-node'
+        this.documentation = 'https://docs.getflowstack.ai/using-flowise/agentflows/sequential-agents#id-1.-start-node'
         this.inputs = [
             {
                 label: 'Chat Model',

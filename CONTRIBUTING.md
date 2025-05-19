@@ -118,7 +118,7 @@ Fastflow has 3 different modules in a single mono repository.
 
 ## 🌱 Env Variables
 
-Fastflow support different environment variables to configure your instance. You can specify the following variables in the `.env` file inside `packages/server` folder. Read [more](https://docs.flowiseai.com/environment-variables)
+Fastflow support different environment variables to configure your instance. You can specify the following variables in the `.env` file inside `packages/server` folder. Read [more](https://docs.getflowstack.ai/environment-variables)
 
 | Variable                     | Description                                                                      | Type                                             | Default                             |
 | ---------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------ | ----------------------------------- |
@@ -176,4 +176,4 @@ A member of the FastflowAI team will automatically be notified/assigned when you
 
 ## 📜 Code of Conduct
 
-This project and everyone participating in it are governed by the Code of Conduct which can be found in the [file](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to hello@flowiseai.com.
+This project and everyone participating in it are governed by the Code of Conduct which can be found in the [file](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to hello@getflowstack.ai.

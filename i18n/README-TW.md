@@ -152,29 +152,29 @@ Fastflow 支持不同的環境變量來配置您的實例。您可以在 `packag
 
 ## 📖 文檔
 
-[Fastflow 文檔](https://docs.flowiseai.com/)
+[Fastflow 文檔](https://docs.getflowstack.ai/)
 
 ## 🌐 自我托管
 
-在您現有的基礎設施中部署 Fastflow 自我托管，我們支持各種 [部署](https://docs.flowiseai.com/configuration/deployment)
+在您現有的基礎設施中部署 Fastflow 自我托管，我們支持各種 [部署](https://docs.getflowstack.ai/configuration/deployment)
 
--   [AWS](https://docs.flowiseai.com/configuration/deployment/aws)
--   [Azure](https://docs.flowiseai.com/configuration/deployment/azure)
--   [Digital Ocean](https://docs.flowiseai.com/configuration/deployment/digital-ocean)
--   [GCP](https://docs.flowiseai.com/configuration/deployment/gcp)
+-   [AWS](https://docs.getflowstack.ai/configuration/deployment/aws)
+-   [Azure](https://docs.getflowstack.ai/configuration/deployment/azure)
+-   [Digital Ocean](https://docs.getflowstack.ai/configuration/deployment/digital-ocean)
+-   [GCP](https://docs.getflowstack.ai/configuration/deployment/gcp)
 -   [阿里雲](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Flowise社区版)
 -   <details>
       <summary>其他</summary>
 
-    -   [Railway](https://docs.flowiseai.com/configuration/deployment/railway)
+    -   [Railway](https://docs.getflowstack.ai/configuration/deployment/railway)
 
         [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/pn4G8S?referralCode=WVNPD9)
 
-    -   [Render](https://docs.flowiseai.com/configuration/deployment/render)
+    -   [Render](https://docs.getflowstack.ai/configuration/deployment/render)
 
-        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.flowiseai.com/configuration/deployment/render)
+        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.getflowstack.ai/configuration/deployment/render)
 
-    -   [HuggingFace Spaces](https://docs.flowiseai.com/deployment/hugging-face)
+    -   [HuggingFace Spaces](https://docs.getflowstack.ai/deployment/hugging-face)
 
         <a href="https://huggingface.co/spaces/FastflowAI/Fastflow"><img src="https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-sm.svg" alt="HuggingFace Spaces"></a>
 
@@ -194,7 +194,7 @@ Fastflow 支持不同的環境變量來配置您的實例。您可以在 `packag
 
 ## ☁️ Fastflow 雲
 
-[開始使用 Fastflow 雲](https://flowiseai.com/)
+[開始使用 Fastflow 雲](https://getflowstack.ai/)
 
 ## 🙋 支持
 

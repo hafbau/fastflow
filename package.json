@@ -2,7 +2,7 @@
   "name": "fastflow",
   "version": "2.2.7-patch.1",
   "private": true,
-  "homepage": "https://fastflow.ai",
+  "homepage": "https://getflowstack.ai",
   "workspaces": [
     "packages/*",
     "fastflow",

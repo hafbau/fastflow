@@ -56,26 +56,26 @@ pnpm run e2e
 
 ## 📖 Documentation
 
-[Fastflow Docs](https://docs.flowiseai.com/)
+[Fastflow Docs](https://docs.getflowstack.ai/)
 
 ## 🌐 Self Host
 
--   [AWS](https://docs.flowiseai.com/deployment/aws)
--   [Azure](https://docs.flowiseai.com/deployment/azure)
--   [Digital Ocean](https://docs.flowiseai.com/deployment/digital-ocean)
--   [GCP](https://docs.flowiseai.com/deployment/gcp)
+-   [AWS](https://docs.getflowstack.ai/deployment/aws)
+-   [Azure](https://docs.getflowstack.ai/deployment/azure)
+-   [Digital Ocean](https://docs.getflowstack.ai/deployment/digital-ocean)
+-   [GCP](https://docs.getflowstack.ai/deployment/gcp)
 -   <details>
       <summary>Others</summary>
 
-    -   [Railway](https://docs.flowiseai.com/deployment/railway)
+    -   [Railway](https://docs.getflowstack.ai/deployment/railway)
 
         [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/pn4G8S?referralCode=WVNPD9)
 
-    -   [Render](https://docs.flowiseai.com/deployment/render)
+    -   [Render](https://docs.getflowstack.ai/deployment/render)
 
-        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.flowiseai.com/deployment/render)
+        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.getflowstack.ai/deployment/render)
 
-    -   [HuggingFace Spaces](https://docs.flowiseai.com/deployment/hugging-face)
+    -   [HuggingFace Spaces](https://docs.getflowstack.ai/deployment/hugging-face)
 
         <a href="https://huggingface.co/spaces/FastflowAI/Fastflow"><img src="https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-sm.svg" alt="HuggingFace Spaces"></a>
 
@@ -95,7 +95,7 @@ pnpm run e2e
 
 ## ☁️ Fastflow Cloud
 
-[Get Started with Fastflow Cloud](https://flowiseai.com/)
+[Get Started with Fastflow Cloud](https://getflowstack.ai/)
 
 ## 🙋 Support
 

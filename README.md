@@ -152,29 +152,29 @@ Fastflow support different environment variables to configure your instance. You
 
 ## 📖 Documentation
 
-[Fastflow Docs](https://docs.fastflow.ai/)
+[Fastflow Docs](https://docs.getflowstack.ai/)
 
 ## 🌐 Self Host
 
-Deploy Fastflow self-hosted in your existing infrastructure, we support various [deployments](https://docs.fastflow.ai/configuration/deployment)
+Deploy Fastflow self-hosted in your existing infrastructure, we support various [deployments](https://docs.getflowstack.ai/configuration/deployment)
 
--   [AWS](https://docs.fastflow.ai/configuration/deployment/aws)
--   [Azure](https://docs.fastflow.ai/configuration/deployment/azure)
--   [Digital Ocean](https://docs.fastflow.ai/configuration/deployment/digital-ocean)
--   [GCP](https://docs.fastflow.ai/configuration/deployment/gcp)
+-   [AWS](https://docs.getflowstack.ai/configuration/deployment/aws)
+-   [Azure](https://docs.getflowstack.ai/configuration/deployment/azure)
+-   [Digital Ocean](https://docs.getflowstack.ai/configuration/deployment/digital-ocean)
+-   [GCP](https://docs.getflowstack.ai/configuration/deployment/gcp)
 -   [Alibaba Cloud](https://computenest.console.aliyun.com/service/instance/create/default?type=user&ServiceName=Fastflow社区版)
 -   <details>
       <summary>Others</summary>
 
-    -   [Railway](https://docs.fastflow.ai/configuration/deployment/railway)
+    -   [Railway](https://docs.getflowstack.ai/configuration/deployment/railway)
 
         [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/pn4G8S?referralCode=WVNPD9)
 
-    -   [Render](https://docs.fastflow.ai/configuration/deployment/render)
+    -   [Render](https://docs.getflowstack.ai/configuration/deployment/render)
 
-        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.fastflow.ai/configuration/deployment/render)
+        [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://docs.getflowstack.ai/configuration/deployment/render)
 
-    -   [HuggingFace Spaces](https://docs.fastflow.ai/deployment/hugging-face)
+    -   [HuggingFace Spaces](https://docs.getflowstack.ai/deployment/hugging-face)
 
         <a href="https://huggingface.co/spaces/FastflowAI/Fastflow"><img src="https://huggingface.co/datasets/huggingface/badges/raw/main/open-in-hf-spaces-sm.svg" alt="HuggingFace Spaces"></a>
 
@@ -194,7 +194,7 @@ Deploy Fastflow self-hosted in your existing infrastructure, we support various 
 
 ## ☁️ Fastflow Cloud
 
-[Get Started with Fastflow Cloud](https://fastflow.ai/)
+[Get Started with Fastflow Cloud](https://getflowstack.ai/)
 
 ## 🙋 Support
 

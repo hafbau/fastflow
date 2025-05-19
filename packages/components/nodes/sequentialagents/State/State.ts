@@ -47,7 +47,7 @@ class State_SeqAgents implements INode {
         this.category = 'Sequential Agents'
         this.description = 'A centralized state object, updated by nodes in the graph, passing from one node to another'
         this.baseClasses = [this.type]
-        this.documentation = 'https://docs.flowiseai.com/using-flowise/agentflows/sequential-agents#id-3.-state-node'
+        this.documentation = 'https://docs.getflowstack.ai/using-flowise/agentflows/sequential-agents#id-3.-state-node'
         this.inputs = [
             {
                 label: 'Custom State',

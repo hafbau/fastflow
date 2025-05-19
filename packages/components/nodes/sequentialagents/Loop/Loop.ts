@@ -23,7 +23,7 @@ class Loop_SeqAgents implements INode {
         this.category = 'Sequential Agents'
         this.description = 'Loop back to the specific sequential node'
         this.baseClasses = [this.type]
-        this.documentation = 'https://docs.flowiseai.com/using-flowise/agentflows/sequential-agents#id-9.-loop-node'
+        this.documentation = 'https://docs.getflowstack.ai/using-flowise/agentflows/sequential-agents#id-9.-loop-node'
         this.inputs = [
             {
                 label: 'Sequential Node',
