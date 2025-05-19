@@ -2,7 +2,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Custom hook for accessing organization and workspace context
- * This replaces the dependency on @flowstack/auth-client
+ * @returns {Object} Object containing organization and workspace context
  */
 export const useWorkspaceContext = () => {
   const auth = useAuth();
