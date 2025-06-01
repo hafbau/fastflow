@@ -105,6 +105,14 @@ export class IdentityManager {
 
         // First check if license key is missing
         if (!FLOWISE_EE_LICENSE_KEY) {
+            // FlowStack Enterprise Mode Hack
+            if (process.env.ENABLE_ENTERPRISE === 'true') {
+                console.log('[FlowStack] Enterprise features enabled via environment variable')
+                this.licenseValid = true
+                this.currentInstancePlatform = Platform.ENTERPRISE
+                return
+            }
+            
             this.licenseValid = false
             this.currentInstancePlatform = Platform.OPEN_SOURCE
             return

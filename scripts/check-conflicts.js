@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Check for potential conflicts between @core updates and @flowstack customizations
+ * Check for potential conflicts between core updates and @flowstack customizations
  */
 
 const fs = require('fs');
@@ -10,7 +10,7 @@ const { glob } = require('glob');
 
 // Configuration
 const config = {
-  corePath: '@core',
+  corePath: 'core',
   platformPath: 'packages/@flowstack',
   // Add patterns for files/components you're overriding
   overridePatterns: [

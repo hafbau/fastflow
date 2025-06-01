@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# Sync upstream changes into @core using git subtree
+# Sync upstream changes into core using git subtree
 # Usage: ./scripts/sync-upstream.sh [branch]
 
 set -e
 
 UPSTREAM_REPO="https://github.com/upstream/repo.git"  # Replace with actual repo
 UPSTREAM_BRANCH="${1:-main}"
-SUBTREE_PREFIX="@core"
+SUBTREE_PREFIX="core"
 BACKUP_BRANCH="backup-before-sync-$(date +%Y%m%d-%H%M%S)"
 
 echo "🔄 Starting upstream sync process..."
