@@ -42,7 +42,7 @@ jobs:
                   context: .
                   file: ./Dockerfile
                   build-args: |
-                      NODE_VERSION=20
+                      NODE_VERSION=${{ github.event.inputs.node_version || '20' }}
                   platforms: linux/amd64,linux/arm64
                   push: true
-                  tags: leadevs/fastflow:latest
+                  tags: leadevs/fastflow:${{ github.event.inputs.tag_version || 'latest' }}

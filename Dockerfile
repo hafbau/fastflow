@@ -4,9 +4,11 @@
 FROM node:20-alpine AS deps
 RUN apk add --update --no-cache libc6-compat python3 make g++ git curl wget
 
-# Install pnpm manually by downloading binary
+# Install pnpm manually by downloading binary for the correct architecture
 ENV SHELL=/bin/sh
-RUN curl -fsSL https://github.com/pnpm/pnpm/releases/download/v9.0.4/pnpm-linux-arm64 -o /usr/local/bin/pnpm && \
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then ARCH="x64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
+    curl -fsSL https://github.com/pnpm/pnpm/releases/download/v9.0.4/pnpm-linux-${ARCH} -o /usr/local/bin/pnpm && \
     chmod +x /usr/local/bin/pnpm
 
 # Install dependencies only when needed
@@ -37,9 +39,11 @@ RUN apk add --update --no-cache libc6-compat python3 make g++ git curl wget
 # needed for pdfjs-dist
 RUN apk add --no-cache build-base cairo-dev pango-dev
 
-# Install pnpm manually by downloading binary
+# Install pnpm manually by downloading binary for the correct architecture
 ENV SHELL=/bin/sh
-RUN curl -fsSL https://github.com/pnpm/pnpm/releases/download/v9.0.4/pnpm-linux-arm64 -o /usr/local/bin/pnpm && \
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then ARCH="x64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
+    curl -fsSL https://github.com/pnpm/pnpm/releases/download/v9.0.4/pnpm-linux-${ARCH} -o /usr/local/bin/pnpm && \
     chmod +x /usr/local/bin/pnpm
 
 WORKDIR /usr/src
@@ -57,9 +61,11 @@ RUN apk add --update --no-cache libc6-compat
 # Install runtime dependencies
 RUN apk add --no-cache chromium curl supervisor postgresql-client wget
 
-# Install pnpm manually by downloading binary
+# Install pnpm manually by downloading binary for the correct architecture
 ENV SHELL=/bin/sh
-RUN curl -fsSL https://github.com/pnpm/pnpm/releases/download/v9.0.4/pnpm-linux-arm64 -o /usr/local/bin/pnpm && \
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then ARCH="x64"; elif [ "$ARCH" = "aarch64" ]; then ARCH="arm64"; fi && \
+    curl -fsSL https://github.com/pnpm/pnpm/releases/download/v9.0.4/pnpm-linux-${ARCH} -o /usr/local/bin/pnpm && \
     chmod +x /usr/local/bin/pnpm
 
 # Set Puppeteer to use installed Chromium
