@@ -1,0 +1,18 @@
+# FlowStack Terraform Variables Example
+# Copy this to terraform.tfvars and update with your values
+
+# AWS Region
+region = "us-east-1"
+
+# Environment stage
+stage = "prod"  # or "dev", "staging"
+
+# RDS Configuration
+db_instance_class = "db.t3.micro"  # Use larger for production (e.g., "db.t3.medium")
+db_allocated_storage = 20
+db_max_allocated_storage = 100
+db_username = "flowstack_admin"
+db_password = "YourStrongPasswordHere123!@#"  # CHANGE THIS!
+
+# Note: You can also set the database password via environment variable:
+# export TF_VAR_db_password="YourStrongPasswordHere123!@#" 

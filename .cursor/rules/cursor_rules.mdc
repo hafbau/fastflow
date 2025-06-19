@@ -1,0 +1,96 @@
+---
+description: Guidelines for creating and maintaining Cursor rules to ensure consistency and effectiveness.
+globs: .cursor/rules/*.mdc
+alwaysApply: true
+---
+## ⚠️ CRITICAL RULES - MUST FOLLOW
+
+- **NEVER modify files in `core/` directory** - This is the upstream codebase and must remain untouched
+- **ALWAYS use exact file paths from workspace root** - Never create duplicate files by prefixing paths
+- **If unsure about file location, use `file_search` or `list_dir` first**
+
+---
+
+- **Required Rule Structure:**
+  ```markdown
+  ---
+  description: Clear, one-line description of what the rule enforces
+  globs: path/to/files/*.ext, other/path/**/*
+  alwaysApply: boolean
+  ---
+
+  - **Main Points in Bold**
+    - Sub-points with details
+    - Examples and explanations
+  ```
+
+- **File References:**
+  - Use `[filename](mdc:path/to/file)` ([filename](mdc:filename)) to reference files
+  - Example: [prisma.mdc](mdc:.cursor/rules/prisma.mdc) for rule references
+  - Example: [schema.prisma](mdc:prisma/schema.prisma) for code references
+
+- **Code Examples:**
+  - Use language-specific code blocks
+  ```typescript
+  // ✅ DO: Show good examples
+  const goodExample = true;
+  
+  // ❌ DON'T: Show anti-patterns
+  const badExample = false;
+  ```
+
+- **Rule Content Guidelines:**
+  - Start with high-level overview
+  - Include specific, actionable requirements
+  - Show examples of correct implementation
+  - Reference existing code when possible
+  - Keep rules DRY by referencing other rules
+
+- **Rule Maintenance:**
+  - Update rules when new patterns emerge
+  - Add examples from actual codebase
+  - Remove outdated patterns
+  - Cross-reference related rules
+
+- **Best Practices:**
+  - Use bullet points for clarity
+  - Keep descriptions concise
+  - Include both DO and DON'T examples
+  - Reference actual code over theoretical examples
+  - Use consistent formatting across rules
+
+- **Critical File Path Handling:**
+  - **ALWAYS use exact paths from the user's workspace** - never prefix current directory to already complete paths
+  - **Double-check file paths before creating or editing** - verify you're not creating duplicate files
+  - **Use `file_search` or `list_dir` first if unsure** about file locations
+  - **Pay attention to current working directory** shown in terminal context
+  - Example of WRONG approach:
+    ```
+    // ❌ DON'T: Create duplicate files by prefixing paths
+    // If current directory is /Users/project/flowstack
+    // And file is at apps/flowstack/file.js
+    // DON'T create: flowstack/apps/flowstack/file.js
+    ```
+  - Example of CORRECT approach:
+    ```
+    // ✅ DO: Use the exact path from workspace root
+    // If file is at apps/flowstack/file.js
+    // Use: apps/flowstack/file.js
+    ```
+
+- **Core Code Protection:**
+  - **NEVER modify files in `core/` directory** - this is the upstream codebase
+  - **Only modify files in the application layer** (e.g., `apps/`, configuration files)
+  - **If core functionality needs changing**, implement it through:
+    - Proxy middleware modifications
+    - Configuration overrides
+    - Application-level wrappers
+    - Environment variables
+  - Example:
+    ```
+    // ❌ DON'T: Modify core files
+    // Never edit: core/packages/ui/src/api/client.js
+    
+    // ✅ DO: Handle in proxy or app layer
+    // Edit: apps/flowstack/middleware/proxy-handlers.js
+    ``` 

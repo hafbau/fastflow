@@ -1,0 +1,56 @@
+name: 'Terraform Deploy'
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_run:
+    workflows: ['Docker Build & Push']
+    types: [completed]
+    branches: ['main']
+
+permissions:
+  id-token: write   # Required for OIDC
+  contents: read    # Required to checkout the code
+
+jobs:
+  terraform:
+    if: |
+      github.event_name == 'push' && 
+      contains(github.event.head_commit.modified, 'terraform/') ||
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: '1.5.0'
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        role-to-assume: arn:aws:iam::223131393841:role/GitHubActionsTerraformRole
+        aws-region: us-east-1   # Set your region
+        role-session-name: GithubActionsTerraform
+    
+    - name: Terraform Init
+      run: terraform init
+      working-directory: ./terraform
+    
+    - name: Terraform Validate
+      run: terraform validate
+      working-directory: ./terraform
+    
+    - name: Terraform Plan
+      run: terraform plan -var="region=us-east-1" -var="stage=${{ github.ref_name == 'main' && 'prod' || 'dev' }}"
+      working-directory: ./terraform
+      
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve -var="region=us-east-1" -var="stage=${{ github.ref_name == 'main' && 'prod' || 'dev' }}"
+      working-directory: ./terraform

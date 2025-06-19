@@ -13,8 +13,9 @@ function setupStaticAssets(app) {
     // Serve static assets
     app.use('/assets', express.static(path.join(__dirname, '..', 'assets')));
 
-    // Serve custom favicon
+    // Serve custom favicon - this needs to be early in the middleware chain
     app.get('/favicon.ico', (req, res) => {
+        console.log('[Static Assets] Serving FlowStack favicon');
         res.sendFile(path.join(__dirname, '..', 'assets', 'favicon.ico'));
     });
 
@@ -24,6 +25,29 @@ function setupStaticAssets(app) {
 
     app.get('/favicon-32x32.png', (req, res) => {
         res.sendFile(path.join(__dirname, '..', 'assets', 'favicon-32x32.png'));
+    });
+
+    // Intercept ALL requests that might be for Flowise logos
+    app.use((req, res, next) => {
+        const path = req.path.toLowerCase();
+        
+        // Check if this is a request for any Flowise logo/favicon
+        if (path.includes('flowise') && (path.endsWith('.png') || path.endsWith('.svg') || path.endsWith('.ico'))) {
+            console.log(`[Static Assets] Intercepting Flowise asset: ${req.path}`);
+            
+            // For SVG requests, return as JavaScript module
+            if (path.endsWith('.svg')) {
+                res.setHeader('Content-Type', 'application/javascript');
+                res.send(`export default "/assets/flowstack_logo.png";`);
+                return;
+            }
+            
+            // For other image types, return our logo
+            res.sendFile(path.join(__dirname, '..', 'assets', 'flowstack_logo.png'));
+            return;
+        }
+        
+        next();
     });
 
     // Handle SVG module imports - serve as JavaScript modules
