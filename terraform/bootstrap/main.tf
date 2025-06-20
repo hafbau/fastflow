@@ -37,7 +37,7 @@ resource "aws_iam_role" "github_actions_terraform_role" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:hafizsuara/flowstack:*"
+            "token.actions.githubusercontent.com:sub" = "repo:hafbau/fastflow:*"
           }
         }
       }
