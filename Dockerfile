@@ -2,7 +2,7 @@
 # Builds both core Flowise and FlowStack proxy layer
 
 FROM node:20-alpine AS deps
-RUN apk add --update --no-cache libc6-compat python3 make g++ git curl wget
+RUN apk add --update --no-cache libc6-compat python3 py3-setuptools make g++ git curl wget
 
 # Install pnpm manually by downloading binary for the correct architecture
 ENV SHELL=/bin/sh
@@ -35,7 +35,7 @@ RUN pnpm install --prod
 
 # Build stage
 FROM node:20-alpine AS builder
-RUN apk add --update --no-cache libc6-compat python3 make g++ git curl wget
+RUN apk add --update --no-cache libc6-compat python3 py3-setuptools make g++ git curl wget
 # needed for pdfjs-dist
 RUN apk add --no-cache build-base cairo-dev pango-dev
 
