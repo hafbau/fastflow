@@ -63,4 +63,12 @@ patches/*.applied
 # Temporary files
 *.tmp
 *.temp
-.cache/ 
+.cache/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl 
