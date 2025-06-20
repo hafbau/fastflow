@@ -39,5 +39,5 @@ variable "db_password" {
   description = "Database master password"
   type        = string
   sensitive   = true
-  default     = "ChangeMe123!@#"  # Change this for production!
+  default     = "ChangeMe123SecurePassword"  # Change this for production!
 }
