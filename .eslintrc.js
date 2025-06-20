@@ -1,10 +1,7 @@
 module.exports = {
     extends: [
-        'eslint:recommended',
-        '@typescript-eslint/recommended',
-        'prettier'
+        'eslint:recommended'
     ],
-    parser: '@typescript-eslint/parser',
     parserOptions: {
         ecmaVersion: 2022,
         sourceType: 'module'
@@ -25,17 +22,33 @@ module.exports = {
         'pnpm-lock.yaml'
     ],
     rules: {
-        '@typescript-eslint/no-unused-vars': ['warn', { 
+        'no-unused-vars': ['warn', { 
             vars: 'all', 
             varsIgnorePattern: '^_', 
             args: 'after-used', 
             argsIgnorePattern: '^_' 
         }],
-        '@typescript-eslint/explicit-module-boundary-types': 'off',
-        '@typescript-eslint/no-explicit-any': 'warn',
         'no-console': [process.env.CI ? 'error' : 'warn', { allow: ['warn', 'error', 'info'] }]
     },
     overrides: [
+        {
+            files: ['*.ts', '*.tsx'],
+            parser: '@typescript-eslint/parser',
+            plugins: ['@typescript-eslint'],
+            extends: [
+                'eslint:recommended',
+                '@typescript-eslint/recommended'
+            ],
+            rules: {
+                '@typescript-eslint/no-unused-vars': ['warn', { 
+                    vars: 'all', 
+                    varsIgnorePattern: '^_', 
+                    args: 'after-used', 
+                    argsIgnorePattern: '^_' 
+                }],
+                'no-unused-vars': 'off'
+            }
+        },
         {
             files: ['*.md'],
             processor: 'markdown/markdown'
@@ -43,7 +56,7 @@ module.exports = {
         {
             files: ['**/*.md/*.js'],
             rules: {
-                '@typescript-eslint/no-unused-vars': 'off',
+                'no-unused-vars': 'off',
                 'no-undef': 'off',
                 'no-console': 'off'
             }
