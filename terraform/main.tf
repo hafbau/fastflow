@@ -392,7 +392,7 @@ resource "aws_ecs_task_definition" "fastflow" {
         { name = "DATABASE_PASSWORD", value = aws_db_instance.flowstack.password },
         { name = "DATABASE_SSL", value = "true" }
       ]
-      entryPoint = ["pnpm", "start"]
+      entryPoint = ["/usr/local/bin/docker-entrypoint.sh"]
       mountPoints = [
         {
           sourceVolume  = "efs-volume"
@@ -478,6 +478,8 @@ resource "aws_ecs_service" "fastflow" {
     container_name   = "fastflow-service"
     container_port   = 3000
   }
+
+  force_new_deployment = true
 
   depends_on = [
     aws_lb_listener_rule.fastflow,
