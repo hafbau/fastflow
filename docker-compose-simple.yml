@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  flowstack:
+    image: flowstack:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_TYPE=postgres
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=flowstack
+      - DATABASE_USER=flowstack_admin
+      - DATABASE_PASSWORD=ChangeMe123SecurePassword
+      - DATABASE_SSL=false
+      - FLOWISE_USERNAME=admin
+      - FLOWISE_PASSWORD=admin
+    depends_on:
+      - postgres
+    networks:
+      - flowstack-net
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: flowstack
+      POSTGRES_USER: flowstack_admin
+      POSTGRES_PASSWORD: ChangeMe123SecurePassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flowstack-net
+
+volumes:
+  postgres_data:
+
+networks:
+  flowstack-net:
+    driver: bridge

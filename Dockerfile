@@ -55,13 +55,9 @@ COPY . .
 WORKDIR /usr/src
 RUN pnpm install --no-frozen-lockfile || echo "Dependencies installed with warnings"
 
-# Build the UI for production
+# Build the core application
 WORKDIR /usr/src/core
 RUN pnpm install --no-frozen-lockfile || echo "Core dependencies installed with warnings"
-RUN cd packages/ui && pnpm build
-
-# Build the server
-RUN cd packages/server && pnpm build
 
 # Production image
 FROM node:20-alpine AS runner

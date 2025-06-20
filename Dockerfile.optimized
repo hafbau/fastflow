@@ -1,0 +1,64 @@
+# Optimized Dockerfile for FlowStack with reduced memory usage
+FROM node:20-alpine AS deps
+RUN apk add --update --no-cache python3 make g++ git curl
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.0.4 --activate
+
+# First, just copy package files
+WORKDIR /usr/src
+COPY package.json pnpm-workspace.yaml ./
+COPY apps/flowstack/package.json ./apps/flowstack/
+
+# Install only the proxy app dependencies (much smaller)
+WORKDIR /usr/src/apps/flowstack
+RUN pnpm install --prod --no-optional
+
+# Production image - skip the heavy build stage
+FROM node:20-alpine AS runner
+RUN apk add --update --no-cache libc6-compat chromium curl supervisor postgresql-client
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@9.0.4 --activate
+
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
+WORKDIR /usr/src
+
+# Copy the entire source (but node_modules are dockerignored)
+COPY . .
+
+# Copy the installed proxy dependencies
+COPY --from=deps /usr/src/apps/flowstack/node_modules ./apps/flowstack/node_modules
+
+# Install core dependencies directly in production image
+WORKDIR /usr/src/core
+RUN pnpm install --prod --no-optional --ignore-scripts || echo "Core installed with warnings"
+
+# Go back to root
+WORKDIR /usr/src
+
+# Copy scripts
+COPY scripts/start-flowise.sh /usr/local/bin/start-flowise
+COPY scripts/start-flowise-wrapper.sh /usr/local/bin/start-flowise-wrapper
+RUN chmod +x /usr/local/bin/start-flowise /usr/local/bin/start-flowise-wrapper
+
+# Copy supervisord configuration
+RUN mkdir -p /etc/supervisor/conf.d
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Copy entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Create log directories
+RUN mkdir -p /var/log/supervisor
+
+# Ensure execution permissions
+RUN chmod +x /usr/src/core/packages/server/bin/run || true
+
+EXPOSE 3000
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

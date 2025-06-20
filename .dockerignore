@@ -54,4 +54,26 @@ terraform/
 .github/
 
 # Patches (will be applied during build)
-patches/ 
+patches/
+
+# Python virtualenv
+myenv/
+venv/
+__pycache__/
+
+# Docker files to avoid recursion
+Dockerfile*
+docker-compose*
+
+# PNPM store
+.pnpm-store/
+**/.pnpm-store/
+
+# Core node_modules can be huge
+core/node_modules/
+core/**/node_modules/
+
+# Temporary and cache files
+tmp/
+temp/
+.cache/ 
