@@ -450,7 +450,7 @@ resource "aws_lb_target_group" "fastflow" {
 # Create Listener Rule for Fastflow
 resource "aws_lb_listener_rule" "fastflow" {
   listener_arn = aws_lb_listener.public_listener.arn
-  priority     = 100
+  priority     = 200
 
   action {
     type             = "forward"
