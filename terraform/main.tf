@@ -497,3 +497,4 @@ output "external_url" {
   description = "URL of the Fastflow application"
   value       = "http://${aws_lb.public.dns_name}"
 }
+
