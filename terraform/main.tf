@@ -261,7 +261,12 @@ resource "aws_iam_role" "ecs_service_role" {
     }]
   })
 
-  managed_policy_arns = ["arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"]
+}
+
+# Attach CloudWatch policy to ECS Service Role
+resource "aws_iam_role_policy_attachment" "ecs_cloudwatch_policy" {
+  role       = aws_iam_role.ecs_service_role.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
 }
 
 # Attach Policy to ECS Service Role
@@ -445,7 +450,7 @@ resource "aws_lb_target_group" "fastflow" {
 # Create Listener Rule for Fastflow
 resource "aws_lb_listener_rule" "fastflow" {
   listener_arn = aws_lb_listener.public_listener.arn
-  priority     = 1
+  priority     = 100
 
   action {
     type             = "forward"
