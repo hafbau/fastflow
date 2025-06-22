@@ -50,6 +50,19 @@ fi
 # Wait a moment to ensure everything is ready
 sleep 2
 
+# Debug: Show all environment variables
+echo "[ENTRYPOINT-DEBUG] All environment variables:"
+env | sort
+
+echo "[ENTRYPOINT-DEBUG] Checking critical paths:"
+echo "[ENTRYPOINT-DEBUG] /usr/src/core exists: $(test -d /usr/src/core && echo 'YES' || echo 'NO')"
+echo "[ENTRYPOINT-DEBUG] /usr/src/core/packages/server/bin/run exists: $(test -f /usr/src/core/packages/server/bin/run && echo 'YES' || echo 'NO')"
+echo "[ENTRYPOINT-DEBUG] /usr/local/bin/start-flowise-wrapper exists: $(test -f /usr/local/bin/start-flowise-wrapper && echo 'YES' || echo 'NO')"
+
+echo "[ENTRYPOINT-DEBUG] Permissions:"
+ls -la /usr/local/bin/start-flowise-wrapper || echo "[ENTRYPOINT-ERROR] start-flowise-wrapper not found"
+ls -la /usr/src/core/packages/server/bin/run || echo "[ENTRYPOINT-ERROR] run script not found"
+
 # Start supervisord
 echo "Starting supervisord..."
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf 

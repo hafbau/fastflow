@@ -1,5 +1,20 @@
 #!/usr/bin/env node
 
+console.log('[FLOWISE-DEBUG] Starting oclif run script...')
+console.log('[FLOWISE-DEBUG] Node version:', process.version)
+console.log('[FLOWISE-DEBUG] Process arguments:', process.argv)
+console.log('[FLOWISE-DEBUG] Current working directory:', process.cwd())
+console.log('[FLOWISE-DEBUG] Environment variables:')
+Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('FLOWISE') || key.includes('PORT')).forEach(key => {
+    console.log(`[FLOWISE-DEBUG] ${key}=${process.env[key]}`)
+})
+
 const oclif = require('@oclif/core')
 
-oclif.run().catch(require('@oclif/core/handle'))
+console.log('[FLOWISE-DEBUG] About to run oclif.run()...')
+oclif.run().then(() => {
+    console.log('[FLOWISE-DEBUG] oclif.run() completed successfully')
+}).catch((error) => {
+    console.error('[FLOWISE-ERROR] oclif.run() failed:', error)
+    require('@oclif/core/handle')(error)
+})
