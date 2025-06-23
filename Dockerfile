@@ -89,11 +89,13 @@ COPY scripts/start-flowise-wrapper.sh /usr/local/bin/start-flowise-wrapper
 COPY scripts/test-environment.sh /usr/local/bin/test-environment
 COPY scripts/start-flowise-simple.sh /usr/local/bin/start-flowise-simple
 COPY scripts/log-monitor.sh /usr/local/bin/log-monitor
+COPY scripts/test-direct-node.js /usr/local/bin/test-direct-node
 RUN chmod +x /usr/local/bin/start-flowise
 RUN chmod +x /usr/local/bin/start-flowise-wrapper
 RUN chmod +x /usr/local/bin/test-environment
 RUN chmod +x /usr/local/bin/start-flowise-simple
 RUN chmod +x /usr/local/bin/log-monitor
+RUN chmod +x /usr/local/bin/test-direct-node
 
 # Copy supervisord configuration
 RUN mkdir -p /etc/supervisor/conf.d
