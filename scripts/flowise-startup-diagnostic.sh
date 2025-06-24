@@ -142,6 +142,50 @@ echo "=== ATTEMPTING FLOWISE START ==="
 echo "Running: node /usr/src/core/packages/server/bin/run --version"
 cd /usr/src/core && node packages/server/bin/run --version 2>&1 || echo "FAILED: Version check"
 
+# Try with explicit error capture
+echo ""
+echo "=== TESTING NODE ERROR HANDLING ==="
+cd /usr/src/core && node -e "
+process.on('uncaughtException', (err) => {
+    console.error('Test uncaught exception:', err);
+    process.exit(1);
+});
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Test unhandled rejection:', reason);
+    process.exit(1);
+});
+console.log('Node error handling test passed');
+" 2>&1
+
+# Try running with strace if available
+echo ""
+echo "=== SYSTEM CALL TRACE (if available) ==="
+if command -v strace >/dev/null 2>&1; then
+    echo "Running with strace (first 100 lines):"
+    cd /usr/src/core && timeout 5 strace -f -e trace=execve,open,openat node packages/server/bin/run start 2>&1 | head -100 || echo "Strace capture completed"
+else
+    echo "strace not available in container"
+fi
+
+# Check for missing shared libraries
+echo ""
+echo "=== SHARED LIBRARY CHECK ==="
+if command -v ldd >/dev/null 2>&1; then
+    echo "Checking node binary dependencies:"
+    ldd $(which node) 2>&1 || echo "Failed to check node dependencies"
+else
+    echo "ldd not available"
+fi
+
+# Final memory check
+echo ""
+echo "=== FINAL SYSTEM STATE ==="
+echo "Memory usage:"
+free -m 2>/dev/null || echo "free command not available"
+echo ""
+echo "Disk usage:"
+df -h 2>/dev/null || echo "df command not available"
+
 echo ""
 echo "===== END DIAGNOSTIC ====="
 echo "Time: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
