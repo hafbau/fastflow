@@ -106,8 +106,8 @@ export const init = async (): Promise<void> => {
                 extra: {
                     idleTimeoutMillis: 120000
                 },
-                logging: ['error', 'warn', 'info', 'log'] as any,
-                logger: 'advanced-console' as any,
+                logging: true,
+                logger: 'advanced-console' as const,
                 logNotifications: true,
                 poolErrorHandler: (err: any) => {
                     logger.error(`Database pool error: ${JSON.stringify(err)}`)
