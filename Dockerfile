@@ -58,9 +58,8 @@ RUN pnpm install --no-frozen-lockfile || echo "Dependencies installed with warni
 # Build the core application
 WORKDIR /usr/src/core
 RUN pnpm install --no-frozen-lockfile || echo "Core dependencies installed with warnings"
-# Run build but continue on TypeScript errors (we only need transpilation)
-# The TypeScript errors are due to conflicting dependency versions between monorepo packages
-RUN pnpm run build || true
+# Build the application
+RUN pnpm run build
 
 # Production image
 FROM node:20-alpine AS runner
