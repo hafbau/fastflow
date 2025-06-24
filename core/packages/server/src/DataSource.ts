@@ -13,12 +13,37 @@ import logger from './utils/logger'
 let appDataSource: DataSource
 
 export const init = async (): Promise<void> => {
-    let homePath
-    let flowisePath = path.join(getUserHome(), '.flowise')
-    if (!fs.existsSync(flowisePath)) {
-        fs.mkdirSync(flowisePath)
+    const debugLog = (msg: string) => {
+        const timestamp = new Date().toISOString()
+        console.log(`${timestamp} [DATASOURCE-DEBUG] ${msg}`)
+        logger.info(`[DATASOURCE-DEBUG] ${msg}`)
+        // Force flush stdout
+        if (process.stdout.write) {
+            process.stdout.write('')
+        }
     }
-    switch (process.env.DATABASE_TYPE) {
+
+    try {
+        debugLog('=== DataSource init() called ===')
+        debugLog(`DATABASE_TYPE: ${process.env.DATABASE_TYPE}`)
+        debugLog(`DATABASE_HOST: ${process.env.DATABASE_HOST}`)
+        debugLog(`DATABASE_PORT: ${process.env.DATABASE_PORT}`)
+        debugLog(`DATABASE_NAME: ${process.env.DATABASE_NAME}`)
+        debugLog(`DATABASE_USER: ${process.env.DATABASE_USER}`)
+        debugLog(`DATABASE_SSL: ${process.env.DATABASE_SSL}`)
+        debugLog(`NODE_ENV: ${process.env.NODE_ENV}`)
+        
+        let homePath
+        let flowisePath = path.join(getUserHome(), '.flowise')
+        debugLog(`Flowise path: ${flowisePath}`)
+        
+        if (!fs.existsSync(flowisePath)) {
+            debugLog(`Creating flowise directory: ${flowisePath}`)
+            fs.mkdirSync(flowisePath)
+        }
+        
+        debugLog(`Checking database type: ${process.env.DATABASE_TYPE}`)
+        switch (process.env.DATABASE_TYPE) {
         case 'sqlite':
             homePath = process.env.DATABASE_PATH ?? flowisePath
             appDataSource = new DataSource({
@@ -63,14 +88,17 @@ export const init = async (): Promise<void> => {
             })
             break
         case 'postgres':
-            appDataSource = new DataSource({
-                type: 'postgres',
+            debugLog('Configuring PostgreSQL datasource...')
+            const sslConfig = getDatabaseSSLFromEnv()
+            debugLog(`SSL config: ${JSON.stringify(sslConfig)}`)
+            const pgConfig = {
+                type: 'postgres' as const,
                 host: process.env.DATABASE_HOST,
                 port: parseInt(process.env.DATABASE_PORT || '5432'),
                 username: process.env.DATABASE_USER,
                 password: process.env.DATABASE_PASSWORD,
                 database: process.env.DATABASE_NAME,
-                ssl: getDatabaseSSLFromEnv(),
+                ssl: sslConfig,
                 synchronize: false,
                 migrationsRun: false,
                 entities: Object.values(entities),
@@ -81,11 +109,13 @@ export const init = async (): Promise<void> => {
                 logging: ['error', 'warn', 'info', 'log'],
                 logger: 'advanced-console',
                 logNotifications: true,
-                poolErrorHandler: (err) => {
+                poolErrorHandler: (err: any) => {
                     logger.error(`Database pool error: ${JSON.stringify(err)}`)
                 },
                 applicationName: 'Flowise'
-            })
+            }
+            debugLog(`PostgreSQL config: ${JSON.stringify({...pgConfig, password: '***'}, null, 2)}`)
+            appDataSource = new DataSource(pgConfig)
             break
         default:
             homePath = process.env.DATABASE_PATH ?? flowisePath
@@ -98,6 +128,26 @@ export const init = async (): Promise<void> => {
                 migrations: sqliteMigrations
             })
             break
+    }
+    
+        debugLog('DataSource configuration completed')
+        debugLog('Attempting to initialize database connection...')
+        
+        await appDataSource.initialize()
+        debugLog('Database connection initialized successfully')
+        
+        debugLog('Running database migrations...')
+        await appDataSource.runMigrations()
+        debugLog('Database migrations completed successfully')
+        
+    } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        const errorStack = error instanceof Error ? error.stack : 'No stack trace'
+        debugLog(`FATAL ERROR in DataSource init: ${errorMsg}`)
+        debugLog(`Error stack: ${errorStack}`)
+        logger.error(`DataSource initialization failed: ${errorMsg}`)
+        logger.error(errorStack)
+        throw error
     }
 }
 

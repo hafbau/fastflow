@@ -1,20 +1,62 @@
 #!/usr/bin/env node
 
-console.log('[FLOWISE-DEBUG] Starting oclif run script...')
-console.log('[FLOWISE-DEBUG] Node version:', process.version)
-console.log('[FLOWISE-DEBUG] Process arguments:', process.argv)
-console.log('[FLOWISE-DEBUG] Current working directory:', process.cwd())
-console.log('[FLOWISE-DEBUG] Environment variables:')
-Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('FLOWISE') || key.includes('PORT')).forEach(key => {
-    console.log(`[FLOWISE-DEBUG] ${key}=${process.env[key]}`)
+// Force immediate flushing of stdout/stderr
+if (process.stdout._handle) process.stdout._handle.setBlocking(true)
+if (process.stderr._handle) process.stderr._handle.setBlocking(true)
+
+// Immediate error handling and logging
+process.on('uncaughtException', (err) => {
+    console.error('[FLOWISE-CRITICAL] Uncaught Exception:', err)
+    console.error('[FLOWISE-CRITICAL] Stack trace:', err.stack)
+    console.error('[FLOWISE-CRITICAL] Error details:', JSON.stringify(err, null, 2))
+    process.exit(1)
 })
 
-const oclif = require('@oclif/core')
-
-console.log('[FLOWISE-DEBUG] About to run oclif.run()...')
-oclif.run().then(() => {
-    console.log('[FLOWISE-DEBUG] oclif.run() completed successfully')
-}).catch((error) => {
-    console.error('[FLOWISE-ERROR] oclif.run() failed:', error)
-    require('@oclif/core/handle')(error)
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('[FLOWISE-CRITICAL] Unhandled Rejection at:', promise, 'reason:', reason)
+    console.error('[FLOWISE-CRITICAL] Rejection details:', JSON.stringify(reason, null, 2))
+    process.exit(1)
 })
+
+// Simple logging function that only outputs to console
+function writeLog(msg) {
+    const timestamp = new Date().toISOString()
+    console.log(`${timestamp} ${msg}`)
+    // Force flush
+    if (process.stdout.write) {
+        process.stdout.write('')
+    }
+}
+
+writeLog('[FLOWISE-DEBUG] ======== NODE PROCESS STARTED ========')
+writeLog('[FLOWISE-DEBUG] Starting oclif run script...')
+writeLog('[FLOWISE-DEBUG] Node version: ' + process.version)
+writeLog('[FLOWISE-DEBUG] Process arguments: ' + JSON.stringify(process.argv))
+writeLog('[FLOWISE-DEBUG] Current working directory: ' + process.cwd())
+writeLog('[FLOWISE-DEBUG] __dirname: ' + __dirname)
+writeLog('[FLOWISE-DEBUG] __filename: ' + __filename)
+writeLog('[FLOWISE-DEBUG] Environment variables:')
+Object.keys(process.env).filter(key => key.includes('DATABASE') || key.includes('FLOWISE') || key.includes('PORT') || key.includes('NODE')).forEach(key => {
+    writeLog(`[FLOWISE-DEBUG] ${key}=${process.env[key]}`)
+})
+
+try {
+    writeLog('[FLOWISE-DEBUG] About to require @oclif/core...')
+    const oclif = require('@oclif/core')
+    writeLog('[FLOWISE-DEBUG] Successfully required @oclif/core')
+    
+    writeLog('[FLOWISE-DEBUG] About to run oclif.run()...')
+    oclif.run().then(() => {
+        writeLog('[FLOWISE-DEBUG] oclif.run() completed successfully')
+    }).catch((error) => {
+        writeLog('[FLOWISE-ERROR] oclif.run() failed: ' + error.message)
+        writeLog('[FLOWISE-ERROR] Stack trace: ' + error.stack)
+        console.error('[FLOWISE-ERROR] oclif.run() failed:', error)
+        require('@oclif/core/handle')(error)
+    })
+} catch (error) {
+    writeLog('[FLOWISE-CRITICAL] Failed to load or run oclif: ' + error.message)
+    writeLog('[FLOWISE-CRITICAL] Stack trace: ' + error.stack)
+    console.error('[FLOWISE-CRITICAL] Failed to load or run oclif:', error)
+    process.exit(1)
+}
