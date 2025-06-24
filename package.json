@@ -20,7 +20,7 @@
         "clean": "turbo run clean",
         "nuke": "pnpm clean && rimraf node_modules .turbo pnpm-lock.yaml",
         "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-        "lint": "eslint \"**/*.{js,jsx,ts,tsx,json,md}\"",
+        "lint": "eslint \"**/*.{js,jsx,ts,tsx}\"",
         "lint:fix": "pnpm lint --fix",
         "sync:upstream": "bash scripts/sync-upstream.sh",
         "check:conflicts": "node scripts/check-conflicts.js",

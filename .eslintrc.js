@@ -10,7 +10,6 @@ module.exports = {
         node: true,
         es6: true
     },
-    plugins: ['markdown'],
     ignorePatterns: [
         '**/node_modules/**',
         '**/dist/**',
@@ -19,7 +18,10 @@ module.exports = {
         '**/coverage/**',
         '**/terraform/**',
         '**/patches/**',
-        'pnpm-lock.yaml'
+        'pnpm-lock.yaml',
+        '**/*.md',
+        '**/*.json',
+        'core/**'  // Don't lint upstream Flowise code
     ],
     rules: {
         'no-unused-vars': ['warn', { 
@@ -37,7 +39,7 @@ module.exports = {
             plugins: ['@typescript-eslint'],
             extends: [
                 'eslint:recommended',
-                '@typescript-eslint/recommended'
+                'plugin:@typescript-eslint/recommended'
             ],
             rules: {
                 '@typescript-eslint/no-unused-vars': ['warn', { 
@@ -51,10 +53,6 @@ module.exports = {
         },
         {
             files: ['*.md'],
-            processor: 'markdown/markdown'
-        },
-        {
-            files: ['**/*.md/*.js'],
             rules: {
                 'no-unused-vars': 'off',
                 'no-undef': 'off',

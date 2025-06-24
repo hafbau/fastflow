@@ -41,29 +41,29 @@ resource "aws_db_instance" "flowstack" {
   engine         = "postgres"
   engine_version = "15.7"
   instance_class = var.db_instance_class
-  
+
   allocated_storage     = var.db_allocated_storage
   max_allocated_storage = var.db_max_allocated_storage
   storage_type          = "gp3"
   storage_encrypted     = true
-  
+
   db_name  = "flowstack"
   username = var.db_username
   password = var.db_password
-  
+
   vpc_security_group_ids = [aws_security_group.rds_sg.id]
   db_subnet_group_name   = aws_db_subnet_group.flowstack.name
-  
+
   backup_retention_period = 7
-  backup_window          = "03:00-04:00"
-  maintenance_window     = "sun:04:00-sun:05:00"
-  
-  deletion_protection = var.stage == "prod" ? true : false
-  skip_final_snapshot = var.stage == "prod" ? false : true
+  backup_window           = "03:00-04:00"
+  maintenance_window      = "sun:04:00-sun:05:00"
+
+  deletion_protection       = var.stage == "prod" ? true : false
+  skip_final_snapshot       = var.stage == "prod" ? false : true
   final_snapshot_identifier = var.stage == "prod" ? "${var.stage}-flowstack-db-final-snapshot-${formatdate("YYYY-MM-DD-hhmm", timestamp())}" : null
-  
+
   enabled_cloudwatch_logs_exports = ["postgresql"]
-  
+
   tags = {
     Name = "${var.stage}-flowstack-db"
   }

@@ -367,7 +367,7 @@ resource "aws_cloudwatch_log_group" "fastflow" {
 resource "aws_ecs_task_definition" "fastflow" {
   family                   = "${var.stage}-fastflow-task"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
-  task_role_arn           = aws_iam_role.ecs_task_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "1024"
@@ -406,7 +406,7 @@ resource "aws_ecs_task_definition" "fastflow" {
       ]
       logConfiguration = {
         logDriver = "awslogs"
-        options   = {
+        options = {
           "awslogs-group"         = aws_cloudwatch_log_group.fastflow.name
           "awslogs-region"        = var.region
           "awslogs-stream-prefix" = var.stage
@@ -473,8 +473,8 @@ resource "aws_ecs_service" "fastflow" {
   desired_count   = var.ecs_desired_count
 
   network_configuration {
-    subnets         = aws_subnet.private[*].id
-    security_groups = [aws_security_group.container_sg.id]
+    subnets          = aws_subnet.private[*].id
+    security_groups  = [aws_security_group.container_sg.id]
     assign_public_ip = false
   }
 

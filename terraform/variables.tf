@@ -1,7 +1,7 @@
 variable "region" {
   description = "AWS region"
   type        = string
-  default     = "us-east-1"  # Or your preferred region
+  default     = "us-east-1" # Or your preferred region
 }
 
 variable "stage" {
@@ -14,7 +14,7 @@ variable "stage" {
 variable "db_instance_class" {
   description = "RDS instance class"
   type        = string
-  default     = "db.t3.micro"  # For dev/testing, use larger for production
+  default     = "db.t3.micro" # For dev/testing, use larger for production
 }
 
 variable "db_allocated_storage" {
@@ -39,11 +39,11 @@ variable "db_password" {
   description = "Database master password"
   type        = string
   sensitive   = true
-  default     = "ChangeMe123SecurePassword"  # Change this for production!
+  default     = "ChangeMe123SecurePassword" # Change this for production!
 }
 
 variable "ecs_desired_count" {
   description = "Desired number of ECS tasks (set to 0 to stop the service)"
   type        = number
-  default     = 0  # Set to 0 to prevent tasks from running
+  default     = 0 # Set to 0 to prevent tasks from running
 }
