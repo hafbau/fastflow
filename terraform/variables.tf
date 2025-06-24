@@ -41,3 +41,9 @@ variable "db_password" {
   sensitive   = true
   default     = "ChangeMe123SecurePassword"  # Change this for production!
 }
+
+variable "ecs_desired_count" {
+  description = "Desired number of ECS tasks (set to 0 to stop the service)"
+  type        = number
+  default     = 0  # Set to 0 to prevent tasks from running
+}

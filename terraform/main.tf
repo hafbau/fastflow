@@ -470,7 +470,7 @@ resource "aws_ecs_service" "fastflow" {
   cluster         = aws_ecs_cluster.this.id
   task_definition = aws_ecs_task_definition.fastflow.arn
   launch_type     = "FARGATE"
-  desired_count   = 2
+  desired_count   = var.ecs_desired_count
 
   network_configuration {
     subnets         = aws_subnet.private[*].id
@@ -482,6 +482,22 @@ resource "aws_ecs_service" "fastflow" {
     target_group_arn = aws_lb_target_group.fastflow.arn
     container_name   = "fastflow-service"
     container_port   = 3000
+  }
+
+  # Circuit breaker to stop deployment if tasks keep failing
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = false
+  }
+
+  # Deployment configuration to limit retry attempts
+  deployment_configuration {
+    maximum_percent         = 100
+    minimum_healthy_percent = 0
+    deployment_circuit_breaker {
+      enable   = true
+      rollback = false
+    }
   }
 
   force_new_deployment = true
