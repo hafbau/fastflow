@@ -87,7 +87,13 @@ export class App {
             await this.AppDataSource.runMigrations({ transaction: 'each' })
 
             // Initialize Identity Manager
-            this.identityManager = await IdentityManager.getInstance()
+            try {
+                this.identityManager = await IdentityManager.getInstance()
+                logger.info('✅ [server]: Identity Manager initialized successfully')
+            } catch (identityError) {
+                logger.error('❌ [server]: Failed to initialize Identity Manager:', identityError)
+                throw identityError // Re-throw to prevent undefined identityManager
+            }
 
             // Initialize nodes pool
             this.nodesPool = new NodesPool()

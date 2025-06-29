@@ -1,0 +1,15 @@
+--- a/core/packages/server/dist/index.js
++++ b/core/packages/server/dist/index.js
+@@ -238,7 +238,11 @@ class App {
+         // Initialize custom SSO routes if enabled
+         if (this.AppDataSource.options.type === 'postgres' && process.env.ENABLE_ENTERPRISE === 'true') {
+             // Initialize SSO routes
+-            this.app.initializeSSO()
++            if (this.app && typeof this.app.initializeSSO === 'function') {
++                this.app.initializeSSO()
++            } else {
++                logger_1.default.info('SSO initialization skipped - method not available')
++            }
+         }
+         // ----------------------------------------
+         // Configure Express middlewares

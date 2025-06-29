@@ -84,21 +84,11 @@ WORKDIR /usr/src
 # Copy built application
 COPY --from=builder /usr/src ./
 
-# Copy custom start scripts
-COPY scripts/start-flowise.sh /usr/local/bin/start-flowise
-COPY scripts/start-flowise-wrapper.sh /usr/local/bin/start-flowise-wrapper
-COPY scripts/test-environment.sh /usr/local/bin/test-environment
-COPY scripts/start-flowise-simple.sh /usr/local/bin/start-flowise-simple
+# Copy production scripts
+COPY scripts/start-flowstack.sh /usr/local/bin/start-flowstack
 COPY scripts/log-monitor.sh /usr/local/bin/log-monitor
-COPY scripts/test-direct-node.js /usr/local/bin/test-direct-node
-COPY scripts/flowise-startup-diagnostic.sh /usr/local/bin/flowise-startup-diagnostic
-RUN chmod +x /usr/local/bin/start-flowise
-RUN chmod +x /usr/local/bin/start-flowise-wrapper
-RUN chmod +x /usr/local/bin/test-environment
-RUN chmod +x /usr/local/bin/start-flowise-simple
+RUN chmod +x /usr/local/bin/start-flowstack
 RUN chmod +x /usr/local/bin/log-monitor
-RUN chmod +x /usr/local/bin/test-direct-node
-RUN chmod +x /usr/local/bin/flowise-startup-diagnostic
 
 # Copy supervisord configuration
 RUN mkdir -p /etc/supervisor/conf.d

@@ -8,7 +8,7 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_USER=flowstack_admin
-      - POSTGRES_PASSWORD=ChangeMe123!@#
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-ChangeMe123!@#}
       - POSTGRES_DB=flowstack
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -25,47 +25,92 @@ services:
       dockerfile: Dockerfile
     image: leadevs/fastflow:latest
     ports:
-      - "3000:3000"
+      - "${EXTERNAL_PORT:-3000}:3000"
     volumes:
       - flowstack_data:/root/.flowise
+      - /var/log/flowstack:/var/log/flowstack
     environment:
-      # Flowise Core Configuration
-      - FLOWISE_USERNAME=${FLOWISE_USERNAME:-hafiz@leadevs.com}
-      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD:-Password1@#}
+      # Node.js Configuration
+      - NODE_ENV=${NODE_ENV:-production}
+      
+      # FlowStack Core Configuration
+      - FLOWISE_USERNAME=${FLOWISE_USERNAME:-admin@flowstack.com}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD:-ChangeMe123!@#}
+      - ENABLE_ENTERPRISE=true
+      
+      # Database Configuration
       - DATABASE_TYPE=postgres
       - DATABASE_HOST=postgres
       - DATABASE_PORT=5432
       - DATABASE_NAME=flowstack
       - DATABASE_USER=flowstack_admin
-      - DATABASE_PASSWORD=ChangeMe123!@#
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-ChangeMe123!@#}
       - DATABASE_SSL=false
-      - PORT=3000
+      
+      # Internal Port Configuration
+      - PORT=3001
       
       # FlowStack Proxy Configuration
       - CORE_SERVER_URL=http://localhost:3001
-      - CORE_UI_URL=http://localhost:8080
+      - CORE_UI_URL=http://localhost:3001
       - PROXY_PORT=3000
       
-      # Optional: API Keys and other configurations
+      # API Keys (Optional)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      
+      # Enterprise Features
+      - FLOWISE_SECRETKEY_OVERWRITE=${FLOWISE_SECRETKEY_OVERWRITE:-myFlowiseSecretKey}
+      - FLOWISE_FILE_SIZE_LIMIT=${FLOWISE_FILE_SIZE_LIMIT:-50mb}
+      - EXECUTION_MODE=${EXECUTION_MODE:-main}
+      - QUEUE_PROVIDER=${QUEUE_PROVIDER:-memory}
+      - REDIS_URL=${REDIS_URL:-}
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/ping"]
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
-      start_period: 60s
+      start_period: 90s
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # Utility service to reset database (run with: docker-compose run --rm db-reset)
+  # Optional Redis for production queue management
+  redis:
+    image: redis:7-alpine
+    container_name: flowstack-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - production
+
+  # Database management tool (optional)
+  adminer:
+    image: adminer
+    container_name: flowstack-adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+    restart: unless-stopped
+    profiles:
+      - tools
+
+  # Utility service to reset database
   db-reset:
     image: postgres:15-alpine
     container_name: flowstack-db-reset
     environment:
-      - PGPASSWORD=ChangeMe123!@#
+      - PGPASSWORD=${DATABASE_PASSWORD:-ChangeMe123!@#}
     command: >
       sh -c "
         echo 'Dropping and recreating database...';
@@ -83,4 +128,6 @@ volumes:
   flowstack_data:
     driver: local
   postgres_data:
+    driver: local
+  redis_data:
     driver: local 

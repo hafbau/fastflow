@@ -100,19 +100,19 @@ export class IdentityManager {
     }
 
     private _validateLicenseKey = async () => {
+        // FlowStack Enterprise Mode Override - Skip ALL validation
+        if (process.env.ENABLE_ENTERPRISE === 'true') {
+            console.log('[FlowStack] Enterprise features enabled via environment variable - skipping all license validation')
+            this.licenseValid = true
+            this.currentInstancePlatform = Platform.ENTERPRISE
+            return
+        }
+
         const LICENSE_URL = process.env.LICENSE_URL
         const FLOWISE_EE_LICENSE_KEY = process.env.FLOWISE_EE_LICENSE_KEY
 
         // First check if license key is missing
         if (!FLOWISE_EE_LICENSE_KEY) {
-            // FlowStack Enterprise Mode Hack
-            if (process.env.ENABLE_ENTERPRISE === 'true') {
-                console.log('[FlowStack] Enterprise features enabled via environment variable')
-                this.licenseValid = true
-                this.currentInstancePlatform = Platform.ENTERPRISE
-                return
-            }
-            
             this.licenseValid = false
             this.currentInstancePlatform = Platform.OPEN_SOURCE
             return

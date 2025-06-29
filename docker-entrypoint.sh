@@ -5,11 +5,13 @@ echo "🚀 Starting FlowStack..."
 
 # Ensure log directories exist
 mkdir -p /var/log/supervisor
+mkdir -p /var/log/flowstack
 
 # Set default environment variables if not provided
 export FLOWISE_USERNAME=${FLOWISE_USERNAME:-hafiz@leadevs.com}
 export FLOWISE_PASSWORD=${FLOWISE_PASSWORD:-Password1@#}
 export DATABASE_TYPE=${DATABASE_TYPE:-postgres}
+export ENABLE_ENTERPRISE=${ENABLE_ENTERPRISE:-true}
 
 # PostgreSQL configuration
 if [ "$DATABASE_TYPE" = "postgres" ]; then
