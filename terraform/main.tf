@@ -212,36 +212,20 @@ resource "aws_acm_certificate" "main" {
   }
 }
 
-# Create Route53 Hosted Zone (if domain is provided and doesn't exist)
-data "aws_route53_zone" "main" {
-  count        = var.domain_name != "" ? 1 : 0
-  name         = var.domain_name
-  private_zone = false
-}
-
-# Create DNS validation records
-resource "aws_route53_record" "cert_validation" {
-  for_each = var.domain_name != "" ? {
+# Output DNS validation records for manual configuration
+output "acm_certificate_validation_records" {
+  description = "DNS validation records to be added to your DNS provider (e.g., GoDaddy)"
+  value = var.domain_name != "" ? {
     for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
-      record = dvo.resource_record_value
       type   = dvo.resource_record_type
+      value  = dvo.resource_record_value
     }
   } : {}
-
-  zone_id = data.aws_route53_zone.main[0].zone_id
-  name    = each.value.name
-  type    = each.value.type
-  records = [each.value.record]
-  ttl     = 60
 }
 
-# Certificate validation
-resource "aws_acm_certificate_validation" "main" {
-  count                   = var.domain_name != "" ? 1 : 0
-  certificate_arn         = aws_acm_certificate.main[0].arn
-  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
-}
+# Note: Certificate validation will remain pending until DNS records are added manually
+# The HTTPS listener will not work until the certificate is validated
 
 # Create Listener for Public Load Balancer (HTTP)
 resource "aws_lb_listener" "public_listener" {
@@ -274,12 +258,14 @@ resource "aws_lb_listener" "public_listener_https" {
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = aws_acm_certificate_validation.main[0].certificate_arn
+  certificate_arn   = aws_acm_certificate.main[0].arn
 
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.dummy.arn
   }
+  
+  # Note: This listener will only work after the certificate is validated via DNS
 }
 
 # Create ECS Cluster
@@ -606,33 +592,11 @@ resource "aws_ecs_service" "fastflow" {
   ]
 }
 
-# Create Route53 A record for the domain (if provided)
-resource "aws_route53_record" "main" {
-  count   = var.domain_name != "" ? 1 : 0
-  zone_id = data.aws_route53_zone.main[0].zone_id
-  name    = var.domain_name
-  type    = "A"
-
-  alias {
-    name                   = aws_lb.public.dns_name
-    zone_id                = aws_lb.public.zone_id
-    evaluate_target_health = true
-  }
-}
-
-# Create Route53 A record for www subdomain (if provided)
-resource "aws_route53_record" "www" {
-  count   = var.domain_name != "" ? 1 : 0
-  zone_id = data.aws_route53_zone.main[0].zone_id
-  name    = "www.${var.domain_name}"
-  type    = "A"
-
-  alias {
-    name                   = aws_lb.public.dns_name
-    zone_id                = aws_lb.public.zone_id
-    evaluate_target_health = true
-  }
-}
+# DNS Configuration Instructions (for external DNS providers like GoDaddy)
+# After applying this Terraform configuration:
+# 1. Add the DNS validation records from the 'acm_certificate_validation_records' output to your DNS provider
+# 2. Create an A record pointing your domain to the ALB DNS name (use the 'alb_dns_name' output)
+# 3. Create a CNAME record for www subdomain pointing to your main domain
 
 # Output the external URL
 output "external_url" {
@@ -644,5 +608,17 @@ output "external_url" {
 output "alb_dns_name" {
   description = "DNS name of the Application Load Balancer"
   value       = aws_lb.public.dns_name
+}
+
+# Output DNS configuration instructions
+output "dns_configuration_instructions" {
+  description = "Instructions for configuring DNS with external providers"
+  value = var.domain_name != "" ? "Please configure DNS: 1) Add CNAME records from 'acm_certificate_validation_records' output to validate certificate. 2) Point ${var.domain_name} to ${aws_lb.public.dns_name}. 3) Create CNAME for www.${var.domain_name} pointing to ${var.domain_name}." : "No domain configured - using HTTP only"
+}
+
+# Output certificate ARN for reference
+output "acm_certificate_arn" {
+  description = "ARN of the ACM certificate (if created)"
+  value       = var.domain_name != "" ? aws_acm_certificate.main[0].arn : "No certificate created"
 }
 
