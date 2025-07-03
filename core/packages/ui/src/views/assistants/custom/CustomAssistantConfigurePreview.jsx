@@ -41,6 +41,7 @@ import ConfirmDialog from '@/ui-component/dialog/ConfirmDialog'
 import PromptGeneratorDialog from '@/ui-component/dialog/PromptGeneratorDialog'
 import { Available } from '@/ui-component/rbac/available'
 import ExpandTextDialog from '@/ui-component/dialog/ExpandTextDialog'
+import { SwitchInput } from '@/ui-component/switch/Switch'
 
 // API
 import assistantsApi from '@/api/assistants'
@@ -53,7 +54,7 @@ import { baseURL } from '@/store/constant'
 import { SET_CHATFLOW, closeSnackbar as closeSnackbarAction, enqueueSnackbar as enqueueSnackbarAction } from '@/store/actions'
 
 // Utils
-import { initNode } from '@/utils/genericHelper'
+import { initNode, showHideInputParams } from '@/utils/genericHelper'
 import useNotifier from '@/utils/useNotifier'
 import { toolAgentFlow } from './toolAgentFlow'
 
@@ -126,6 +127,28 @@ const CustomAssistantConfigurePreview = () => {
     useNotifier()
     const enqueueSnackbar = (...args) => dispatch(enqueueSnackbarAction(...args))
     const closeSnackbar = (...args) => dispatch(closeSnackbarAction(...args))
+
+    const handleChatModelDataChange = ({ inputParam, newValue }) => {
+        setSelectedChatModel((prevData) => {
+            const updatedData = { ...prevData }
+            updatedData.inputs[inputParam.name] = newValue
+            updatedData.inputParams = showHideInputParams(updatedData)
+            return updatedData
+        })
+    }
+
+    const handleToolDataChange =
+        (toolIndex) =>
+        ({ inputParam, newValue }) => {
+            setSelectedTools((prevTools) => {
+                const updatedTools = [...prevTools]
+                const updatedTool = { ...updatedTools[toolIndex] }
+                updatedTool.inputs[inputParam.name] = newValue
+                updatedTool.inputParams = showHideInputParams(updatedTool)
+                updatedTools[toolIndex] = updatedTool
+                return updatedTools
+            })
+        }
 
     const displayWarning = () => {
         enqueueSnackbar({
@@ -329,6 +352,7 @@ const CustomAssistantConfigurePreview = () => {
                 const retrieverToolNodeData = cloneDeep(initNode(retrieverToolNode.data, retrieverToolId))
 
                 set(docStoreVSNodeData, 'inputs.selectedStore', selectedDocumentStores[i].id)
+                set(docStoreVSNodeData, 'outputs.output', 'retriever')
 
                 const docStoreOption = documentStoreOptions.find((ds) => ds.name === selectedDocumentStores[i].id)
                 // convert to small case and replace space with underscore
@@ -342,7 +366,7 @@ const CustomAssistantConfigurePreview = () => {
                     name,
                     description: desc,
                     retriever: `{{${docStoreVSId}.data.instance}}`,
-                    returnSourceDocuments: true
+                    returnSourceDocuments: selectedDocumentStores[i].returnSourceDocuments ?? false
                 })
 
                 const docStoreVS = {
@@ -649,7 +673,8 @@ const CustomAssistantConfigurePreview = () => {
             const newDocStore = {
                 id: docStoreId,
                 name: foundDocumentStoreOption?.label || '',
-                description: foundSelectedDocumentStore?.description || foundDocumentStoreOption?.description || ''
+                description: foundSelectedDocumentStore?.description || foundDocumentStoreOption?.description || '',
+                returnSourceDocuments: foundSelectedDocumentStore?.returnSourceDocuments ?? false
             }
 
             newSelectedDocumentStores.push(newDocStore)
@@ -1111,6 +1136,18 @@ const CustomAssistantConfigurePreview = () => {
                                                                 setSelectedDocumentStores(newSelectedDocumentStores)
                                                             }}
                                                         />
+                                                        <Stack sx={{ mt: 2, position: 'relative', alignItems: 'center' }} direction='row'>
+                                                            <Typography>Return Source Documents</Typography>
+                                                            <TooltipWithParser title='Return the actual source documents that were used to answer the question' />
+                                                        </Stack>
+                                                        <SwitchInput
+                                                            value={ds.returnSourceDocuments ?? false}
+                                                            onChange={(newValue) => {
+                                                                const newSelectedDocumentStores = [...selectedDocumentStores]
+                                                                newSelectedDocumentStores[index].returnSourceDocuments = newValue
+                                                                setSelectedDocumentStores(newSelectedDocumentStores)
+                                                            }}
+                                                        />
                                                     </Box>
                                                 )
                                             })}
@@ -1126,13 +1163,14 @@ const CustomAssistantConfigurePreview = () => {
                                                     borderRadius: 2
                                                 }}
                                             >
-                                                {(selectedChatModel.inputParams ?? [])
-                                                    .filter((inputParam) => !inputParam.hidden)
+                                                {showHideInputParams(selectedChatModel)
+                                                    .filter((inputParam) => !inputParam.hidden && inputParam.display !== false)
                                                     .map((inputParam, index) => (
                                                         <DocStoreInputHandler
                                                             key={index}
                                                             inputParam={inputParam}
                                                             data={selectedChatModel}
+                                                            onNodeDataChange={handleChatModelDataChange}
                                                         />
                                                     ))}
                                             </Box>
@@ -1217,13 +1255,16 @@ const CustomAssistantConfigurePreview = () => {
                                                                     mb: 1
                                                                 }}
                                                             >
-                                                                {(tool.inputParams ?? [])
-                                                                    .filter((inputParam) => !inputParam.hidden)
-                                                                    .map((inputParam, index) => (
+                                                                {showHideInputParams(tool)
+                                                                    .filter(
+                                                                        (inputParam) => !inputParam.hidden && inputParam.display !== false
+                                                                    )
+                                                                    .map((inputParam, inputIndex) => (
                                                                         <DocStoreInputHandler
-                                                                            key={index}
+                                                                            key={inputIndex}
                                                                             inputParam={inputParam}
                                                                             data={tool}
+                                                                            onNodeDataChange={handleToolDataChange(index)}
                                                                         />
                                                                     ))}
                                                             </Box>

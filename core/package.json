@@ -1,6 +1,6 @@
 {
     "name": "flowise",
-    "version": "3.0.0",
+    "version": "3.0.3",
     "private": true,
     "homepage": "https://flowiseai.com",
     "workspaces": [
@@ -20,6 +20,9 @@
         "start-worker": "run-script-os",
         "start-worker:windows": "cd packages/server/bin && run worker",
         "start-worker:default": "cd packages/server/bin && ./run worker",
+        "user": "run-script-os",
+        "user:windows": "cd packages/server/bin && run user",
+        "user:default": "cd packages/server/bin && ./run user",
         "test": "turbo run test",
         "clean": "pnpm --filter \"./packages/**\" clean",
         "nuke": "pnpm --filter \"./packages/**\" nuke && rimraf node_modules .turbo",
@@ -86,7 +89,7 @@
     "resolutions": {
         "@google/generative-ai": "^0.24.0",
         "@grpc/grpc-js": "^1.10.10",
-        "@langchain/core": "0.3.37",
+        "@langchain/core": "0.3.61",
         "@qdrant/openapi-typescript-fetch": "1.2.6",
         "openai": "4.96.0",
         "protobufjs": "7.4.0"

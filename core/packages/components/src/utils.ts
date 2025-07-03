@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { JSDOM } from 'jsdom'
 import { z } from 'zod'
+import TurndownService from 'turndown'
 import { DataSource, Equal } from 'typeorm'
 import { ICommonObject, IDatabaseEntity, IFileUpload, IMessage, INodeData, IVariable, MessageContentImageUrl } from './Interface'
 import { AES, enc } from 'crypto-js'
@@ -757,7 +758,7 @@ export const mapChatMessageToBaseMessage = async (chatmessages: any[] = [], orgI
                                 }
                             }
                             const documents: string = await fileLoaderNodeInstance.init(nodeData, '', options)
-                            messageWithFileUploads += `<doc name='${upload.name}'>${documents}</doc>\n\n`
+                            messageWithFileUploads += `<doc name='${upload.name}'>${handleEscapeCharacters(documents, true)}</doc>\n\n`
                         }
                     }
                     const messageContent = messageWithFileUploads ? `${messageWithFileUploads}\n\n${message.content}` : message.content
@@ -1214,4 +1215,106 @@ export const handleDocumentLoaderDocuments = async (loader: DocumentLoader, text
     }
 
     return docs
+}
+
+/**
+ * Normalize special characters in key to be used in vector store
+ * @param str - Key to normalize
+ * @returns Normalized key
+ */
+export const normalizeSpecialChars = (str: string) => {
+    return str.replace(/[^a-zA-Z0-9_]/g, '_')
+}
+
+/**
+ * recursively normalize object keys
+ * @param data - Object to normalize
+ * @returns Normalized object
+ */
+export const normalizeKeysRecursively = (data: any): any => {
+    if (Array.isArray(data)) {
+        return data.map(normalizeKeysRecursively)
+    }
+
+    if (data !== null && typeof data === 'object') {
+        return Object.entries(data).reduce((acc, [key, value]) => {
+            const newKey = normalizeSpecialChars(key)
+            acc[newKey] = normalizeKeysRecursively(value)
+            return acc
+        }, {} as Record<string, any>)
+    }
+    return data
+}
+
+/**
+ * Check if OAuth2 token is expired and refresh if needed
+ * @param {string} credentialId
+ * @param {ICommonObject} credentialData
+ * @param {ICommonObject} options
+ * @param {number} bufferTimeMs - Buffer time in milliseconds before expiry (default: 5 minutes)
+ * @returns {Promise<ICommonObject>}
+ */
+export const refreshOAuth2Token = async (
+    credentialId: string,
+    credentialData: ICommonObject,
+    options: ICommonObject,
+    bufferTimeMs: number = 5 * 60 * 1000
+): Promise<ICommonObject> => {
+    // Check if token is expired and refresh if needed
+    if (credentialData.expires_at) {
+        const expiryTime = new Date(credentialData.expires_at)
+        const currentTime = new Date()
+
+        if (currentTime.getTime() > expiryTime.getTime() - bufferTimeMs) {
+            if (!credentialData.refresh_token) {
+                throw new Error('Access token is expired and no refresh token is available. Please re-authorize the credential.')
+            }
+
+            try {
+                // Import fetch dynamically to avoid issues
+                const fetch = (await import('node-fetch')).default
+
+                // Call the refresh API endpoint
+                const refreshResponse = await fetch(
+                    `${options.baseURL || 'http://localhost:3000'}/api/v1/oauth2-credential/refresh/${credentialId}`,
+                    {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                )
+
+                if (!refreshResponse.ok) {
+                    const errorData = await refreshResponse.text()
+                    throw new Error(`Failed to refresh token: ${refreshResponse.status} ${refreshResponse.statusText} - ${errorData}`)
+                }
+
+                await refreshResponse.json()
+
+                // Get the updated credential data
+                const updatedCredentialData = await getCredentialData(credentialId, options)
+
+                return updatedCredentialData
+            } catch (error) {
+                console.error('Failed to refresh access token:', error)
+                throw new Error(
+                    `Failed to refresh access token: ${
+                        error instanceof Error ? error.message : 'Unknown error'
+                    }. Please re-authorize the credential.`
+                )
+            }
+        }
+    }
+
+    // Token is not expired, return original data
+    return credentialData
+}
+
+export const stripHTMLFromToolInput = (input: string) => {
+    const turndownService = new TurndownService()
+    let cleanedInput = turndownService.turndown(input)
+    // After conversion, replace any escaped underscores with regular underscores
+    cleanedInput = cleanedInput.replace(/\\_/g, '_')
+    return cleanedInput
 }

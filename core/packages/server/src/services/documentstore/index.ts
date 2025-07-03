@@ -90,19 +90,6 @@ const getAllDocumentStores = async (workspaceId?: string) => {
     }
 }
 
-const getAllDocumentFileChunks = async () => {
-    try {
-        const appServer = getRunningExpressApp()
-        const entities = await appServer.AppDataSource.getRepository(DocumentStoreFileChunk).find()
-        return entities
-    } catch (error) {
-        throw new InternalFlowiseError(
-            StatusCodes.INTERNAL_SERVER_ERROR,
-            `Error: documentStoreServices.getAllDocumentFileChunks - ${getErrorMessage(error)}`
-        )
-    }
-}
-
 const getAllDocumentFileChunksByDocumentStoreIds = async (documentStoreIds: string[]) => {
     const appServer = getRunningExpressApp()
     return await appServer.AppDataSource.getRepository(DocumentStoreFileChunk).find({ where: { storeId: In(documentStoreIds) } })
@@ -1626,8 +1613,12 @@ const upsertDocStore = async (
             throw new InternalFlowiseError(StatusCodes.BAD_REQUEST, `Error: Invalid metadata`)
         }
     }
-    const replaceExisting = data.replaceExisting ?? false
-    const createNewDocStore = data.createNewDocStore ?? false
+    const replaceExisting =
+        typeof data.replaceExisting === 'string' ? (data.replaceExisting as string).toLowerCase() === 'true' : data.replaceExisting ?? false
+    const createNewDocStore =
+        typeof data.createNewDocStore === 'string'
+            ? (data.createNewDocStore as string).toLowerCase() === 'true'
+            : data.createNewDocStore ?? false
     const newLoader = typeof data.loader === 'string' ? JSON.parse(data.loader) : data.loader
     const newSplitter = typeof data.splitter === 'string' ? JSON.parse(data.splitter) : data.splitter
     const newVectorStore = typeof data.vectorStore === 'string' ? JSON.parse(data.vectorStore) : data.vectorStore
@@ -2258,7 +2249,6 @@ export default {
     createDocumentStore,
     deleteLoaderFromDocumentStore,
     getAllDocumentStores,
-    getAllDocumentFileChunks,
     getAllDocumentFileChunksByDocumentStoreIds,
     getDocumentStoreById,
     getUsedChatflowNames,

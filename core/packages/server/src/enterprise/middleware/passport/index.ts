@@ -1,36 +1,36 @@
+import { HttpStatusCode } from 'axios'
+import { RedisStore } from 'connect-redis'
+import express, { NextFunction, Request, Response } from 'express'
+import session from 'express-session'
+import { StatusCodes } from 'http-status-codes'
+import jwt, { JwtPayload, sign } from 'jsonwebtoken'
 import passport from 'passport'
 import { VerifiedCallback } from 'passport-jwt'
-import express, { NextFunction, Request, Response } from 'express'
-import { ErrorMessage, IAssignedWorkspace, LoggedInUser } from '../../Interface.Enterprise'
-import { decryptToken, encryptToken, generateSafeCopy } from '../../utils/tempTokenUtils'
-import jwt, { JwtPayload, sign } from 'jsonwebtoken'
-import { getAuthStrategy } from './AuthStrategy'
-import { IdentityManager } from '../../../IdentityManager'
-import { HttpStatusCode } from 'axios'
-import { getRunningExpressApp } from '../../../utils/getRunningExpressApp'
-import session from 'express-session'
-import { OrganizationService } from '../../services/organization.service'
-import { AccountService } from '../../services/account.service'
-import { WorkspaceUser, WorkspaceUserStatus } from '../../database/entities/workspace-user.entity'
-import { RoleErrorMessage, RoleService } from '../../services/role.service'
-import { GeneralRole } from '../../database/entities/role.entity'
-import { RedisStore } from 'connect-redis'
-import { WorkspaceUserService } from '../../services/workspace-user.service'
-import { OrganizationUserErrorMessage, OrganizationUserService } from '../../services/organization-user.service'
 import { InternalFlowiseError } from '../../../errors/internalFlowiseError'
-import { StatusCodes } from 'http-status-codes'
-import { OrganizationUserStatus } from '../../database/entities/organization-user.entity'
+import { IdentityManager } from '../../../IdentityManager'
 import { Platform } from '../../../Interface'
+import { getRunningExpressApp } from '../../../utils/getRunningExpressApp'
+import { OrganizationUserStatus } from '../../database/entities/organization-user.entity'
+import { GeneralRole } from '../../database/entities/role.entity'
+import { WorkspaceUser, WorkspaceUserStatus } from '../../database/entities/workspace-user.entity'
+import { ErrorMessage, IAssignedWorkspace, LoggedInUser } from '../../Interface.Enterprise'
+import { AccountService } from '../../services/account.service'
+import { OrganizationUserErrorMessage, OrganizationUserService } from '../../services/organization-user.service'
+import { OrganizationService } from '../../services/organization.service'
+import { RoleErrorMessage, RoleService } from '../../services/role.service'
+import { WorkspaceUserService } from '../../services/workspace-user.service'
+import { decryptToken, encryptToken, generateSafeCopy } from '../../utils/tempTokenUtils'
+import { getAuthStrategy } from './AuthStrategy'
 import { initializeDBClientAndStore, initializeRedisClientAndStore } from './SessionPersistance'
 
 const localStrategy = require('passport-local').Strategy
 
-const jwtAudience = process.env.JWT_AUDIENCE ?? 'AUDIENCE'
-const jwtIssuer = process.env.JWT_ISSUER ?? 'ISSUER'
+const jwtAudience = process.env.JWT_AUDIENCE || 'AUDIENCE'
+const jwtIssuer = process.env.JWT_ISSUER || 'ISSUER'
 
 const expireAuthTokensOnRestart = process.env.EXPIRE_AUTH_TOKENS_ON_RESTART === 'true'
-const jwtAuthTokenSecret = process.env.JWT_AUTH_TOKEN_SECRET ?? 'auth_token'
-const jwtRefreshSecret = process.env.JWT_REFRESH_TOKEN_SECRET ?? process.env.JWT_AUTH_TOKEN_SECRET ?? 'refresh_token'
+const jwtAuthTokenSecret = process.env.JWT_AUTH_TOKEN_SECRET || 'auth_token'
+const jwtRefreshSecret = process.env.JWT_REFRESH_TOKEN_SECRET || process.env.JWT_AUTH_TOKEN_SECRET || 'refresh_token'
 
 const secureCookie = process.env.APP_URL?.startsWith('https') ? true : false
 const jwtOptions = {
@@ -123,7 +123,7 @@ export const initializeJwtCookieMiddleware = async (app: express.Application, id
                     if (!organizationUser)
                         throw new InternalFlowiseError(StatusCodes.NOT_FOUND, OrganizationUserErrorMessage.ORGANIZATION_USER_NOT_FOUND)
                     organizationUser.status = OrganizationUserStatus.ACTIVE
-                    await workspaceUserService.updateWorkspaceUser(workspaceUser)
+                    await workspaceUserService.updateWorkspaceUser(workspaceUser, queryRunner)
                     await organizationUserService.updateOrganizationUser(organizationUser)
 
                     const workspaceUsers = await workspaceUserService.readWorkspaceUserByUserId(organizationUser.userId, queryRunner)
@@ -218,7 +218,7 @@ export const initializeJwtCookieMiddleware = async (app: express.Application, id
         if (!refreshToken) return res.sendStatus(401)
 
         jwt.verify(refreshToken, jwtRefreshSecret, async (err: any, payload: any) => {
-            if (err || !payload) return res.status(403).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
+            if (err || !payload) return res.status(401).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
             // @ts-ignore
             const loggedInUser = req.user as LoggedInUser
             let isSSO = false
@@ -227,16 +227,16 @@ export const initializeJwtCookieMiddleware = async (app: express.Application, id
                 try {
                     newTokenResponse = await identityManager.getRefreshToken(loggedInUser.ssoProvider, loggedInUser.ssoRefreshToken)
                     if (newTokenResponse.error) {
-                        return res.status(403).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
+                        return res.status(401).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
                     }
                     isSSO = true
                 } catch (error) {
-                    return res.status(403).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
+                    return res.status(401).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
                 }
             }
             const meta = decryptToken(payload.meta)
             if (!meta) {
-                return res.status(403).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
+                return res.status(401).json({ message: ErrorMessage.REFRESH_TOKEN_EXPIRED })
             }
             if (isSSO) {
                 loggedInUser.ssoToken = newTokenResponse.access_token
@@ -365,17 +365,13 @@ export const generateJwtRefreshToken = (user: any) => {
 
 const _generateJwtToken = (user: Partial<LoggedInUser>, expiryInMinutes: number, secret: string) => {
     const encryptedUserInfo = encryptToken(user?.id + ':' + user?.activeWorkspaceId)
-    return sign(
-        { id: user?.id, username: user?.name, meta: encryptedUserInfo }, 
-        secret, 
-        {
-            expiresIn: `${expiryInMinutes}m`, // Expiry in minutes
-            notBefore: 0, // Cannot use before now, can be configured to be deferred.
-            algorithm: 'HS256', // HMAC using SHA-256 hash algorithm
-            audience: jwtAudience, // The audience of the token
-            issuer: jwtIssuer // The issuer of the token
-        }
-    )
+    return sign({ id: user?.id, username: user?.name, meta: encryptedUserInfo }, secret!, {
+        expiresIn: expiryInMinutes + 'm', // Expiry in minutes
+        notBefore: '0', // Cannot use before now, can be configured to be deferred.
+        algorithm: 'HS256', // HMAC using SHA-256 hash algorithm
+        audience: jwtAudience, // The audience of the token
+        issuer: jwtIssuer // The issuer of the token
+    })
 }
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {

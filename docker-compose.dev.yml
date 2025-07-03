@@ -1,0 +1,206 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: flowstack-postgres-dev
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=flowstack_admin
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-devpassword}
+      - POSTGRES_DB=flowstack
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowstack_admin -d flowstack"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Development services that build from source with hot reload
+  flowstack-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        - NODE_ENV=development
+    image: flowstack:dev
+    container_name: flowstack-dev
+    ports:
+      - "3000:3000"     # FlowStack proxy
+      - "3001:3001"     # Core API
+      - "8080:8080"     # Core UI dev server
+      - "9229:9229"     # Node.js debugger
+    volumes:
+      # Mount source code for hot reload
+      - ./core:/app/core
+      - ./apps:/app/apps
+      - ./packages:/app/packages
+      - ./scripts:/app/scripts
+      - ./patches:/app/patches
+      # Separate node_modules to avoid conflicts
+      - /app/node_modules
+      - /app/core/node_modules
+      - /app/core/packages/server/node_modules
+      - /app/core/packages/ui/node_modules
+      - /app/core/packages/components/node_modules
+      - /app/apps/flowstack/node_modules
+      # Data persistence
+      - flowstack_data_dev:/root/.flowise
+      - ./logs:/var/log/flowstack
+    environment:
+      # Development mode
+      - NODE_ENV=development
+      - DEBUG=*
+      
+      # Development server ports
+      - PORT=3001                                    # Core API port
+      - PROXY_PORT=3000                             # FlowStack proxy port
+      - VITE_PORT=8080                              # UI dev server port
+      
+      # Core server URLs for proxy
+      - CORE_SERVER_URL=http://localhost:3001
+      - CORE_UI_URL=http://localhost:8080
+      
+      # Database Configuration
+      - DATABASE_TYPE=postgres
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_NAME=flowstack
+      - DATABASE_USER=flowstack_admin
+      - DATABASE_PASSWORD=${DATABASE_PASSWORD:-devpassword}
+      - DATABASE_SSL=false
+      
+      # Development credentials
+      - FLOWISE_USERNAME=${FLOWISE_USERNAME:-admin@dev.local}
+      - FLOWISE_PASSWORD=${FLOWISE_PASSWORD:-devpassword}
+      
+      # Development features
+      - ENABLE_ENTERPRISE=true
+      - FLOWISE_SECRETKEY_OVERWRITE=${FLOWISE_SECRETKEY_OVERWRITE:-devSecretKey}
+      - FLOWISE_FILE_SIZE_LIMIT=${FLOWISE_FILE_SIZE_LIMIT:-100mb}
+      
+      # Hot reload
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+      
+      # Node.js debugging
+      - NODE_OPTIONS=--inspect=0.0.0.0:9229
+      
+      # API Keys (Optional)
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: pnpm dev
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Redis for development testing
+  redis:
+    image: redis:7-alpine
+    container_name: flowstack-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    restart: unless-stopped
+
+  # Database management UI
+  adminer:
+    image: adminer
+    container_name: flowstack-adminer-dev
+    ports:
+      - "8081:8080"  # Changed to 8081 to avoid conflict with UI dev server
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DEFAULT_USERNAME=flowstack_admin
+      - ADMINER_DEFAULT_PASSWORD=${DATABASE_PASSWORD:-devpassword}
+      - ADMINER_DEFAULT_DB=flowstack
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  # Mailhog for email testing
+  mailhog:
+    image: mailhog/mailhog
+    container_name: flowstack-mailhog-dev
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    restart: unless-stopped
+    profiles:
+      - email
+
+  # Development documentation server
+  docs:
+    image: nginx:alpine
+    container_name: flowstack-docs-dev
+    ports:
+      - "8082:80"
+    volumes:
+      - ./docs:/usr/share/nginx/html:ro
+    restart: unless-stopped
+    profiles:
+      - docs
+
+  # Database reset utility
+  db-reset:
+    image: postgres:15-alpine
+    container_name: flowstack-db-reset-dev
+    environment:
+      - PGPASSWORD=${DATABASE_PASSWORD:-devpassword}
+    command: >
+      sh -c "
+        echo 'Dropping and recreating database...';
+        psql -h postgres -U flowstack_admin -d postgres -c 'DROP DATABASE IF EXISTS flowstack;';
+        psql -h postgres -U flowstack_admin -d postgres -c 'CREATE DATABASE flowstack;';
+        echo 'Database reset complete!';
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+  # Database seed utility
+  db-seed:
+    image: postgres:15-alpine
+    container_name: flowstack-db-seed-dev
+    environment:
+      - PGPASSWORD=${DATABASE_PASSWORD:-devpassword}
+    volumes:
+      - ./scripts/seed-data.sql:/seed-data.sql:ro
+    command: >
+      sh -c "
+        echo 'Seeding database...';
+        psql -h postgres -U flowstack_admin -d flowstack -f /seed-data.sql || echo 'No seed file found';
+        echo 'Database seeding complete!';
+      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - tools
+
+volumes:
+  flowstack_data_dev:
+    driver: local
+  postgres_data_dev:
+    driver: local
+  redis_data_dev:
+    driver: local
+
+networks:
+  default:
+    name: flowstack-dev-network
+    driver: bridge
