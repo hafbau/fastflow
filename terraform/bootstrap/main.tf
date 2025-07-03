@@ -111,7 +111,23 @@ resource "aws_iam_policy" "terraform_operations" {
           "s3:ListBucket",
           
           # Route53 (if using custom domains)
-          "route53:*"
+          "route53:*",
+          
+          # ACM (for SSL certificates)
+          "acm:RequestCertificate",
+          "acm:DescribeCertificate",
+          "acm:ListCertificates",
+          "acm:AddTagsToCertificate",
+          "acm:RemoveTagsFromCertificate",
+          "acm:DeleteCertificate",
+          "acm:ListTagsForCertificate",
+          
+          # SSM Parameter Store
+          "ssm:PutParameter",
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:DeleteParameter",
+          "ssm:DescribeParameters"
         ]
         Resource = "*"
       }
