@@ -405,10 +405,6 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
       {
         Effect = "Allow",
         Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
@@ -592,20 +588,14 @@ resource "aws_ecs_service" "fastflow" {
     container_port   = 3000
   }
 
+  # Deployment configuration
+  deployment_maximum_percent         = 100
+  deployment_minimum_healthy_percent = 0
+
   # Circuit breaker to stop deployment if tasks keep failing
   deployment_circuit_breaker {
     enable   = true
     rollback = false
-  }
-
-  # Deployment configuration to limit retry attempts
-  deployment_configuration {
-    maximum_percent         = 100
-    minimum_healthy_percent = 0
-    deployment_circuit_breaker {
-      enable   = true
-      rollback = false
-    }
   }
 
   force_new_deployment = true
