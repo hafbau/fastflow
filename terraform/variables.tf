@@ -45,5 +45,11 @@ variable "db_password" {
 variable "ecs_desired_count" {
   description = "Desired number of ECS tasks (set to 0 to stop the service)"
   type        = number
-  default     = 0 # Set to 0 to prevent tasks from running
+  default     = 2 # Set to 2 for high availability
+}
+
+variable "domain_name" {
+  description = "Domain name for the application (optional, required for HTTPS)"
+  type        = string
+  default     = "studio.getflowstack.ai" # Set this to enable HTTPS
 }

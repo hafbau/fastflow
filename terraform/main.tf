@@ -131,6 +131,13 @@ resource "aws_security_group" "alb_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
@@ -189,11 +196,85 @@ resource "aws_lb_target_group" "dummy" {
   }
 }
 
-# Create Listener for Public Load Balancer
+# Create ACM Certificate (if domain is provided)
+resource "aws_acm_certificate" "main" {
+  count                     = var.domain_name != "" ? 1 : 0
+  domain_name               = var.domain_name
+  subject_alternative_names = ["*.${var.domain_name}"]
+  validation_method         = "DNS"
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  tags = {
+    Name = "${var.stage}-certificate"
+  }
+}
+
+# Create Route53 Hosted Zone (if domain is provided and doesn't exist)
+data "aws_route53_zone" "main" {
+  count        = var.domain_name != "" ? 1 : 0
+  name         = var.domain_name
+  private_zone = false
+}
+
+# Create DNS validation records
+resource "aws_route53_record" "cert_validation" {
+  for_each = var.domain_name != "" ? {
+    for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      record = dvo.resource_record_value
+      type   = dvo.resource_record_type
+    }
+  } : {}
+
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
+}
+
+# Certificate validation
+resource "aws_acm_certificate_validation" "main" {
+  count                   = var.domain_name != "" ? 1 : 0
+  certificate_arn         = aws_acm_certificate.main[0].arn
+  validation_record_fqdns = [for record in aws_route53_record.cert_validation : record.fqdn]
+}
+
+# Create Listener for Public Load Balancer (HTTP)
 resource "aws_lb_listener" "public_listener" {
   load_balancer_arn = aws_lb.public.arn
   port              = "80"
   protocol          = "HTTP"
+
+  default_action {
+    type = var.domain_name != "" ? "redirect" : "forward"
+    
+    # Redirect to HTTPS if domain is configured
+    dynamic "redirect" {
+      for_each = var.domain_name != "" ? [1] : []
+      content {
+        port        = "443"
+        protocol    = "HTTPS"
+        status_code = "HTTP_301"
+      }
+    }
+    
+    # Forward to target group if no domain
+    target_group_arn = var.domain_name != "" ? null : aws_lb_target_group.dummy.arn
+  }
+}
+
+# Create HTTPS Listener (if domain is provided)
+resource "aws_lb_listener" "public_listener_https" {
+  count             = var.domain_name != "" ? 1 : 0
+  load_balancer_arn = aws_lb.public.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
+  certificate_arn   = aws_acm_certificate_validation.main[0].certificate_arn
 
   default_action {
     type             = "forward"
@@ -385,7 +466,8 @@ resource "aws_ecs_task_definition" "fastflow" {
         }
       ]
       environment = [
-        { name = "PORT", value = "3000" },
+        { name = "PORT", value = "3001" },
+        { name = "PROXY_PORT", value = "3000" },
         { name = "DATABASE_TYPE", value = "postgres" },
         { name = "FLOWISE_USERNAME", value = "hafiz@leadevs.com" },
         { name = "FLOWISE_PASSWORD", value = "Password1@#" },
@@ -395,7 +477,15 @@ resource "aws_ecs_task_definition" "fastflow" {
         { name = "DATABASE_NAME", value = aws_db_instance.flowstack.db_name },
         { name = "DATABASE_USER", value = aws_db_instance.flowstack.username },
         { name = "DATABASE_PASSWORD", value = aws_db_instance.flowstack.password },
-        { name = "DATABASE_SSL", value = "true" }
+        { name = "DATABASE_SSL", value = "true" },
+        { name = "CORE_SERVER_URL", value = "http://localhost:3001" },
+        { name = "CORE_UI_URL", value = "http://localhost:3001" },
+        { name = "ENABLE_ENTERPRISE", value = "true" },
+        { name = "FLOWISE_SECRETKEY_OVERWRITE", value = "flowstack-secret-key" },
+        { name = "APIKEY_PATH", value = "/root/.fastflow" },
+        { name = "SECRETKEY_PATH", value = "/root/.fastflow" },
+        { name = "LOG_PATH", value = "/root/.fastflow/logs" },
+        { name = "BLOB_STORAGE_PATH", value = "/root/.fastflow/storage" }
       ]
       entryPoint = ["/usr/local/bin/docker-entrypoint.sh"]
       mountPoints = [
@@ -447,9 +537,27 @@ resource "aws_lb_target_group" "fastflow" {
   }
 }
 
-# Create Listener Rule for Fastflow
+# Create Listener Rule for Fastflow (HTTP)
 resource "aws_lb_listener_rule" "fastflow" {
   listener_arn = aws_lb_listener.public_listener.arn
+  priority     = 200
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.fastflow.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
+# Create Listener Rule for Fastflow (HTTPS)
+resource "aws_lb_listener_rule" "fastflow_https" {
+  count        = var.domain_name != "" ? 1 : 0
+  listener_arn = aws_lb_listener.public_listener_https[0].arn
   priority     = 200
 
   action {
@@ -508,9 +616,43 @@ resource "aws_ecs_service" "fastflow" {
   ]
 }
 
+# Create Route53 A record for the domain (if provided)
+resource "aws_route53_record" "main" {
+  count   = var.domain_name != "" ? 1 : 0
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.public.dns_name
+    zone_id                = aws_lb.public.zone_id
+    evaluate_target_health = true
+  }
+}
+
+# Create Route53 A record for www subdomain (if provided)
+resource "aws_route53_record" "www" {
+  count   = var.domain_name != "" ? 1 : 0
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_lb.public.dns_name
+    zone_id                = aws_lb.public.zone_id
+    evaluate_target_health = true
+  }
+}
+
 # Output the external URL
 output "external_url" {
   description = "URL of the Fastflow application"
-  value       = "http://${aws_lb.public.dns_name}"
+  value       = var.domain_name != "" ? "https://${var.domain_name}" : "http://${aws_lb.public.dns_name}"
+}
+
+# Output the ALB DNS name (always available)
+output "alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = aws_lb.public.dns_name
 }
 
