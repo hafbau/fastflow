@@ -116,6 +116,9 @@ export const getDatabaseSSLFromEnv = () => {
         }
     } else if (process.env.DATABASE_SSL === 'true') {
         return true
+    } else if (process.env.DATABASE_SSL === 'false') {
+        // Explicitly return false to disable SSL when DATABASE_SSL=false
+        return false
     }
     return undefined
 }

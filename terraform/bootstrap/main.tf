@@ -63,6 +63,11 @@ resource "aws_iam_policy" "terraform_operations" {
           # VPC and Networking
           "ec2:*",
           
+          # Additional EC2 permissions for RDS ENI management
+          "ec2:DetachNetworkInterface",
+          "ec2:DeleteNetworkInterface",
+          "ec2:ModifyNetworkInterfaceAttribute",
+          
           # ECS
           "ecs:*",
           
@@ -98,6 +103,16 @@ resource "aws_iam_policy" "terraform_operations" {
           # RDS
           "rds:*",
           
+          # RDS Network Interface permissions
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:CreateNetworkInterface",
+          "ec2:DeleteNetworkInterface",
+          "ec2:DescribeSubnets",
+          "ec2:DescribeVpcs",
+          "ec2:DescribeSecurityGroups",
+          "ec2:ModifyNetworkInterfaceAttribute",
+          "ec2:CreateTags",
+          
           # EFS
           "elasticfilesystem:*",
           
@@ -127,7 +142,13 @@ resource "aws_iam_policy" "terraform_operations" {
           "ssm:GetParameter",
           "ssm:GetParameters",
           "ssm:DeleteParameter",
-          "ssm:DescribeParameters"
+          "ssm:DescribeParameters",
+          
+          # DynamoDB (for Terraform state lock)
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:DescribeTable"
         ]
         Resource = "*"
       }

@@ -1,0 +1,23 @@
+#!/bin/bash
+# Start script for Flowise core service
+
+echo "[FLOWSTACK] Starting Flowise Enterprise on port ${PORT:-3001}..."
+echo "[FLOWSTACK] Node version: $(node --version)"
+echo "[FLOWSTACK] Environment: ${NODE_ENV:-production}"
+
+# Change to the core server directory
+cd /usr/src/core/packages/server || exit 1
+
+# Add any necessary environment setup
+export NODE_ENV=${NODE_ENV:-production}
+export PORT=${PORT:-3001}
+
+# Log configuration
+echo "[FLOWSTACK] Configuration:"
+echo "  - Port: $PORT"
+echo "  - Enterprise: $ENABLE_ENTERPRISE"
+echo "  - Database: $DATABASE_TYPE"
+echo "  - Database Host: ${DATABASE_HOST}:${DATABASE_PORT}"
+
+# Start the Flowise server
+exec pnpm start

@@ -33,6 +33,26 @@ resource "aws_security_group" "rds_sg" {
   tags = {
     Name = "${var.stage}-flowstack-rds-sg"
   }
+  
+  # Prevent deletion issues - RDS must be deleted first
+  lifecycle {
+    create_before_destroy = false
+  }
+}
+
+# Create custom parameter group to disable SSL enforcement
+resource "aws_db_parameter_group" "flowstack" {
+  name   = "${var.stage}-flowstack-pg15"
+  family = "postgres15"
+
+  parameter {
+    name  = "rds.force_ssl"
+    value = "0"
+  }
+
+  tags = {
+    Name = "${var.stage}-flowstack-parameter-group"
+  }
 }
 
 # RDS PostgreSQL instance
@@ -41,6 +61,9 @@ resource "aws_db_instance" "flowstack" {
   engine         = "postgres"
   engine_version = "15.12"
   instance_class = var.db_instance_class
+  
+  # Use custom parameter group
+  parameter_group_name = aws_db_parameter_group.flowstack.name
 
   allocated_storage     = var.db_allocated_storage
   max_allocated_storage = var.db_max_allocated_storage
@@ -66,6 +89,11 @@ resource "aws_db_instance" "flowstack" {
 
   tags = {
     Name = "${var.stage}-flowstack-db"
+  }
+  
+  # Add timeout for delete operations
+  timeouts {
+    delete = "60m"
   }
 }
 

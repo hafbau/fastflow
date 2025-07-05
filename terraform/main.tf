@@ -196,32 +196,24 @@ resource "aws_lb_target_group" "dummy" {
   }
 }
 
-# Create ACM Certificate (if domain is provided)
-resource "aws_acm_certificate" "main" {
-  count                     = var.domain_name != "" ? 1 : 0
-  domain_name               = var.domain_name
-  subject_alternative_names = ["*.${var.domain_name}"]
-  validation_method         = "DNS"
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tags = {
-    Name = "${var.stage}-certificate"
-  }
+# Use existing wildcard certificate or create new one
+data "aws_acm_certificate" "existing" {
+  count       = var.domain_name != "" ? 1 : 0
+  domain      = "*.getflowstack.ai"
+  statuses    = ["ISSUED"]
+  most_recent = true
 }
 
-# Output DNS validation records for manual configuration
-output "acm_certificate_validation_records" {
-  description = "DNS validation records to be added to your DNS provider (e.g., GoDaddy)"
+# Output certificate info
+output "certificate_info" {
+  description = "Information about the certificate being used"
   value = var.domain_name != "" ? {
-    for dvo in aws_acm_certificate.main[0].domain_validation_options : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      type   = dvo.resource_record_type
-      value  = dvo.resource_record_value
-    }
-  } : {}
+    arn    = data.aws_acm_certificate.existing[0].arn
+    domain = data.aws_acm_certificate.existing[0].domain
+    status = "Using existing wildcard certificate"
+  } : {
+    status = "HTTPS not configured"
+  }
 }
 
 # Note: Certificate validation will remain pending until DNS records are added manually
@@ -261,14 +253,12 @@ resource "aws_lb_listener" "public_listener_https" {
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-TLS-1-2-2017-01"
-  certificate_arn   = aws_acm_certificate.main[0].arn
+  certificate_arn   = data.aws_acm_certificate.existing[0].arn
 
   default_action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.dummy.arn
   }
-  
-  # Note: This listener will only work after the certificate is validated via DNS
 }
 
 # Create ECS Cluster
@@ -294,6 +284,11 @@ resource "aws_security_group" "efs_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+  
+  # Prevent deletion issues - EFS mount targets must be deleted first
+  lifecycle {
+    create_before_destroy = false
   }
 }
 
@@ -462,7 +457,8 @@ resource "aws_ecs_task_definition" "fastflow" {
         { name = "DATABASE_NAME", value = aws_db_instance.flowstack.db_name },
         { name = "DATABASE_USER", value = aws_db_instance.flowstack.username },
         { name = "DATABASE_PASSWORD", value = aws_db_instance.flowstack.password },
-        { name = "DATABASE_SSL", value = "true" },
+        { name = "DATABASE_SSL", value = "false" },
+        { name = "NODE_TLS_REJECT_UNAUTHORIZED", value = "0" },
         { name = "CORE_SERVER_URL", value = "http://localhost:3001" },
         { name = "CORE_UI_URL", value = "http://localhost:3001" },
         { name = "ENABLE_ENTERPRISE", value = "true" },
@@ -472,7 +468,44 @@ resource "aws_ecs_task_definition" "fastflow" {
         { name = "LOG_PATH", value = "/root/.fastflow/logs" },
         { name = "BLOB_STORAGE_PATH", value = "/root/.fastflow/storage" }
       ]
-      entryPoint = ["/usr/local/bin/docker-entrypoint.sh"]
+      entryPoint = ["/bin/sh", "-c"]
+      command = [
+        <<-EOT
+        # Create a clean supervisord config that directly runs the services
+        cat > /etc/supervisor/conf.d/flowstack.conf << 'EOF'
+        [supervisord]
+        nodaemon=true
+        
+        [program:flowise-core]
+        command=pnpm start
+        directory=/usr/src/core/packages/server
+        environment=PORT="3001",NODE_ENV="production",NODE_TLS_REJECT_UNAUTHORIZED="0",FLOWISE_USERNAME="%(ENV_FLOWISE_USERNAME)s",FLOWISE_PASSWORD="%(ENV_FLOWISE_PASSWORD)s",DATABASE_TYPE="%(ENV_DATABASE_TYPE)s",DATABASE_HOST="%(ENV_DATABASE_HOST)s",DATABASE_PORT="%(ENV_DATABASE_PORT)s",DATABASE_NAME="%(ENV_DATABASE_NAME)s",DATABASE_USER="%(ENV_DATABASE_USER)s",DATABASE_PASSWORD="%(ENV_DATABASE_PASSWORD)s",DATABASE_SSL="%(ENV_DATABASE_SSL)s"
+        autostart=true
+        autorestart=true
+        stdout_logfile=/dev/stdout
+        stderr_logfile=/dev/stderr
+        stdout_logfile_maxbytes=0
+        stderr_logfile_maxbytes=0
+        priority=10
+        
+        [program:flowstack-proxy]
+        command=node proxy-server.js
+        directory=/usr/src/apps/flowstack
+        environment=PORT="3000",CORE_SERVER_URL="http://localhost:3001",CORE_UI_URL="http://localhost:3001"
+        autostart=true
+        autorestart=true
+        stdout_logfile=/dev/stdout
+        stderr_logfile=/dev/stderr
+        stdout_logfile_maxbytes=0
+        stderr_logfile_maxbytes=0
+        priority=20
+        startsecs=10
+        EOF
+        
+        # Start supervisord with our clean config
+        exec /usr/bin/supervisord -c /etc/supervisor/conf.d/flowstack.conf
+        EOT
+      ]
       mountPoints = [
         {
           sourceVolume  = "efs-volume"
@@ -616,12 +649,12 @@ output "alb_dns_name" {
 # Output DNS configuration instructions
 output "dns_configuration_instructions" {
   description = "Instructions for configuring DNS with external providers"
-  value = var.domain_name != "" ? "Please configure DNS: 1) Add CNAME records from 'acm_certificate_validation_records' output to validate certificate. 2) Point ${var.domain_name} to ${aws_lb.public.dns_name}. 3) Create CNAME for www.${var.domain_name} pointing to ${var.domain_name}." : "No domain configured - using HTTP only"
+  value = var.domain_name != "" ? "Using existing wildcard certificate (*.getflowstack.ai). Please configure DNS in GoDaddy: 1) Create an A record for ${var.domain_name} pointing to ${aws_lb.public.dns_name}. 2) Optionally create a CNAME for www.${var.domain_name} pointing to ${var.domain_name}." : "No domain configured - using HTTP only"
 }
 
 # Output certificate ARN for reference
 output "acm_certificate_arn" {
-  description = "ARN of the ACM certificate (if created)"
-  value       = var.domain_name != "" ? aws_acm_certificate.main[0].arn : "No certificate created"
+  description = "ARN of the ACM certificate being used"
+  value       = var.domain_name != "" ? data.aws_acm_certificate.existing[0].arn : "No certificate configured"
 }
 

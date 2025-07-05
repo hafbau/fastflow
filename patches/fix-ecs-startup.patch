@@ -1,0 +1,46 @@
+diff --git a/core/packages/server/src/DataSource.ts b/core/packages/server/src/DataSource.ts
+index abc123..def456 100644
+--- a/core/packages/server/src/DataSource.ts
++++ b/core/packages/server/src/DataSource.ts
+@@ -1,6 +1,14 @@
+ export const getDatabaseSSLFromEnv = () => {
++    // In ECS/Production, handle SSL certificate validation issues
++    if (process.env.DATABASE_SSL === 'true' && process.env.NODE_ENV === 'production') {
++        // Return SSL config that works with AWS RDS self-signed certificates
++        return {
++            rejectUnauthorized: false
++        }
++    }
++    
+     if (process.env.DATABASE_SSL_KEY_BASE64) {
+         return {
+             rejectUnauthorized: false,
+             ca: Buffer.from(process.env.DATABASE_SSL_KEY_BASE64, 'base64')
+         }
+     } else if (process.env.DATABASE_SSL === 'true') {
+         return true
+     }
+     return undefined
+ }
+
+diff --git a/core/packages/server/src/index.ts b/core/packages/server/src/index.ts
+index abc123..def456 100644
+--- a/core/packages/server/src/index.ts
++++ b/core/packages/server/src/index.ts
+@@ -280,7 +280,15 @@ export class App {
+         })
+
+         // this is for SSO and must be after the JWT cookie middleware
+-        await this.identityManager.initializeSSO(this.app)
++        try {
++            if (this.identityManager && typeof this.identityManager.initializeSSO === 'function') {
++                await this.identityManager.initializeSSO(this.app)
++            } else {
++                logger.warn('⚠️ [server]: SSO initialization skipped - Identity Manager not properly initialized')
++            }
++        } catch (error) {
++            logger.error(`❌ [server]: SSO initialization failed: ${error}`)
++        }
+
+         if (process.env.ENABLE_METRICS === 'true') {
+             switch (process.env.METRICS_PROVIDER) {

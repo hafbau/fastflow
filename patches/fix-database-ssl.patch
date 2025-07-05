@@ -1,0 +1,14 @@
+diff --git a/core/packages/server/src/DataSource.ts b/core/packages/server/src/DataSource.ts
+index abc123..def456 100644
+--- a/core/packages/server/src/DataSource.ts
++++ b/core/packages/server/src/DataSource.ts
+@@ -111,6 +111,9 @@ export const getDatabaseSSLFromEnv = () => {
+         }
+     } else if (process.env.DATABASE_SSL === 'true') {
+         return true
++    } else if (process.env.DATABASE_SSL === 'false') {
++        // Explicitly return false to disable SSL
++        return false
+     }
+     return undefined
+ }
