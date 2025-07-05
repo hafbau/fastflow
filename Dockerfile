@@ -2,7 +2,28 @@
 # Builds both core Flowise and FlowStack proxy layer
 
 FROM node:20-alpine AS deps
-RUN apk add --update --no-cache libc6-compat python3 py3-setuptools make g++ git curl wget
+# Install build dependencies for native modules (canvas, node-gyp, etc.)
+RUN apk add --update --no-cache \
+    libc6-compat \
+    python3 \
+    py3-setuptools \
+    make \
+    g++ \
+    git \
+    curl \
+    wget \
+    # Canvas dependencies
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev \
+    # pkg-config is required for node-gyp
+    pkgconfig \
+    # Additional build tools
+    build-base \
+    # For better compatibility
+    bash
 
 # Install pnpm manually by downloading binary for the correct architecture
 ENV SHELL=/bin/sh
@@ -26,7 +47,8 @@ COPY packages/*/package.json ./packages/*/
 COPY scripts ./scripts
 
 # Install dependencies for the monorepo
-RUN pnpm install --frozen-lockfile || true
+# Use --shamefully-hoist to avoid bin linking issues in monorepos
+RUN pnpm install --frozen-lockfile --shamefully-hoist || true
 
 # Copy apps directory and install dependencies for the proxy app specifically
 COPY apps ./apps
@@ -35,9 +57,28 @@ RUN pnpm install --prod
 
 # Build stage
 FROM node:20-alpine AS builder
-RUN apk add --update --no-cache libc6-compat python3 py3-setuptools make g++ git curl wget
-# needed for pdfjs-dist
-RUN apk add --no-cache build-base cairo-dev pango-dev
+# Install same build dependencies as deps stage
+RUN apk add --update --no-cache \
+    libc6-compat \
+    python3 \
+    py3-setuptools \
+    make \
+    g++ \
+    git \
+    curl \
+    wget \
+    # Canvas dependencies
+    cairo-dev \
+    jpeg-dev \
+    pango-dev \
+    giflib-dev \
+    pixman-dev \
+    # pkg-config is required for node-gyp
+    pkgconfig \
+    # Additional build tools
+    build-base \
+    # For better compatibility
+    bash
 
 # Install pnpm manually by downloading binary for the correct architecture
 ENV SHELL=/bin/sh
@@ -53,7 +94,7 @@ COPY . .
 
 # Install all dependencies for the entire workspace
 WORKDIR /usr/src
-RUN pnpm install --no-frozen-lockfile || echo "Dependencies installed with warnings"
+RUN pnpm install --no-frozen-lockfile --shamefully-hoist || echo "Dependencies installed with warnings"
 
 # Build the core application
 WORKDIR /usr/src/core
@@ -65,7 +106,20 @@ RUN pnpm run build
 FROM node:20-alpine AS runner
 RUN apk add --update --no-cache libc6-compat
 # Install runtime dependencies
-RUN apk add --no-cache chromium curl supervisor postgresql-client wget
+RUN apk add --no-cache \
+    chromium \
+    curl \
+    supervisor \
+    postgresql-client \
+    wget \
+    # Canvas runtime dependencies
+    cairo \
+    jpeg \
+    pango \
+    giflib \
+    pixman \
+    # For better compatibility
+    bash
 
 # Install pnpm manually by downloading binary for the correct architecture
 ENV SHELL=/bin/sh
