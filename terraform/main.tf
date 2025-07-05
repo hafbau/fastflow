@@ -463,10 +463,15 @@ resource "aws_ecs_task_definition" "fastflow" {
         { name = "CORE_UI_URL", value = "http://localhost:3001" },
         { name = "ENABLE_ENTERPRISE", value = "true" },
         { name = "FLOWISE_SECRETKEY_OVERWRITE", value = "flowstack-secret-key" },
-        { name = "APIKEY_PATH", value = "/root/.fastflow" },
-        { name = "SECRETKEY_PATH", value = "/root/.fastflow" },
-        { name = "LOG_PATH", value = "/root/.fastflow/logs" },
-        { name = "BLOB_STORAGE_PATH", value = "/root/.fastflow/storage" }
+        { name = "APIKEY_PATH", value = "/root/.flowise" },
+        { name = "SECRETKEY_PATH", value = "/root/.flowise" },
+        { name = "LOG_PATH", value = "/root/.flowise/logs" },
+        { name = "BLOB_STORAGE_PATH", value = "/root/.flowise/storage" },
+        { name = "NODE_ENV", value = "production" },
+        { name = "FLOWISE_FILE_SIZE_LIMIT", value = "50mb" },
+        { name = "EXECUTION_MODE", value = "main" },
+        { name = "QUEUE_PROVIDER", value = "memory" },
+        { name = "FLOWISE_SKIP_OFFLINE_LICENSE_VERIFY", value = "true" }
       ]
       entryPoint = ["/bin/sh", "-c"]
       command = [
@@ -509,7 +514,7 @@ resource "aws_ecs_task_definition" "fastflow" {
       mountPoints = [
         {
           sourceVolume  = "efs-volume"
-          containerPath = "/root/.fastflow"
+          containerPath = "/root/.flowise"
         }
       ]
       logConfiguration = {
