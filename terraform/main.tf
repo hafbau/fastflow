@@ -457,8 +457,9 @@ resource "aws_ecs_task_definition" "fastflow" {
         { name = "DATABASE_NAME", value = aws_db_instance.flowstack.db_name },
         { name = "DATABASE_USER", value = aws_db_instance.flowstack.username },
         { name = "DATABASE_PASSWORD", value = aws_db_instance.flowstack.password },
-        { name = "DATABASE_SSL", value = "false" },
+        { name = "DATABASE_SSL", value = "true" },
         { name = "NODE_TLS_REJECT_UNAUTHORIZED", value = "0" },
+        { name = "PGSSLMODE", value = "require" },
         { name = "CORE_SERVER_URL", value = "http://localhost:3001" },
         { name = "CORE_UI_URL", value = "http://localhost:3001" },
         { name = "ENABLE_ENTERPRISE", value = "true" },
@@ -484,7 +485,7 @@ resource "aws_ecs_task_definition" "fastflow" {
         [program:flowise-core]
         command=pnpm start
         directory=/usr/src/core/packages/server
-        environment=PORT="3001",NODE_ENV="production",NODE_TLS_REJECT_UNAUTHORIZED="0",FLOWISE_USERNAME="%(ENV_FLOWISE_USERNAME)s",FLOWISE_PASSWORD="%(ENV_FLOWISE_PASSWORD)s",DATABASE_TYPE="%(ENV_DATABASE_TYPE)s",DATABASE_HOST="%(ENV_DATABASE_HOST)s",DATABASE_PORT="%(ENV_DATABASE_PORT)s",DATABASE_NAME="%(ENV_DATABASE_NAME)s",DATABASE_USER="%(ENV_DATABASE_USER)s",DATABASE_PASSWORD="%(ENV_DATABASE_PASSWORD)s",DATABASE_SSL="%(ENV_DATABASE_SSL)s"
+        environment=PORT="3001",NODE_ENV="production",NODE_TLS_REJECT_UNAUTHORIZED="0",PGSSLMODE="require",FLOWISE_USERNAME="%(ENV_FLOWISE_USERNAME)s",FLOWISE_PASSWORD="%(ENV_FLOWISE_PASSWORD)s",DATABASE_TYPE="%(ENV_DATABASE_TYPE)s",DATABASE_HOST="%(ENV_DATABASE_HOST)s",DATABASE_PORT="%(ENV_DATABASE_PORT)s",DATABASE_NAME="%(ENV_DATABASE_NAME)s",DATABASE_USER="%(ENV_DATABASE_USER)s",DATABASE_PASSWORD="%(ENV_DATABASE_PASSWORD)s",DATABASE_SSL="%(ENV_DATABASE_SSL)s"
         autostart=true
         autorestart=true
         stdout_logfile=/dev/stdout

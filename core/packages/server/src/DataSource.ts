@@ -115,6 +115,14 @@ export const getDatabaseSSLFromEnv = () => {
             ca: Buffer.from(process.env.DATABASE_SSL_KEY_BASE64, 'base64')
         }
     } else if (process.env.DATABASE_SSL === 'true') {
+        // For AWS RDS, we need to accept their SSL certificate
+        // NODE_TLS_REJECT_UNAUTHORIZED=0 handles this at the Node level
+        // But for TypeORM/pg, we need to explicitly set rejectUnauthorized
+        if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === '0') {
+            return {
+                rejectUnauthorized: false
+            }
+        }
         return true
     } else if (process.env.DATABASE_SSL === 'false') {
         // Explicitly return false to disable SSL when DATABASE_SSL=false
