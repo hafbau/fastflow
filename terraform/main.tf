@@ -448,18 +448,11 @@ resource "aws_ecs_task_definition" "fastflow" {
       environment = [
         { name = "PORT", value = "3001" },
         { name = "PROXY_PORT", value = "3000" },
-        { name = "DATABASE_TYPE", value = "postgres" },
+        { name = "DATABASE_TYPE", value = "sqlite" },
         { name = "FLOWISE_USERNAME", value = "hafiz@leadevs.com" },
         { name = "FLOWISE_PASSWORD", value = "Password1@#" },
         { name = "VITE_PORT", value = "8080" },
-        { name = "DATABASE_HOST", value = aws_db_instance.flowstack.address },
-        { name = "DATABASE_PORT", value = tostring(aws_db_instance.flowstack.port) },
-        { name = "DATABASE_NAME", value = aws_db_instance.flowstack.db_name },
-        { name = "DATABASE_USER", value = aws_db_instance.flowstack.username },
-        { name = "DATABASE_PASSWORD", value = aws_db_instance.flowstack.password },
-        { name = "DATABASE_SSL", value = "true" },
-        { name = "NODE_TLS_REJECT_UNAUTHORIZED", value = "0" },
-        { name = "PGSSLMODE", value = "require" },
+        { name = "DATABASE_PATH", value = "/root/.flowise" },
         { name = "CORE_SERVER_URL", value = "http://localhost:3001" },
         { name = "CORE_UI_URL", value = "http://localhost:3001" },
         { name = "ENABLE_ENTERPRISE", value = "true" },
@@ -485,7 +478,7 @@ resource "aws_ecs_task_definition" "fastflow" {
         [program:flowise-core]
         command=pnpm start
         directory=/usr/src/core/packages/server
-        environment=PORT="3001",NODE_ENV="production",NODE_TLS_REJECT_UNAUTHORIZED="0",PGSSLMODE="require",FLOWISE_USERNAME="%(ENV_FLOWISE_USERNAME)s",FLOWISE_PASSWORD="%(ENV_FLOWISE_PASSWORD)s",DATABASE_TYPE="%(ENV_DATABASE_TYPE)s",DATABASE_HOST="%(ENV_DATABASE_HOST)s",DATABASE_PORT="%(ENV_DATABASE_PORT)s",DATABASE_NAME="%(ENV_DATABASE_NAME)s",DATABASE_USER="%(ENV_DATABASE_USER)s",DATABASE_PASSWORD="%(ENV_DATABASE_PASSWORD)s",DATABASE_SSL="%(ENV_DATABASE_SSL)s"
+        environment=PORT="3001",NODE_ENV="production",FLOWISE_USERNAME="%(ENV_FLOWISE_USERNAME)s",FLOWISE_PASSWORD="%(ENV_FLOWISE_PASSWORD)s",DATABASE_TYPE="%(ENV_DATABASE_TYPE)s",DATABASE_PATH="%(ENV_DATABASE_PATH)s",ENABLE_ENTERPRISE="%(ENV_ENABLE_ENTERPRISE)s",FLOWISE_SECRETKEY_OVERWRITE="%(ENV_FLOWISE_SECRETKEY_OVERWRITE)s"
         autostart=true
         autorestart=true
         stdout_logfile=/dev/stdout
