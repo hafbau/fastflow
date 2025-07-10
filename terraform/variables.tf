@@ -53,3 +53,10 @@ variable "domain_name" {
   type        = string
   default     = "studio.getflowstack.ai" # Set this to enable HTTPS
 }
+
+variable "smtp_password" {
+  description = "SMTP password for email sending"
+  type        = string
+  sensitive   = true
+  default     = "" # Set via environment variable TF_VAR_smtp_password
+}

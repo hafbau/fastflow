@@ -411,7 +411,8 @@ resource "aws_iam_role_policy" "ecs_task_execution_policy" {
           "ssm:GetParameter"
         ],
         Resource = [
-          "arn:aws:ssm:${var.region}:*:parameter/${var.stage}/flowstack/db/*"
+          "arn:aws:ssm:${var.region}:*:parameter/${var.stage}/flowstack/db/*",
+          "arn:aws:ssm:${var.region}:*:parameter/${var.stage}/flowstack/smtp/*"
         ]
       }
     ]
@@ -465,7 +466,20 @@ resource "aws_ecs_task_definition" "fastflow" {
         { name = "FLOWISE_FILE_SIZE_LIMIT", value = "50mb" },
         { name = "EXECUTION_MODE", value = "main" },
         { name = "QUEUE_PROVIDER", value = "memory" },
-        { name = "FLOWISE_SKIP_OFFLINE_LICENSE_VERIFY", value = "true" }
+        { name = "FLOWISE_SKIP_OFFLINE_LICENSE_VERIFY", value = "true" },
+        { name = "SMTP_HOST", value = "smtp.resend.com" },
+        { name = "SMTP_PORT", value = "465" },
+        { name = "SMTP_USER", value = "resend" },
+        { name = "SMTP_SECURE", value = "true" },
+        { name = "ALLOW_UNAUTHORIZED_CERTS", value = "true" },
+        { name = "SENDER_EMAIL", value = "hafiz@autoctrl.ai" },
+        { name = "WORKSPACE_INVITE_TEMPLATE_PATH", value = "/usr/src/packages/@flowstack/email-templates" }
+      ]
+      secrets = [
+        {
+          name      = "SMTP_PASSWORD"
+          valueFrom = aws_ssm_parameter.smtp_password.arn
+        }
       ]
       entryPoint = ["/bin/sh", "-c"]
       command = [
@@ -478,7 +492,7 @@ resource "aws_ecs_task_definition" "fastflow" {
         [program:flowise-core]
         command=pnpm start
         directory=/usr/src/core/packages/server
-        environment=PORT="3001",NODE_ENV="production",FLOWISE_USERNAME="%(ENV_FLOWISE_USERNAME)s",FLOWISE_PASSWORD="%(ENV_FLOWISE_PASSWORD)s",DATABASE_TYPE="%(ENV_DATABASE_TYPE)s",DATABASE_PATH="%(ENV_DATABASE_PATH)s",ENABLE_ENTERPRISE="%(ENV_ENABLE_ENTERPRISE)s",FLOWISE_SECRETKEY_OVERWRITE="%(ENV_FLOWISE_SECRETKEY_OVERWRITE)s"
+        environment=PORT="3001",NODE_ENV="production",FLOWISE_USERNAME="%(ENV_FLOWISE_USERNAME)s",FLOWISE_PASSWORD="%(ENV_FLOWISE_PASSWORD)s",DATABASE_TYPE="%(ENV_DATABASE_TYPE)s",DATABASE_PATH="%(ENV_DATABASE_PATH)s",ENABLE_ENTERPRISE="%(ENV_ENABLE_ENTERPRISE)s",FLOWISE_SECRETKEY_OVERWRITE="%(ENV_FLOWISE_SECRETKEY_OVERWRITE)s",SMTP_HOST="%(ENV_SMTP_HOST)s",SMTP_PORT="%(ENV_SMTP_PORT)s",SMTP_USER="%(ENV_SMTP_USER)s",SMTP_PASSWORD="%(ENV_SMTP_PASSWORD)s",SMTP_SECURE="%(ENV_SMTP_SECURE)s",ALLOW_UNAUTHORIZED_CERTS="%(ENV_ALLOW_UNAUTHORIZED_CERTS)s",SENDER_EMAIL="%(ENV_SENDER_EMAIL)s",WORKSPACE_INVITE_TEMPLATE_PATH="%(ENV_WORKSPACE_INVITE_TEMPLATE_PATH)s"
         autostart=true
         autorestart=true
         stdout_logfile=/dev/stdout
